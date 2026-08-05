@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+:root {
+  --color-brand-primary: #420708;
+  --color-brand-secondary: #7f1d1d;
+  --color-brand-accent: #d97706;
+}
+
+/* Theme Presets */
+.theme-maroon_gold {
+  --color-brand-primary: #420708;
+  --color-brand-secondary: #7f1d1d;
+  --color-brand-accent: #d97706;
+}
+
+.theme-academic_navy {
+  --color-brand-primary: #0f172a;
+  --color-brand-secondary: #1e3a8a;
+  --color-brand-accent: #0284c7;
+}
+
+.theme-emerald_teal {
+  --color-brand-primary: #064e3b;
+  --color-brand-secondary: #0f766e;
+  --color-brand-accent: #0d9488;
+}
+
+.theme-slate_classic {
+  --color-brand-primary: #18181b;
+  --color-brand-secondary: #27272a;
+  --color-brand-accent: #dc2626;
+}
+
+.theme-burgundy_wine {
+  --color-brand-primary: #4c0519;
+  --color-brand-secondary: #831843;
+  --color-brand-accent: #e11d48;
+}
+
+/* Helper dynamic brand classes */
+.bg-brand-primary {
+  background-color: var(--color-brand-primary);
+}
+
+.bg-brand-secondary {
+  background-color: var(--color-brand-secondary);
+}
+
+.text-brand-accent {
+  color: var(--color-brand-accent);
+}
+
+.border-brand-primary {
+  border-color: var(--color-brand-primary);
+}
+

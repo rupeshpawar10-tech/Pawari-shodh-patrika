@@ -1,0 +1,1212 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  collection, 
+  doc, 
+  getDocs, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  increment
+} from 'firebase/firestore';
+import { ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage, auth, firebaseConfig } from './firebase';
+import { 
+  JournalSettings, 
+  Article, 
+  Issue, 
+  PageContent, 
+  EditorialMember, 
+  Announcement, 
+  MediaFile,
+  ContactMessage
+} from '../types';
+import { BookItem, BlogItem, SAMPLE_BOOKS, SAMPLE_BLOGS } from '../data/booksBlogsData';
+import { 
+  DEFAULT_SETTINGS, 
+  DEFAULT_PAGES, 
+  SAMPLE_ISSUES, 
+  SAMPLE_ARTICLES, 
+  SAMPLE_EDITORIAL_BOARD, 
+  SAMPLE_ANNOUNCEMENTS 
+} from '../data/seedData';
+import { fileBlobManager, saveFileToIndexedDB, base64ToBlob } from './fileBlobManager';
+
+export type PublicPageView = 
+  | 'home' 
+  | 'about' 
+  | 'current_issue' 
+  | 'archive' 
+  | 'articles' 
+  | 'books_blogs'
+  | 'article_detail' 
+  | 'editorial_board' 
+  | 'author_guidelines' 
+  | 'submit_manuscript'
+  | 'contact' 
+  | 'admin';
+
+export type AdminTab = 
+  | 'dashboard' 
+  | 'articles' 
+  | 'issues' 
+  | 'books_blogs'
+  | 'pages' 
+  | 'section_manager' 
+  | 'editorial_board' 
+  | 'announcements' 
+  | 'media' 
+  | 'submissions'
+  | 'settings' 
+  | 'users'
+  | 'roles';
+
+interface CmsContextType {
+  lang: 'hi' | 'en';
+  setLang: (lang: 'hi' | 'en') => void;
+  activeView: PublicPageView;
+  setActiveView: (view: PublicPageView) => void;
+  selectedArticleId: string | null;
+  setSelectedArticleId: (id: string | null) => void;
+  activeAdminTab: AdminTab;
+  setActiveAdminTab: (tab: AdminTab) => void;
+  
+  settings: JournalSettings;
+  articles: Article[];
+  issues: Issue[];
+  books: BookItem[];
+  blogs: BlogItem[];
+  pages: Record<string, PageContent>;
+  editorialMembers: EditorialMember[];
+  announcements: Announcement[];
+  mediaFiles: MediaFile[];
+  contactMessages: ContactMessage[];
+  submissions: import('../types').Submission[];
+  loadingData: boolean;
+
+  // View PDF Modal State
+  activePdfUrl: string | null;
+  activePdfTitle: string | null;
+  openPdfViewer: (url: string, title: string) => void;
+  closePdfViewer: () => void;
+
+  // CRUD Actions
+  saveSettings: (newSettings: JournalSettings) => Promise<void>;
+  saveArticle: (article: Article) => Promise<void>;
+  deleteArticle: (id: string) => Promise<void>;
+  saveIssue: (issue: Issue) => Promise<void>;
+  deleteIssue: (id: string) => Promise<void>;
+  saveBook: (book: BookItem) => Promise<void>;
+  deleteBook: (id: string) => Promise<void>;
+  saveBlog: (blog: BlogItem) => Promise<void>;
+  deleteBlog: (id: string) => Promise<void>;
+  savePage: (page: PageContent) => Promise<void>;
+  saveEditorialMember: (member: EditorialMember) => Promise<void>;
+  deleteEditorialMember: (id: string) => Promise<void>;
+  saveAnnouncement: (announcement: Announcement) => Promise<void>;
+  deleteAnnouncement: (id: string) => Promise<void>;
+  uploadFileToStorage: (file: File, folder?: string, onProgress?: (progress: number) => void) => Promise<{ url: string; path: string; fileId: string }>;
+  deleteFileFromStorage: (path: string) => Promise<void>;
+  submitContactMessage: (msg: Omit<ContactMessage, 'id' | 'date' | 'status'>) => Promise<void>;
+  incrementArticleViews: (articleId: string) => Promise<void>;
+  incrementArticleDownloads: (articleId: string) => Promise<void>;
+  
+  // Submission Actions
+  addSubmission: (sub: Omit<import('../types').Submission, 'id' | 'status' | 'submitted_at'>) => Promise<void>;
+  saveSubmission: (submission: import('../types').Submission) => Promise<void>;
+  updateSubmissionStatus: (id: string, status: import('../types').Submission['status']) => Promise<void>;
+  deleteSubmission: (id: string) => Promise<void>;
+  
+  seedDatabaseIfEmpty: () => Promise<void>;
+}
+
+const CmsContext = createContext<CmsContextType | undefined>(undefined);
+
+async function readFileAsDataUrl(file: File, maxDim = 600, quality = 0.80): Promise<string> {
+  const nameLower = (file.name || '').toLowerCase();
+  const fileType = file.type || '';
+  const isImg = fileType.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp|heic|heif)$/i.test(nameLower);
+
+  // Strategy 1: Read natively via FileReader
+  let rawDataUrl = '';
+  try {
+    rawDataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string' && reader.result.length > 0) resolve(reader.result);
+        else reject(new Error('Empty result'));
+      };
+      reader.onerror = () => reject(reader.error || new Error('FileReader error'));
+      reader.readAsDataURL(file);
+    });
+  } catch (e) {
+    console.warn('FileReader failed, attempting Blob fallback:', e);
+  }
+
+  // Strategy 2: Blob fallback
+  if (!rawDataUrl) {
+    try {
+      const blob = new Blob([file], { type: fileType || 'image/jpeg' });
+      rawDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.warn('Blob FileReader failed:', e);
+    }
+  }
+
+  // Strategy 3: ObjectURL fallback
+  if (!rawDataUrl && isImg) {
+    try {
+      rawDataUrl = URL.createObjectURL(file);
+    } catch (e) {}
+  }
+
+  if (!rawDataUrl) {
+    throw new Error(`Unable to read file "${file.name}". Please re-select the image file.`);
+  }
+
+  if (!isImg) return rawDataUrl;
+
+  // Canvas compression to keep base64 photos lightweight (<50KB) & 100% compatible with Firestore & LocalStorage
+  try {
+    const compressedUrl = await new Promise<string>((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { resolve(rawDataUrl); return; }
+          ctx.drawImage(img, 0, 0, width, height);
+          const result = canvas.toDataURL('image/jpeg', quality);
+          resolve(result || rawDataUrl);
+        } catch (err) {
+          resolve(rawDataUrl);
+        }
+      };
+      img.onerror = () => {
+        resolve(rawDataUrl);
+      };
+      img.src = rawDataUrl;
+    });
+
+    return compressedUrl;
+  } catch (err) {
+    return rawDataUrl;
+  }
+}
+
+async function compressImageDataUrlIfNeeded(dataUrl: string, maxDim = 800, quality = 0.80): Promise<string> {
+  if (!dataUrl.startsWith('data:image/')) return dataUrl;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width <= maxDim && height <= maxDim && dataUrl.length < 150 * 1024) {
+        resolve(dataUrl);
+        return;
+      }
+      if (width > height) {
+        if (width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        }
+      } else {
+        if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(dataUrl); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      try {
+        const compressed = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressed);
+      } catch (e) {
+        resolve(dataUrl);
+      }
+    };
+    img.onerror = () => {
+      resolve(dataUrl);
+    };
+    img.src = dataUrl;
+  });
+}
+
+const parseDeepLinkFromUrl = (): { initialView: PublicPageView; initialArticleId: string | null } => {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const articleParam = urlParams.get('article') || urlParams.get('paper') || urlParams.get('id');
+    
+    let hashArticle = '';
+    if (window.location.hash.includes('article=')) {
+      hashArticle = window.location.hash.split('article=')[1]?.split('&')[0] || '';
+    } else if (window.location.hash.includes('paper=')) {
+      hashArticle = window.location.hash.split('paper=')[1]?.split('&')[0] || '';
+    } else if (window.location.hash.startsWith('#/article/')) {
+      hashArticle = window.location.hash.replace('#/article/', '');
+    }
+
+    const targetId = (articleParam || hashArticle || '').trim();
+    if (targetId) {
+      return { initialView: 'article_detail', initialArticleId: targetId };
+    }
+  } catch (err) {}
+  return { initialView: 'home', initialArticleId: null };
+};
+
+export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const initialDeepLink = parseDeepLinkFromUrl();
+  const [lang, setLang] = useState<'hi' | 'en'>('hi');
+  const [activeView, setActiveView] = useState<PublicPageView>(initialDeepLink.initialView);
+  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(initialDeepLink.initialArticleId);
+  const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('dashboard');
+
+  const [settings, setSettings] = useState<JournalSettings>(DEFAULT_SETTINGS);
+  const [articles, setArticles] = useState<Article[]>(SAMPLE_ARTICLES);
+  const [issues, setIssues] = useState<Issue[]>(SAMPLE_ISSUES);
+  const [books, setBooks] = useState<BookItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('local_books_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return SAMPLE_BOOKS;
+  });
+  const [blogs, setBlogs] = useState<BlogItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('local_blogs_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return SAMPLE_BLOGS;
+  });
+  const [pages, setPages] = useState<Record<string, PageContent>>(DEFAULT_PAGES);
+  const [editorialMembers, setEditorialMembers] = useState<EditorialMember[]>(() => {
+    try {
+      const saved = localStorage.getItem('local_editorial_members_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return SAMPLE_EDITORIAL_BOARD;
+  });
+  const [announcements, setAnnouncements] = useState<Announcement[]>(SAMPLE_ANNOUNCEMENTS);
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
+  const [submissions, setSubmissions] = useState<import('../types').Submission[]>([]);
+  const [loadingData, setLoadingData] = useState<boolean>(true);
+
+  // PDF Modal Viewer
+  const [activePdfUrl, setActivePdfUrl] = useState<string | null>(null);
+  const [activePdfTitle, setActivePdfTitle] = useState<string | null>(null);
+
+  const openPdfViewer = (url: string, title: string) => {
+    setActivePdfUrl(url);
+    setActivePdfTitle(title);
+  };
+
+  const closePdfViewer = () => {
+    setActivePdfUrl(null);
+    setActivePdfTitle(null);
+  };
+
+  // Load initial data from Firestore
+  useEffect(() => {
+    let isMounted = true;
+    const fetchData = async () => {
+      setLoadingData(true);
+      
+      // 1. Journal Settings
+      try {
+        const settingsSnap = await getDoc(doc(db, 'settings', 'journal_settings'));
+        if (settingsSnap.exists() && isMounted) {
+          setSettings(settingsSnap.data() as JournalSettings);
+        } else if (auth.currentUser) {
+          setDoc(doc(db, 'settings', 'journal_settings'), DEFAULT_SETTINGS).catch(() => {});
+        }
+      } catch (e) {
+        // Fallback to DEFAULT_SETTINGS silently
+      }
+
+      // 2. Articles
+      try {
+        const articlesSnap = await getDocs(collection(db, 'articles'));
+        let loadedArticles: Article[] = [];
+        if (!articlesSnap.empty) {
+          loadedArticles = articlesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Article));
+        }
+
+        // Merge with local cache if local cache has custom pdf_url or newly created articles
+        const cached = localStorage.getItem('local_articles_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.forEach((cachedArt: Article) => {
+                const idx = loadedArticles.findIndex(a => a.id === cachedArt.id);
+                if (idx !== -1) {
+                  if (cachedArt.pdf_url && !loadedArticles[idx].pdf_url) {
+                    loadedArticles[idx].pdf_url = cachedArt.pdf_url;
+                    loadedArticles[idx].pdf_storage_path = cachedArt.pdf_storage_path || loadedArticles[idx].pdf_storage_path;
+                  }
+                } else {
+                  loadedArticles.unshift(cachedArt);
+                }
+              });
+            }
+          } catch (e) {}
+        }
+
+        if (loadedArticles.length > 0 && isMounted) {
+          setArticles(loadedArticles);
+          try { localStorage.setItem('local_articles_cache', JSON.stringify(loadedArticles)); } catch (e) {}
+        } else if (isMounted) {
+          if (auth.currentUser) {
+            SAMPLE_ARTICLES.forEach(art => {
+              setDoc(doc(db, 'articles', art.id), art).catch(() => {});
+            });
+          }
+          setArticles(SAMPLE_ARTICLES);
+        }
+      } catch (e) {
+        const cached = localStorage.getItem('local_articles_cache');
+        if (cached && isMounted) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) setArticles(parsed);
+          } catch (err) {}
+        }
+      }
+
+      // 3. Issues
+      try {
+        const issuesSnap = await getDocs(collection(db, 'issues'));
+        if (!issuesSnap.empty && isMounted) {
+          const loadedIssues = issuesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Issue));
+          setIssues(loadedIssues);
+          try { localStorage.setItem('local_issues_cache', JSON.stringify(loadedIssues)); } catch (e) {}
+        } else {
+          const cached = localStorage.getItem('local_issues_cache');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) setIssues(parsed);
+            } catch (e) {}
+          } else if (auth.currentUser) {
+            SAMPLE_ISSUES.forEach(iss => {
+              setDoc(doc(db, 'issues', iss.id), iss).catch(() => {});
+            });
+          }
+        }
+      } catch (e) {
+        const cached = localStorage.getItem('local_issues_cache');
+        if (cached && isMounted) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) setIssues(parsed);
+          } catch (err) {}
+        }
+      }
+
+      // 3.1 Books
+      try {
+        const booksSnap = await getDocs(collection(db, 'books'));
+        if (!booksSnap.empty && isMounted) {
+          const loadedBooks = booksSnap.docs.map(d => ({ id: d.id, ...d.data() } as BookItem));
+          setBooks(loadedBooks);
+          try { localStorage.setItem('local_books_cache', JSON.stringify(loadedBooks)); } catch (e) {}
+        } else {
+          const cached = localStorage.getItem('local_books_cache');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) setBooks(parsed);
+            } catch (e) {}
+          }
+        }
+      } catch (e) {
+        // Fallback silently
+      }
+
+      // 3.2 Blogs
+      try {
+        const blogsSnap = await getDocs(collection(db, 'blogs'));
+        if (!blogsSnap.empty && isMounted) {
+          const loadedBlogs = blogsSnap.docs.map(d => ({ id: d.id, ...d.data() } as BlogItem));
+          setBlogs(loadedBlogs);
+          try { localStorage.setItem('local_blogs_cache', JSON.stringify(loadedBlogs)); } catch (e) {}
+        } else {
+          const cached = localStorage.getItem('local_blogs_cache');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) setBlogs(parsed);
+            } catch (e) {}
+          }
+        }
+      } catch (e) {
+        // Fallback silently
+      }
+
+      // 4. Pages
+      try {
+        const pagesSnap = await getDocs(collection(db, 'pages'));
+        if (!pagesSnap.empty && isMounted) {
+          const loadedPages: Record<string, PageContent> = {};
+          pagesSnap.docs.forEach(d => {
+            loadedPages[d.id] = d.data() as PageContent;
+          });
+          setPages(loadedPages);
+        } else if (auth.currentUser) {
+          Object.entries(DEFAULT_PAGES).forEach(([key, val]) => {
+            setDoc(doc(db, 'pages', key), val).catch(() => {});
+          });
+        }
+      } catch (e) {
+        // Fallback to DEFAULT_PAGES
+      }
+
+      // 5. Editorial Board
+      try {
+        const boardSnap = await getDocs(collection(db, 'editorial_members'));
+        let loadedBoard: EditorialMember[] = [];
+        if (!boardSnap.empty) {
+          loadedBoard = boardSnap.docs.map(d => ({ id: d.id, ...d.data() } as EditorialMember));
+        }
+
+        const cached = localStorage.getItem('local_editorial_members_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.forEach((cachedMember: EditorialMember) => {
+                const idx = loadedBoard.findIndex(m => m.id === cachedMember.id);
+                if (idx !== -1) {
+                  if (cachedMember.photo_url && (!loadedBoard[idx].photo_url || loadedBoard[idx].photo_url === '')) {
+                    loadedBoard[idx].photo_url = cachedMember.photo_url;
+                  }
+                } else {
+                  loadedBoard.push(cachedMember);
+                }
+              });
+            }
+          } catch (e) {}
+        }
+
+        if (loadedBoard.length > 0 && isMounted) {
+          loadedBoard.sort((a, b) => a.order - b.order);
+          setEditorialMembers(loadedBoard);
+          try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(loadedBoard)); } catch (e) {}
+        } else if (isMounted) {
+          if (auth.currentUser) {
+            SAMPLE_EDITORIAL_BOARD.forEach(member => {
+              setDoc(doc(db, 'editorial_members', member.id), member).catch(() => {});
+            });
+          }
+          setEditorialMembers(SAMPLE_EDITORIAL_BOARD);
+        }
+      } catch (e) {
+        const cached = localStorage.getItem('local_editorial_members_cache');
+        if (cached && isMounted) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) setEditorialMembers(parsed);
+          } catch (err) {}
+        }
+      }
+
+      // 6. Announcements
+      try {
+        const annSnap = await getDocs(collection(db, 'announcements'));
+        if (!annSnap.empty && isMounted) {
+          const loadedAnn = annSnap.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
+          setAnnouncements(loadedAnn);
+        } else if (auth.currentUser) {
+          SAMPLE_ANNOUNCEMENTS.forEach(ann => {
+            setDoc(doc(db, 'announcements', ann.id), ann).catch(() => {});
+          });
+        }
+      } catch (e) {
+        // Fallback silently
+      }
+
+      // 7. Media Library
+      try {
+        const mediaSnap = await getDocs(collection(db, 'media'));
+        if (!mediaSnap.empty && isMounted) {
+          const items = mediaSnap.docs.map(d => ({ id: d.id, ...d.data() } as MediaFile));
+          setMediaFiles(items);
+        }
+      } catch (e) {
+        // Silent fallback
+      }
+
+      // 8. Contact Messages
+      try {
+        const msgSnap = await getDocs(collection(db, 'contact_messages'));
+        if (!msgSnap.empty && isMounted) {
+          setContactMessages(msgSnap.docs.map(d => ({ id: d.id, ...d.data() } as ContactMessage)));
+        }
+      } catch (e) {
+        // Silent fallback
+      }
+
+      // 9. Submissions
+      try {
+        const subSnap = await getDocs(collection(db, 'submissions'));
+        if (!subSnap.empty && isMounted) {
+          setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() } as import('../types').Submission)));
+        }
+      } catch (e) {
+        // Silent fallback
+      }
+
+      if (isMounted) {
+        setLoadingData(false);
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Deep Linking Handler for ?article=XYZ or #article=XYZ or ?paper=XYZ
+  useEffect(() => {
+    const handleDeepLink = () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const articleParam = urlParams.get('article') || urlParams.get('paper') || urlParams.get('id');
+        
+        let hashArticle = '';
+        if (window.location.hash.includes('article=')) {
+          hashArticle = window.location.hash.split('article=')[1]?.split('&')[0] || '';
+        } else if (window.location.hash.startsWith('#/article/')) {
+          hashArticle = window.location.hash.replace('#/article/', '');
+        }
+
+        const targetId = articleParam || hashArticle;
+        if (targetId && targetId.trim() !== '') {
+          setSelectedArticleId(targetId.trim());
+          setActiveView('article_detail');
+        }
+      } catch (err) {
+        console.warn('URL deep linking error:', err);
+      }
+    };
+
+    handleDeepLink();
+    window.addEventListener('popstate', handleDeepLink);
+    window.addEventListener('hashchange', handleDeepLink);
+    return () => {
+      window.removeEventListener('popstate', handleDeepLink);
+      window.removeEventListener('hashchange', handleDeepLink);
+    };
+  }, []);
+
+  // Sync URL search params when viewing an article detail
+  useEffect(() => {
+    if (activeView === 'article_detail' && selectedArticleId) {
+      try {
+        const currentUrl = new URL(window.location.href);
+        if (currentUrl.searchParams.get('article') !== selectedArticleId) {
+          currentUrl.searchParams.set('article', selectedArticleId);
+          window.history.replaceState({}, '', currentUrl.toString());
+        }
+      } catch (e) {}
+    } else if (activeView !== 'article_detail') {
+      try {
+        const currentUrl = new URL(window.location.href);
+        if (currentUrl.searchParams.has('article')) {
+          currentUrl.searchParams.delete('article');
+          currentUrl.searchParams.delete('paper');
+          window.history.replaceState({}, '', currentUrl.toString());
+        }
+      } catch (e) {}
+    }
+  }, [activeView, selectedArticleId]);
+
+  const seedDatabaseIfEmpty = async () => {
+    try {
+      await setDoc(doc(db, 'settings', 'journal_settings'), DEFAULT_SETTINGS);
+      for (const art of SAMPLE_ARTICLES) {
+        await setDoc(doc(db, 'articles', art.id), art);
+      }
+      for (const iss of SAMPLE_ISSUES) {
+        await setDoc(doc(db, 'issues', iss.id), iss);
+      }
+      for (const [key, val] of Object.entries(DEFAULT_PAGES)) {
+        await setDoc(doc(db, 'pages', key), val);
+      }
+      for (const m of SAMPLE_EDITORIAL_BOARD) {
+        await setDoc(doc(db, 'editorial_members', m.id), m);
+      }
+      for (const a of SAMPLE_ANNOUNCEMENTS) {
+        await setDoc(doc(db, 'announcements', a.id), a);
+      }
+      setSettings(DEFAULT_SETTINGS);
+      setArticles(SAMPLE_ARTICLES);
+      setIssues(SAMPLE_ISSUES);
+      setPages(DEFAULT_PAGES);
+      setEditorialMembers(SAMPLE_EDITORIAL_BOARD);
+      setAnnouncements(SAMPLE_ANNOUNCEMENTS);
+    } catch (e) {
+      console.error('Failed to seed database:', e);
+    }
+  };
+
+  // Actions
+  const saveSettings = async (newSettings: JournalSettings) => {
+    setSettings(newSettings);
+    try {
+      await setDoc(doc(db, 'settings', 'journal_settings'), newSettings);
+      if (newSettings.homepage_sections && Array.isArray(newSettings.homepage_sections)) {
+        for (const sec of newSettings.homepage_sections) {
+          await setDoc(doc(db, 'homepage_sections', sec.id || sec.key), sec).catch(console.warn);
+        }
+      }
+    } catch (e) {
+      console.error('Error saving settings to firestore:', e);
+    }
+  };
+
+  const saveArticle = async (article: Article) => {
+    let articleToSave = { ...article };
+
+    // If pdf_url is a base64 Data URL, isolate it to user_files collection to prevent exceeding Firestore's 1MB document limit
+    if (articleToSave.pdf_url && (articleToSave.pdf_url.startsWith('data:') || articleToSave.pdf_url.length > 300)) {
+      const dataUrl = articleToSave.pdf_url;
+      const fileId = 'file_art_' + articleToSave.id + '_' + Date.now();
+      const storagePath = `user_files/${fileId}`;
+      const base64Content = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+
+      const userFileRecord = {
+        id: fileId,
+        name: `${articleToSave.title_english || 'article'}.pdf`,
+        type: 'application/pdf',
+        size: dataUrl.length,
+        content: base64Content,
+        base64: base64Content,
+        url: dataUrl,
+        uploaded_at: new Date().toISOString(),
+        storage_path: storagePath
+      };
+
+      const blob = base64ToBlob(dataUrl);
+      if (blob) {
+        fileBlobManager.registerBlob(fileId, blob);
+      }
+
+      try {
+        localStorage.setItem(`pdf_cache_${fileId}`, dataUrl);
+      } catch (e) {}
+
+      try {
+        await setDoc(doc(db, 'user_files', fileId), userFileRecord);
+        articleToSave.pdf_url = fileId;
+        articleToSave.pdf_storage_path = storagePath;
+      } catch (err) {
+        console.error('Failed to isolate heavy PDF to user_files collection:', err);
+      }
+    }
+
+    const updated = articles.filter(a => a.id !== articleToSave.id);
+    updated.unshift(articleToSave);
+    setArticles(updated);
+
+    try {
+      localStorage.setItem('local_articles_cache', JSON.stringify(updated));
+    } catch (e) {}
+
+    try {
+      await setDoc(doc(db, 'articles', articleToSave.id), articleToSave);
+      console.log(`[saveArticle] Successfully saved article metadata to Firestore with pdf_url: ${articleToSave.pdf_url}`);
+    } catch (e) {
+      console.error('Error saving article to Firestore:', e);
+    }
+  };
+
+  const deleteArticle = async (id: string) => {
+    const updated = articles.filter(a => a.id !== id);
+    setArticles(updated);
+    try {
+      localStorage.setItem('local_articles_cache', JSON.stringify(updated));
+    } catch (e) {}
+    try {
+      await deleteDoc(doc(db, 'articles', id));
+    } catch (e) {
+      console.error('Error deleting article:', e);
+    }
+  };
+
+  const saveIssue = async (issue: Issue) => {
+    let updated = issues.filter(i => i.id !== issue.id);
+    if (issue.status === 'current') {
+      // Set other current issues to published
+      updated = updated.map(i => i.status === 'current' ? { ...i, status: 'published' } : i);
+    }
+    updated.unshift(issue);
+    setIssues(updated);
+    try {
+      localStorage.setItem('local_issues_cache', JSON.stringify(updated));
+    } catch (e) {}
+    try {
+      if (issue.status === 'current') {
+        const snap = await getDocs(collection(db, 'issues'));
+        snap.docs.forEach(async (d) => {
+          if (d.data().status === 'current' && d.id !== issue.id) {
+            await updateDoc(doc(db, 'issues', d.id), { status: 'published' });
+          }
+        });
+      }
+      await setDoc(doc(db, 'issues', issue.id), issue);
+    } catch (e) {
+      console.error('Error saving issue:', e);
+    }
+  };
+
+  const deleteIssue = async (id: string) => {
+    setIssues(prev => prev.filter(i => i.id !== id));
+    try {
+      await deleteDoc(doc(db, 'issues', id));
+    } catch (e) {
+      console.error('Error deleting issue:', e);
+    }
+  };
+
+  const saveBook = async (book: BookItem) => {
+    const updated = books.filter(b => b.id !== book.id);
+    updated.unshift(book);
+    setBooks(updated);
+    try {
+      localStorage.setItem('local_books_cache', JSON.stringify(updated));
+    } catch (e) {}
+    try {
+      await setDoc(doc(db, 'books', book.id), book);
+    } catch (e) {
+      console.error('Error saving book:', e);
+    }
+  };
+
+  const deleteBook = async (id: string) => {
+    const updated = books.filter(b => b.id !== id);
+    setBooks(updated);
+    try {
+      localStorage.setItem('local_books_cache', JSON.stringify(updated));
+    } catch (e) {}
+    try {
+      await deleteDoc(doc(db, 'books', id));
+    } catch (e) {
+      console.error('Error deleting book:', e);
+    }
+  };
+
+  const saveBlog = async (blog: BlogItem) => {
+    const updated = blogs.filter(b => b.id !== blog.id);
+    updated.unshift(blog);
+    setBlogs(updated);
+    try {
+      localStorage.setItem('local_blogs_cache', JSON.stringify(updated));
+    } catch (e) {}
+    try {
+      await setDoc(doc(db, 'blogs', blog.id), blog);
+    } catch (e) {
+      console.error('Error saving blog:', e);
+    }
+  };
+
+  const deleteBlog = async (id: string) => {
+    const updated = blogs.filter(b => b.id !== id);
+    setBlogs(updated);
+    try {
+      localStorage.setItem('local_blogs_cache', JSON.stringify(updated));
+    } catch (e) {}
+    try {
+      await deleteDoc(doc(db, 'blogs', id));
+    } catch (e) {
+      console.error('Error deleting blog:', e);
+    }
+  };
+
+  const savePage = async (page: PageContent) => {
+    setPages(prev => ({ ...prev, [page.id]: page }));
+    try {
+      await setDoc(doc(db, 'pages', page.id), page);
+    } catch (e) {
+      console.error('Error saving page content:', e);
+    }
+  };
+
+  const saveEditorialMember = async (member: EditorialMember) => {
+    const updated = editorialMembers.filter(m => m.id !== member.id);
+    updated.push(member);
+    updated.sort((a, b) => a.order - b.order);
+    setEditorialMembers(updated);
+    try {
+      localStorage.setItem('local_editorial_members_cache', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
+    }
+    try {
+      await setDoc(doc(db, 'editorial_members', member.id), member);
+      await setDoc(doc(db, 'editorial_board', member.id), member).catch(console.warn);
+    } catch (e) {
+      console.error('Error saving editorial member:', e);
+    }
+  };
+
+  const deleteEditorialMember = async (id: string) => {
+    const updated = editorialMembers.filter(m => m.id !== id);
+    setEditorialMembers(updated);
+    try {
+      localStorage.setItem('local_editorial_members_cache', JSON.stringify(updated));
+    } catch (e) {}
+    try {
+      await deleteDoc(doc(db, 'editorial_members', id));
+      await deleteDoc(doc(db, 'editorial_board', id)).catch(console.warn);
+    } catch (e) {
+      console.error('Error deleting editorial member:', e);
+    }
+  };
+
+  const saveAnnouncement = async (announcement: Announcement) => {
+    const updated = announcements.filter(a => a.id !== announcement.id);
+    updated.unshift(announcement);
+    setAnnouncements(updated);
+    try {
+      await setDoc(doc(db, 'announcements', announcement.id), announcement);
+    } catch (e) {
+      console.error('Error saving announcement:', e);
+    }
+  };
+
+  const deleteAnnouncement = async (id: string) => {
+    setAnnouncements(prev => prev.filter(a => a.id !== id));
+    try {
+      await deleteDoc(doc(db, 'announcements', id));
+    } catch (e) {
+      console.error('Error deleting announcement:', e);
+    }
+  };
+
+  const uploadFileToStorage = async (
+    rawFile: File, 
+    folder?: string,
+    onProgress?: (progress: number) => void
+  ): Promise<{ url: string; path: string; fileId: string }> => {
+    // 1. Verify File object
+    if (!rawFile || !(rawFile instanceof File)) {
+      throw new Error('Invalid File: Expected a valid File object.');
+    }
+
+    if (rawFile.size <= 0) {
+      throw new Error(`Empty File: Selected file "${rawFile.name}" has 0 bytes.`);
+    }
+
+    if (onProgress) onProgress(10);
+
+    const nameLower = rawFile.name.toLowerCase();
+    const isImage = rawFile.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(nameLower);
+    const isPdf = rawFile.type === 'application/pdf' || nameLower.endsWith('.pdf');
+
+    // Determine specific Content-Type metadata
+    let contentType = rawFile.type;
+    if (!contentType || contentType === 'application/octet-stream') {
+      if (isPdf) contentType = 'application/pdf';
+      else if (nameLower.endsWith('.png')) contentType = 'image/png';
+      else if (nameLower.endsWith('.jpg') || nameLower.endsWith('.jpeg')) contentType = 'image/jpeg';
+      else if (nameLower.endsWith('.webp')) contentType = 'image/webp';
+      else if (nameLower.endsWith('.gif')) contentType = 'image/gif';
+      else if (nameLower.endsWith('.svg')) contentType = 'image/svg+xml';
+      else if (isImage) contentType = 'image/jpeg';
+      else contentType = 'application/octet-stream';
+    }
+
+    const fileId = 'file_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    const targetFolder = folder || (isImage ? 'editorial_photos' : isPdf ? 'documents' : 'uploads');
+    const cleanFileName = rawFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = `${targetFolder}/${Date.now()}_${cleanFileName}`;
+
+    // Specific metadata containing contentType for standard Firebase Storage
+    const metadata = {
+      contentType: contentType,
+      customMetadata: {
+        originalName: rawFile.name,
+        uploadedAt: new Date().toISOString()
+      }
+    };
+
+    let downloadUrl = '';
+    let storageUploadSuccess = false;
+
+    // Standard Firebase Storage uploadBytes execution with 45s timeout
+    try {
+      if (onProgress) onProgress(25);
+      const storageRef = ref(storage, storagePath);
+      console.log(`[Firebase Storage uploadBytes] Uploading file "${rawFile.name}" with content-type "${contentType}" to "${storagePath}"...`);
+
+      const uploadPromise = uploadBytes(storageRef, rawFile, metadata);
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Firebase Storage timeout (45s elapsed), using fallback')), 45000)
+      );
+
+      const snapshot = await Promise.race([uploadPromise, timeoutPromise]);
+      if (onProgress) onProgress(75);
+
+      downloadUrl = await getDownloadURL(snapshot.ref);
+      storageUploadSuccess = true;
+      console.log(`[Firebase Storage uploadBytes] Upload Successful! Direct Storage URL:`, downloadUrl);
+    } catch (storageErr) {
+      console.warn('[Firebase Storage uploadBytes] Storage upload error or unreachable, using fallback:', storageErr);
+    }
+
+    // Resilient fallback if Firebase Storage bucket is not available in environment
+    if (!storageUploadSuccess || !downloadUrl) {
+      if (onProgress) onProgress(45);
+      let dataUrl = await readFileAsDataUrl(rawFile);
+      if (isImage) {
+        dataUrl = await compressImageDataUrlIfNeeded(dataUrl, 1000, 0.80);
+      }
+      downloadUrl = dataUrl;
+    }
+
+    if (onProgress) onProgress(85);
+
+    // Save record to Firestore collections (user_files & media) for full persistence
+    const currentUser = auth.currentUser;
+    const userUid = currentUser ? currentUser.uid : 'admin_user';
+    const base64Content = downloadUrl.includes(',') ? downloadUrl.split(',')[1] : '';
+
+    const userFileRecord = {
+      id: fileId,
+      name: rawFile.name,
+      type: contentType,
+      size: rawFile.size,
+      user_id: userUid,
+      content: base64Content,
+      base64: base64Content,
+      url_id: fileId,
+      url: downloadUrl,
+      uploaded_at: new Date().toISOString(),
+      storage_path: storagePath
+    };
+
+    try {
+      localStorage.setItem(`pdf_cache_${fileId}`, downloadUrl);
+    } catch (e) {}
+
+    try {
+      await setDoc(doc(db, 'user_files', fileId), userFileRecord);
+    } catch (err) {
+      console.warn('Firestore setDoc warning for user_files:', err);
+    }
+
+    const mediaItem: MediaFile = {
+      id: fileId,
+      name: rawFile.name,
+      url: downloadUrl,
+      storage_path: storagePath,
+      type: isPdf ? 'pdf' : isImage ? 'image' : 'doc',
+      size: rawFile.size,
+      uploaded_at: new Date().toISOString()
+    };
+
+    setMediaFiles(prev => [mediaItem, ...prev.filter(m => m.id !== fileId)]);
+    await setDoc(doc(db, 'media', fileId), mediaItem).catch(e => {
+      console.warn('Firestore media record save warning:', e);
+    });
+
+    if (onProgress) onProgress(100);
+
+    return { url: downloadUrl, path: storagePath, fileId: fileId };
+  };
+
+  const deleteFileFromStorage = async (path: string) => {
+    try {
+      if (path.startsWith('user_files/')) {
+        const fileId = path.replace('user_files/', '');
+        await deleteDoc(doc(db, 'user_files', fileId)).catch(() => {});
+        await deleteDoc(doc(db, 'media', fileId)).catch(() => {});
+      } else {
+        await deleteDoc(doc(db, 'media', path)).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('Error deleting file record from Firestore:', err);
+    }
+    setMediaFiles(prev => prev.filter(m => m.storage_path !== path));
+  };
+
+  const submitContactMessage = async (msg: Omit<ContactMessage, 'id' | 'date' | 'status'>) => {
+    const newMsg: ContactMessage = {
+      ...msg,
+      id: 'msg_' + Date.now(),
+      date: new Date().toISOString().split('T')[0],
+      status: 'unread'
+    };
+    setContactMessages(prev => [newMsg, ...prev]);
+    try {
+      await setDoc(doc(db, 'contact_messages', newMsg.id), newMsg);
+    } catch (e) {
+      console.error('Error submitting contact message:', e);
+    }
+  };
+
+  const addSubmission = async (sub: Omit<import('../types').Submission, 'id' | 'status' | 'submitted_at'>) => {
+    const newSub: import('../types').Submission = {
+      ...sub,
+      id: crypto.randomUUID(),
+      status: 'pending',
+      submitted_at: new Date().toISOString()
+    };
+    setSubmissions(prev => [newSub, ...prev]);
+    try {
+      await setDoc(doc(db, 'submissions', newSub.id), newSub);
+    } catch (e) {
+      console.error('Error adding submission:', e);
+    }
+  };
+
+  const saveSubmission = async (submission: import('../types').Submission) => {
+    setSubmissions(prev => {
+      const exists = prev.some(s => s.id === submission.id);
+      if (exists) {
+        return prev.map(s => s.id === submission.id ? submission : s);
+      }
+      return [submission, ...prev];
+    });
+    try {
+      await setDoc(doc(db, 'submissions', submission.id), submission);
+    } catch (e) {
+      console.error('Error saving submission:', e);
+    }
+  };
+
+  const updateSubmissionStatus = async (id: string, status: import('../types').Submission['status']) => {
+    setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+    try {
+      await updateDoc(doc(db, 'submissions', id), { status });
+    } catch (e) {
+      console.error('Error updating submission status:', e);
+    }
+  };
+
+  const deleteSubmission = async (id: string) => {
+    setSubmissions(prev => prev.filter(s => s.id !== id));
+    try {
+      await deleteDoc(doc(db, 'submissions', id));
+    } catch (e) {
+      console.error('Error deleting submission:', e);
+    }
+  };
+
+  const incrementArticleViews = async (articleId: string) => {
+    setArticles(prev => prev.map(a => a.id === articleId ? { ...a, views_count: (a.views_count || 0) + 1 } : a));
+    try {
+      const refDoc = doc(db, 'articles', articleId);
+      await updateDoc(refDoc, { views_count: increment(1) });
+    } catch (e) {
+      console.warn('Could not update views count:', e);
+    }
+  };
+
+  const incrementArticleDownloads = async (articleId: string) => {
+    setArticles(prev => prev.map(a => a.id === articleId ? { ...a, downloads_count: (a.downloads_count || 0) + 1 } : a));
+    try {
+      const refDoc = doc(db, 'articles', articleId);
+      await updateDoc(refDoc, { downloads_count: increment(1) });
+    } catch (e) {
+      console.warn('Could not update downloads count:', e);
+    }
+  };
+
+  return (
+    <CmsContext.Provider
+      value={{
+        lang,
+        setLang,
+        activeView,
+        setActiveView,
+        selectedArticleId,
+        setSelectedArticleId,
+        activeAdminTab,
+        setActiveAdminTab,
+        settings,
+        articles,
+        issues,
+        books,
+        blogs,
+        pages,
+        editorialMembers,
+        announcements,
+        mediaFiles,
+        contactMessages,
+        submissions,
+        loadingData,
+        activePdfUrl,
+        activePdfTitle,
+        openPdfViewer,
+        closePdfViewer,
+        saveSettings,
+        saveArticle,
+        deleteArticle,
+        saveIssue,
+        deleteIssue,
+        saveBook,
+        deleteBook,
+        saveBlog,
+        deleteBlog,
+        savePage,
+        saveEditorialMember,
+        deleteEditorialMember,
+        saveAnnouncement,
+        deleteAnnouncement,
+        uploadFileToStorage,
+        deleteFileFromStorage,
+        submitContactMessage,
+        incrementArticleViews,
+        incrementArticleDownloads,
+        addSubmission,
+        saveSubmission,
+        updateSubmissionStatus,
+        deleteSubmission,
+        seedDatabaseIfEmpty
+      }}
+    >
+      {children}
+    </CmsContext.Provider>
+  );
+};
+
+export const useCms = () => {
+  const context = useContext(CmsContext);
+  if (!context) throw new Error('useCms must be used within CmsProvider');
+  return context;
+};

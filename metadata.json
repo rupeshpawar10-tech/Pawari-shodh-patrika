@@ -1,0 +1,6 @@
+{
+  "name": "Pawari Shodh Patrika",
+  "description": "Academic Journal and Admin CMS for Pawari Shodh Patrika with role-based access control and content management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
