@@ -3,6 +3,7 @@ import { useCms } from '../../lib/CmsContext';
 import { SafeImage } from '../common/SafeImage';
 import { SAMPLE_BOOKS, SAMPLE_BLOGS, BookItem, BlogItem } from '../../data/booksBlogsData';
 import { downloadPdf } from '../../lib/pdfUtils';
+import { PawariCulturalSection } from './PawariCulturalSection';
 import { 
   BookOpen, 
   Search, 
@@ -24,16 +25,29 @@ import {
   Sparkles,
   Layers,
   ArrowRight,
-  Bookmark
+  Bookmark,
+  HelpCircle,
+  Music,
+  Award
 } from 'lucide-react';
 
-export const BooksBlogsView: React.FC = () => {
+interface BooksBlogsViewProps {
+  initialTab?: 'all' | 'books' | 'blogs' | 'reviews' | 'research_papers' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz';
+}
+
+export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'all' }) => {
   const { lang, articles, books: cmsBooks, blogs: cmsBlogs, setActiveView } = useCms();
 
   const booksList = (cmsBooks && cmsBooks.length > 0) ? cmsBooks : SAMPLE_BOOKS;
   const blogsList = (cmsBlogs && cmsBlogs.length > 0) ? cmsBlogs : SAMPLE_BLOGS;
 
-  const [activeTab, setActiveTab] = useState<'all' | 'books' | 'blogs' | 'reviews' | 'research_papers'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'books' | 'blogs' | 'reviews' | 'research_papers' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz'>(initialTab);
+
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
@@ -111,62 +125,110 @@ export const BooksBlogsView: React.FC = () => {
         <div className="relative z-10 pt-2 flex flex-wrap items-center gap-2 border-t border-amber-500/20">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
               activeTab === 'all' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>{lang === 'hi' ? 'सभी सामग्री (All Items)' : 'All Items'}</span>
+            <span>{lang === 'hi' ? 'सभी सामग्री' : 'All Items'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('books')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
               activeTab === 'books' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
             <Book className="w-3.5 h-3.5" />
-            <span>{lang === 'hi' ? '📚 पुस्तकें एवं शोध ग्रंथ' : 'Books & Monographs'}</span>
+            <span>{lang === 'hi' ? '📚 पुस्तकें' : 'Books'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('blogs')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
               activeTab === 'blogs' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>{lang === 'hi' ? '✍️ वैचारिक ब्लॉग एवं लेख' : 'Blogs & Essays'}</span>
+            <span>{lang === 'hi' ? '✍️ ब्लॉग' : 'Blogs'}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('shabdkosh')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              activeTab === 'shabdkosh' 
+                ? 'bg-amber-500 text-red-950 shadow-md' 
+                : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+            <span>{lang === 'hi' ? '📖 शब्दकोश' : 'Shabdkosh'}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('paheli')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              activeTab === 'paheli' 
+                ? 'bg-amber-500 text-red-950 shadow-md' 
+                : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
+            }`}
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-amber-300" />
+            <span>{lang === 'hi' ? '🧩 पहेली' : 'Paheli'}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('lokgeet')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              activeTab === 'lokgeet' 
+                ? 'bg-amber-500 text-red-950 shadow-md' 
+                : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
+            }`}
+          >
+            <Music className="w-3.5 h-3.5 text-amber-300" />
+            <span>{lang === 'hi' ? '🎵 लोकगीत' : 'Lokgeet'}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('quiz')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              activeTab === 'quiz' 
+                ? 'bg-amber-500 text-red-950 shadow-md' 
+                : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5 text-amber-300" />
+            <span>{lang === 'hi' ? '🏆 क्विज़' : 'Quiz'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('reviews')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
               activeTab === 'reviews' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>{lang === 'hi' ? '📑 पुस्तक समीक्षाएं' : 'Book Reviews'}</span>
+            <span>{lang === 'hi' ? '📑 समीक्षाएं' : 'Reviews'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('research_papers')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
               activeTab === 'research_papers' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span>{lang === 'hi' ? '📄 शोध पत्र (Research Papers)' : 'Research Papers'}</span>
+            <span>{lang === 'hi' ? '📄 शोध पत्र' : 'Research Papers'}</span>
           </button>
         </div>
       </div>
@@ -218,6 +280,13 @@ export const BooksBlogsView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ---------------- CULTURAL MODULES TAB VIEW (Shabdkosh, Paheli, Lokgeet, Quiz) ---------------- */}
+      {(activeTab === 'shabdkosh' || activeTab === 'paheli' || activeTab === 'lokgeet' || activeTab === 'quiz') && (
+        <section className="space-y-4">
+          <PawariCulturalSection initialTab={activeTab} />
+        </section>
+      )}
 
       {/* ---------------- CONTENT SECTION 1: BOOKS & MONOGRAPHS ---------------- */}
       {(activeTab === 'all' || activeTab === 'books') && (
@@ -462,6 +531,30 @@ export const BooksBlogsView: React.FC = () => {
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* ---------------- CONTENT SECTION 4: PAWARI SHABDKOSH, PAHELI, LOKGEET & QUIZ ---------------- */}
+      {activeTab === 'all' && (
+        <section className="space-y-4 pt-4 border-t border-amber-900/10">
+          <div className="flex items-center justify-between border-b border-amber-900/10 pb-2">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-5 h-5 text-amber-600" />
+              <h2 className="text-xl font-serif font-bold text-red-950">
+                {lang === 'hi' ? 'पवारी शब्दकोश, पहेली, लोकगीत एवं संस्कृति क्विज़' : 'Pawari Dictionary, Riddles, Folk Songs & Quiz'}
+              </h2>
+            </div>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setActiveTab('shabdkosh')} 
+                className="text-xs font-bold text-red-900 hover:underline"
+              >
+                {lang === 'hi' ? 'विस्तार से देखें →' : 'View Full →'}
+              </button>
+            </div>
+          </div>
+
+          <PawariCulturalSection initialTab="shabdkosh" />
         </section>
       )}
 

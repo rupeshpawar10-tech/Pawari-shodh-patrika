@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../lib/AuthContext';
+import { useCms } from '../../lib/CmsContext';
 import { CustomRole, RolePermissions } from '../../types';
+import { ConfirmModal } from '../common/ConfirmModal';
 import { 
   ShieldCheck, 
   Shield, 
@@ -19,7 +21,8 @@ import {
 } from 'lucide-react';
 
 export const RolesManager: React.FC = () => {
-  const { roles, addCustomRole, deleteCustomRole, allUsers, isSuperAdmin } = useAuth();
+  const { roles, addCustomRole, deleteCustomRole, allUsers, isSuperAdmin, canManageUsers, userProfile } = useAuth();
+  const { setActiveAdminTab } = useCms();
 
   const [roleId, setRoleId] = useState('');
   const [roleName, setRoleName] = useState('');
@@ -37,14 +40,9 @@ export const RolesManager: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
+  const [confirmingRoleDelete, setConfirmingRoleDelete] = useState<string | null>(null);
 
-  if (!isSuperAdmin) {
-    return (
-      <div className="bg-white rounded-2xl p-8 border border-red-200 text-center text-red-900 font-serif font-bold">
-        Access Restricted: Only Super Admin can configure custom roles and access permissions.
-      </div>
-    );
-  }
+
 
   const handleCreateRole = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,15 +90,12 @@ export const RolesManager: React.FC = () => {
   };
 
   const handleDeleteRole = async (targetRoleId: string) => {
-    if (!window.confirm(`Are you sure you want to delete role "${targetRoleId}"? Any users assigned to this role will be reassigned to "editorial".`)) {
-      return;
-    }
-
     setDeletingRoleId(targetRoleId);
     setErrorMsg(null);
     try {
       await deleteCustomRole(targetRoleId);
       setSuccessMsg(`Role "${targetRoleId}" deleted successfully.`);
+      setConfirmingRoleDelete(null);
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
       setErrorMsg('Failed to delete role: ' + (err.message || String(err)));
@@ -208,7 +203,7 @@ export const RolesManager: React.FC = () => {
             <label className="block text-slate-800 font-bold font-serif mb-2 text-xs">
               Module Access & Functional Permissions:
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
               
               <label className="flex items-center space-x-2 cursor-pointer p-2 bg-white rounded-lg border border-slate-200 hover:border-amber-400">
                 <input
@@ -217,7 +212,7 @@ export const RolesManager: React.FC = () => {
                   onChange={e => setPermissions({ ...permissions, canManageArticles: e.target.checked })}
                   className="rounded text-red-900 focus:ring-red-900"
                 />
-                <span className="font-semibold text-slate-800">Articles</span>
+                <span className="font-semibold text-slate-800">Articles (लेख)</span>
               </label>
 
               <label className="flex items-center space-x-2 cursor-pointer p-2 bg-white rounded-lg border border-slate-200 hover:border-amber-400">
@@ -227,7 +222,37 @@ export const RolesManager: React.FC = () => {
                   onChange={e => setPermissions({ ...permissions, canManageIssues: e.target.checked })}
                   className="rounded text-red-900 focus:ring-red-900"
                 />
-                <span className="font-semibold text-slate-800">Volumes & Issues</span>
+                <span className="font-semibold text-slate-800">Issues (अंक)</span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer p-2 bg-white rounded-lg border border-slate-200 hover:border-amber-400">
+                <input
+                  type="checkbox"
+                  checked={permissions.canManageBooks ?? true}
+                  onChange={e => setPermissions({ ...permissions, canManageBooks: e.target.checked })}
+                  className="rounded text-red-900 focus:ring-red-900"
+                />
+                <span className="font-semibold text-slate-800">Books (किताबें)</span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer p-2 bg-white rounded-lg border border-slate-200 hover:border-amber-400">
+                <input
+                  type="checkbox"
+                  checked={permissions.canManageBlogs ?? true}
+                  onChange={e => setPermissions({ ...permissions, canManageBlogs: e.target.checked })}
+                  className="rounded text-red-900 focus:ring-red-900"
+                />
+                <span className="font-semibold text-slate-800">Blogs (ब्लॉग)</span>
+              </label>
+
+              <label className="flex items-center space-x-2 cursor-pointer p-2 bg-white rounded-lg border border-slate-200 hover:border-amber-400">
+                <input
+                  type="checkbox"
+                  checked={permissions.canManageOther ?? true}
+                  onChange={e => setPermissions({ ...permissions, canManageOther: e.target.checked })}
+                  className="rounded text-red-900 focus:ring-red-900"
+                />
+                <span className="font-semibold text-slate-800">Other (अन्य सामग्री)</span>
               </label>
 
               <label className="flex items-center space-x-2 cursor-pointer p-2 bg-white rounded-lg border border-slate-200 hover:border-amber-400">
@@ -237,7 +262,7 @@ export const RolesManager: React.FC = () => {
                   onChange={e => setPermissions({ ...permissions, canManageSubmissions: e.target.checked })}
                   className="rounded text-red-900 focus:ring-red-900"
                 />
-                <span className="font-semibold text-slate-800">Submissions</span>
+                <span className="font-semibold text-slate-800">Submissions (सबमिशन)</span>
               </label>
 
               <label className="flex items-center space-x-2 cursor-pointer p-2 bg-white rounded-lg border border-slate-200 hover:border-amber-400">
@@ -247,7 +272,7 @@ export const RolesManager: React.FC = () => {
                   onChange={e => setPermissions({ ...permissions, canManagePages: e.target.checked })}
                   className="rounded text-red-900 focus:ring-red-900"
                 />
-                <span className="font-semibold text-slate-800">CMS Pages</span>
+                <span className="font-semibold text-slate-800">CMS Pages (पेज)</span>
               </label>
 
               <label className="flex items-center space-x-2 cursor-pointer p-2 bg-white rounded-lg border border-slate-200 hover:border-amber-400">
@@ -257,7 +282,7 @@ export const RolesManager: React.FC = () => {
                   onChange={e => setPermissions({ ...permissions, canManageSettings: e.target.checked })}
                   className="rounded text-red-900 focus:ring-red-900"
                 />
-                <span className="font-semibold text-slate-800">Settings</span>
+                <span className="font-semibold text-slate-800">Settings (सेटिंग्स)</span>
               </label>
 
               <label className="flex items-center space-x-2 cursor-pointer p-2 bg-white rounded-lg border border-slate-200 hover:border-amber-400">
@@ -267,7 +292,7 @@ export const RolesManager: React.FC = () => {
                   onChange={e => setPermissions({ ...permissions, canManageUsers: e.target.checked })}
                   className="rounded text-red-900 focus:ring-red-900"
                 />
-                <span className="font-semibold text-slate-800">Users & Roles</span>
+                <span className="font-semibold text-slate-800">Users & Roles (यूजर्स)</span>
               </label>
 
             </div>
@@ -381,11 +406,11 @@ export const RolesManager: React.FC = () => {
                     </span>
                   ) : (
                     <button
-                      onClick={() => handleDeleteRole(r.id)}
+                      onClick={() => setConfirmingRoleDelete(r.id)}
                       disabled={deletingRoleId === r.id}
                       className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-800 font-bold border border-red-200 rounded-lg transition text-xs flex items-center space-x-1"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
                       <span>{deletingRoleId === r.id ? 'Deleting...' : 'Delete Role'}</span>
                     </button>
                   )}
@@ -397,6 +422,17 @@ export const RolesManager: React.FC = () => {
         </div>
       </div>
 
+      {/* CONFIRM DELETE ROLE MODAL */}
+      <ConfirmModal
+        isOpen={Boolean(confirmingRoleDelete)}
+        title="Delete Custom Role"
+        message={`Are you sure you want to delete role "${confirmingRoleDelete}"? Any users currently assigned to this role will automatically be reassigned to "editorial".`}
+        confirmLabel={deletingRoleId ? "Deleting..." : "Delete Role"}
+        cancelLabel="Cancel"
+        isDestructive={true}
+        onConfirm={() => confirmingRoleDelete && handleDeleteRole(confirmingRoleDelete)}
+        onCancel={() => setConfirmingRoleDelete(null)}
+      />
     </div>
   );
 };

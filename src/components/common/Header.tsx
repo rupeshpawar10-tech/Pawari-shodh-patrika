@@ -29,7 +29,7 @@ export const Header: React.FC = () => {
     { key: 'about', label: lang === 'hi' ? navs.about_hindi : navs.about_english },
     { key: 'current_issue', label: lang === 'hi' ? navs.current_issue_hindi : navs.current_issue_english },
     { key: 'archive', label: lang === 'hi' ? navs.archive_hindi : navs.archive_english },
-    { key: 'books_blogs', label: lang === 'hi' ? (navs.books_blogs_hindi || navs.articles_hindi || 'पुस्तकें एवं ब्लॉग') : (navs.books_blogs_english || navs.articles_english || 'Books & Blogs') },
+    { key: 'books_blogs', label: lang === 'hi' ? '📚 पुस्तकें, ब्लॉग एवं पवारी साहित्य' : 'Books, Blogs & Literature' },
     { key: 'editorial_board', label: lang === 'hi' ? navs.editorial_board_hindi : navs.editorial_board_english },
     { key: 'author_guidelines', label: lang === 'hi' ? navs.author_guidelines_hindi : navs.author_guidelines_english },
     { key: 'contact', label: lang === 'hi' ? navs.contact_hindi : navs.contact_english },

@@ -1,3 +1,14 @@
+export interface ActivityLogItem {
+  id: string;
+  timestamp: string;
+  action: 'create' | 'update' | 'delete' | 'status_change' | 'role_change' | 'login' | 'system';
+  category: 'books' | 'blogs' | 'users' | 'articles' | 'issues' | 'settings' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz' | 'general';
+  title: string;
+  details?: string;
+  performedBy?: string;
+  performedByEmail?: string;
+}
+
 export type Role = 'super_admin' | 'director' | 'editorial' | 'editor' | 'public' | string;
 export type UserRole = Role;
 
@@ -8,6 +19,9 @@ export interface RolePermissions {
   canManagePages: boolean;
   canManageSettings: boolean;
   canManageUsers: boolean;
+  canManageBooks?: boolean;
+  canManageBlogs?: boolean;
+  canManageOther?: boolean;
 }
 
 export interface CustomRole {
@@ -24,8 +38,10 @@ export interface UserProfile {
   email: string;
   display_name: string;
   role: Role;
-  status: 'active' | 'suspended';
+  status: 'active' | 'inactive' | 'suspended' | 'disabled';
+  password?: string;
   created_at: string;
+  assigned_modules?: string[];
 }
 
 export interface Author {
@@ -251,3 +267,71 @@ export interface ContactMessage {
   date: string;
   status: 'unread' | 'read';
 }
+
+export interface PawariShabdkoshItem {
+  id: string;
+  word_pawari: string;
+  pronunciation_hindi?: string;
+  meaning_hindi: string;
+  meaning_english?: string;
+  example_pawari?: string;
+  example_hindi?: string;
+  category: string;
+  image_url?: string;
+  audio_url?: string;
+  contributor_name?: string;
+  status: 'approved' | 'pending' | 'rejected';
+  created_at: string;
+}
+
+export interface PawariPaheliItem {
+  id: string;
+  riddle_pawari: string;
+  answer_hindi: string;
+  answer_pawari?: string;
+  hint_hindi?: string;
+  explanation_hindi?: string;
+  category: string;
+  image_url?: string;
+  contributor_name?: string;
+  status: 'approved' | 'pending' | 'rejected';
+  created_at: string;
+}
+
+export interface PawariLokgeetItem {
+  id: string;
+  title_pawari: string;
+  title_hindi?: string;
+  category: string;
+  lyrics_pawari: string;
+  lyrics_hindi_meaning?: string;
+  singer_or_collector?: string;
+  audio_url?: string;
+  youtube_url?: string;
+  image_url?: string;
+  contributor_name?: string;
+  status: 'approved' | 'pending' | 'rejected';
+  created_at: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  question_pawari: string;
+  question_hindi: string;
+  options: string[];
+  correct_option_index: number;
+  explanation: string;
+  section_type: 'shabdkosh' | 'paheli' | 'lokgeet';
+}
+
+export interface QuizCertificate {
+  id: string;
+  user_name: string;
+  user_photo_url?: string;
+  quiz_score: number;
+  total_questions: number;
+  percentage: number;
+  issued_date: string;
+  certificate_no: string;
+}
+

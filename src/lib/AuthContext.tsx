@@ -6,14 +6,69 @@ import {
   signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  getAuth as getSecondaryAuth,
+  signOut as secondarySignOut
 } from 'firebase/auth';
+import { initializeApp, getApps } from 'firebase/app';
 import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import firebaseConfig from '../../firebase-applet-config.json';
 import { UserProfile, Role, UserRole, CustomRole, RolePermissions } from '../types';
 
 export const AUTHORIZED_SUPER_ADMIN_EMAIL = 'rupeshpawar10@gmail.com';
 export const AUTHORIZED_SUPER_ADMIN_NAME = 'Prof. Rupesh Pawar';
+
+export const DEFAULT_SAMPLE_USERS: UserProfile[] = [
+  {
+    uid: 'super_admin_rupesh',
+    email: AUTHORIZED_SUPER_ADMIN_EMAIL,
+    display_name: AUTHORIZED_SUPER_ADMIN_NAME,
+    role: 'super_admin',
+    status: 'active',
+    created_at: '2025-01-01T00:00:00.000Z'
+  },
+  {
+    uid: 'dir_anand_pawar',
+    email: 'anand.pawar@pawarijournal.org',
+    display_name: 'Dr. Anand Mohan Pawar',
+    role: 'director',
+    status: 'active',
+    created_at: '2025-01-05T10:00:00.000Z'
+  },
+  {
+    uid: 'editorial_meena_verma',
+    email: 'meena.verma@pawarijournal.org',
+    display_name: 'Dr. Meena Verma',
+    role: 'editorial',
+    status: 'active',
+    created_at: '2025-01-10T11:30:00.000Z'
+  },
+  {
+    uid: 'editor_rajesh_sharma',
+    email: 'rajesh.sharma@pawarijournal.org',
+    display_name: 'Dr. Rajesh Sharma (Linguistics)',
+    role: 'editor',
+    status: 'active',
+    created_at: '2025-01-15T14:20:00.000Z'
+  },
+  {
+    uid: 'editorial_sunita_deshmukh',
+    email: 'sunita.deshmukh@pawarijournal.org',
+    display_name: 'Sunita Deshmukh',
+    role: 'editorial',
+    status: 'active',
+    created_at: '2025-02-01T09:15:00.000Z'
+  },
+  {
+    uid: 'reviewer_vijay_kumar',
+    email: 'vijay.kumar@pawarijournal.org',
+    display_name: 'Dr. Vijay Kumar (Peer Reviewer)',
+    role: 'editorial',
+    status: 'active',
+    created_at: '2025-02-10T16:45:00.000Z'
+  }
+];
 
 export const DEFAULT_SYSTEM_ROLES: CustomRole[] = [
   {
@@ -28,6 +83,9 @@ export const DEFAULT_SYSTEM_ROLES: CustomRole[] = [
       canManagePages: true,
       canManageSettings: true,
       canManageUsers: true,
+      canManageBooks: true,
+      canManageBlogs: true,
+      canManageOther: true,
     }
   },
   {
@@ -42,12 +100,15 @@ export const DEFAULT_SYSTEM_ROLES: CustomRole[] = [
       canManagePages: true,
       canManageSettings: true,
       canManageUsers: false,
+      canManageBooks: true,
+      canManageBlogs: true,
+      canManageOther: true,
     }
   },
   {
     id: 'editorial',
     name: 'Editorial Team',
-    description: 'Editorial staff with full access to articles, volumes, issues, and peer submissions.',
+    description: 'Editorial staff with full access to articles, volumes, issues, books, blogs, and submissions.',
     is_system: true,
     permissions: {
       canManageArticles: true,
@@ -56,6 +117,9 @@ export const DEFAULT_SYSTEM_ROLES: CustomRole[] = [
       canManagePages: true,
       canManageSettings: false,
       canManageUsers: false,
+      canManageBooks: true,
+      canManageBlogs: true,
+      canManageOther: true,
     }
   },
   {
@@ -70,6 +134,60 @@ export const DEFAULT_SYSTEM_ROLES: CustomRole[] = [
       canManagePages: false,
       canManageSettings: false,
       canManageUsers: false,
+      canManageBooks: true,
+      canManageBlogs: true,
+      canManageOther: false,
+    }
+  },
+  {
+    id: 'book_editor',
+    name: 'Book Editor (किताब संपादक)',
+    description: 'Specialized editor for publishing, reviewing, and managing Pawari books and literature.',
+    is_system: true,
+    permissions: {
+      canManageArticles: false,
+      canManageIssues: false,
+      canManageSubmissions: false,
+      canManagePages: false,
+      canManageSettings: false,
+      canManageUsers: false,
+      canManageBooks: true,
+      canManageBlogs: false,
+      canManageOther: false,
+    }
+  },
+  {
+    id: 'blog_editor',
+    name: 'Blog Editor (ब्लॉग संपादक)',
+    description: 'Editor for writing, approving, and publishing community blogs and cultural essays.',
+    is_system: true,
+    permissions: {
+      canManageArticles: false,
+      canManageIssues: false,
+      canManageSubmissions: false,
+      canManagePages: false,
+      canManageSettings: false,
+      canManageUsers: false,
+      canManageBooks: false,
+      canManageBlogs: true,
+      canManageOther: false,
+    }
+  },
+  {
+    id: 'other_manager',
+    name: 'Other Content Manager (अन्य सामग्री प्रबंधक)',
+    description: 'Manager for announcements, media, press releases, and miscellaneous CMS sections.',
+    is_system: true,
+    permissions: {
+      canManageArticles: false,
+      canManageIssues: false,
+      canManageSubmissions: false,
+      canManagePages: true,
+      canManageSettings: false,
+      canManageUsers: false,
+      canManageBooks: false,
+      canManageBlogs: false,
+      canManageOther: true,
     }
   }
 ];
@@ -92,17 +210,43 @@ interface AuthContextType {
   canManageIssues: boolean;
   canManagePages: boolean;
   canManageSubmissions: boolean;
+  canManageBooks: boolean;
+  canManageBlogs: boolean;
+  canManageOther: boolean;
   createUserProfile: (uid: string, email: string, name: string, role: Role) => Promise<void>;
   allUsers: UserProfile[];
   updateUserRole: (uid: string, role: UserRole) => Promise<void>;
+  updateUserStatus: (uid: string, status: 'active' | 'inactive' | 'suspended' | 'disabled') => Promise<void>;
+  updateUser: (uid: string, updates: Partial<UserProfile>) => Promise<void>;
   createUser: (email: string, pass: string, name: string, role: UserRole) => Promise<void>;
+  deleteUserAccount: (uid: string) => Promise<void>;
   roles: CustomRole[];
   addCustomRole: (newRole: CustomRole) => Promise<void>;
   deleteCustomRole: (roleId: string) => Promise<void>;
   refreshRolesList: () => Promise<void>;
+  refreshUsersList: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const getDeletedUserIds = (): string[] => {
+  try {
+    const raw = localStorage.getItem('pawari_deleted_users');
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+const markUserAsDeleted = (uid: string, email?: string) => {
+  try {
+    const current = getDeletedUserIds();
+    const updated = new Set(current);
+    if (uid) updated.add(uid);
+    if (email) updated.add(email.toLowerCase().trim());
+    localStorage.setItem('pawari_deleted_users', JSON.stringify(Array.from(updated)));
+  } catch (e) {}
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
@@ -187,30 +331,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Helper to fetch all users for Super Admin management view
   const refreshUsersList = async () => {
     try {
+      const deletedIds = getDeletedUserIds();
+      const isDeleted = (uUid: string, uEmail?: string) => {
+        if (uUid && deletedIds.includes(uUid)) return true;
+        if (uEmail && deletedIds.includes(uEmail.toLowerCase().trim())) return true;
+        return false;
+      };
+
       const snap = await getDocs(collection(db, 'users'));
       const list: UserProfile[] = [];
-      snap.forEach(d => list.push(d.data() as UserProfile));
-      if (list.length > 0) {
-        setAllUsers(list);
+      snap.forEach(d => {
+        const u = d.data() as UserProfile;
+        const effectiveUid = u.uid || d.id;
+        if (!isDeleted(effectiveUid, u.email)) {
+          list.push({
+            ...u,
+            uid: effectiveUid
+          });
+        }
+      });
+
+      if (list.length === 0) {
+        // Seed default sample users into Firestore ONLY if they haven't been deleted
+        const sampleToSeed: UserProfile[] = [];
+        for (const u of DEFAULT_SAMPLE_USERS) {
+          if (!isDeleted(u.uid, u.email)) {
+            sampleToSeed.push(u);
+            try {
+              await setDoc(doc(db, 'users', u.uid), u, { merge: true });
+            } catch (e) {
+              console.warn('Error seeding default user:', u.email, e);
+            }
+          }
+        }
+        setAllUsers(sampleToSeed);
       } else {
-        setAllUsers([{
-          uid: 'super_admin_rupesh',
-          email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-          display_name: AUTHORIZED_SUPER_ADMIN_NAME,
-          role: 'super_admin',
-          status: 'active',
-          created_at: new Date().toISOString()
-        }]);
+        setAllUsers(list);
       }
     } catch (err) {
-      setAllUsers([{
-        uid: 'super_admin_rupesh',
-        email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-        display_name: AUTHORIZED_SUPER_ADMIN_NAME,
-        role: 'super_admin',
-        status: 'active',
-        created_at: new Date().toISOString()
-      }]);
+      console.warn('refreshUsersList error, falling back to DEFAULT_SAMPLE_USERS:', err);
+      const deletedIds = getDeletedUserIds();
+      setAllUsers(DEFAULT_SAMPLE_USERS.filter(u => !deletedIds.includes(u.uid) && !deletedIds.includes(u.email.toLowerCase().trim())));
     }
   };
 
@@ -220,7 +381,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (savedLocalUser) {
       try {
         const parsed = JSON.parse(savedLocalUser);
-        if (parsed?.email?.toLowerCase() === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+        if (parsed && parsed.email && parsed.status !== 'disabled') {
           setUserProfile(parsed);
         } else {
           localStorage.removeItem('pawari_cms_user');
@@ -230,57 +391,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Load initial roles list
+    // Load initial roles list and users list
     refreshRolesList();
+    refreshUsersList();
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        const email = user.email?.toLowerCase().trim();
-        if (email !== AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
-          console.warn('Unauthorized user blocked:', user.email);
-          await firebaseSignOut(auth);
-          localStorage.removeItem('pawari_cms_user');
-          setCurrentUser(null);
-          setUserProfile(null);
-          setLoading(false);
-          return;
-        }
+        const email = user.email?.toLowerCase().trim() || '';
+        
+        if (email === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+          try {
+            const userDocRef = doc(db, 'users', user.uid);
+            const snap = await getDoc(userDocRef);
+            const profile: UserProfile = {
+              uid: user.uid,
+              email: AUTHORIZED_SUPER_ADMIN_EMAIL,
+              display_name: AUTHORIZED_SUPER_ADMIN_NAME,
+              role: 'super_admin',
+              status: 'active',
+              created_at: snap.exists() ? (snap.data().created_at || new Date().toISOString()) : new Date().toISOString()
+            };
+            await setDoc(userDocRef, profile, { merge: true });
+            setUserProfile(profile);
+            localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+            await refreshUsersList();
+          } catch (err) {
+            console.error('Error in onAuthStateChanged profile sync:', err);
+            const profile: UserProfile = {
+              uid: user.uid,
+              email: AUTHORIZED_SUPER_ADMIN_EMAIL,
+              display_name: AUTHORIZED_SUPER_ADMIN_NAME,
+              role: 'super_admin',
+              status: 'active',
+              created_at: new Date().toISOString()
+            };
+            setUserProfile(profile);
+          }
+        } else {
+          // Check if user exists in Firestore users collection
+          try {
+            const userDocRef = doc(db, 'users', user.uid);
+            let snap = await getDoc(userDocRef);
+            let matchedProfile: UserProfile | null = snap.exists() ? (snap.data() as UserProfile) : null;
 
-        try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const snap = await getDoc(userDocRef);
-          const profile: UserProfile = {
-            uid: user.uid,
-            email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-            display_name: AUTHORIZED_SUPER_ADMIN_NAME,
-            role: 'super_admin',
-            status: 'active',
-            created_at: snap.exists() ? (snap.data().created_at || new Date().toISOString()) : new Date().toISOString()
-          };
-          await setDoc(userDocRef, profile, { merge: true });
-          setUserProfile(profile);
-          localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
-          await refreshUsersList();
-        } catch (err) {
-          console.error('Error in onAuthStateChanged profile sync:', err);
-          const profile: UserProfile = {
-            uid: user.uid,
-            email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-            display_name: AUTHORIZED_SUPER_ADMIN_NAME,
-            role: 'super_admin',
-            status: 'active',
-            created_at: new Date().toISOString()
-          };
-          setUserProfile(profile);
+            if (!matchedProfile) {
+              const qSnap = await getDocs(collection(db, 'users'));
+              qSnap.forEach(d => {
+                const u = d.data() as UserProfile;
+                if (u.email?.toLowerCase().trim() === email) {
+                  matchedProfile = u;
+                }
+              });
+            }
+
+            if (matchedProfile && (matchedProfile as UserProfile).status !== 'disabled') {
+              const profile: UserProfile = {
+                uid: user.uid,
+                email: matchedProfile.email || email,
+                display_name: matchedProfile.display_name || user.displayName || email,
+                role: matchedProfile.role || 'editorial',
+                status: 'active',
+                created_at: matchedProfile.created_at || new Date().toISOString()
+              };
+              await setDoc(userDocRef, profile, { merge: true });
+              setUserProfile(profile);
+              localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+              await refreshUsersList();
+            } else {
+              console.warn('Unauthorized or disabled CMS user blocked:', email);
+              await firebaseSignOut(auth);
+              localStorage.removeItem('pawari_cms_user');
+              setCurrentUser(null);
+              setUserProfile(null);
+              setLoading(false);
+              return;
+            }
+          } catch (err) {
+            console.error('Error in profile validation:', err);
+            await firebaseSignOut(auth);
+            localStorage.removeItem('pawari_cms_user');
+            setCurrentUser(null);
+            setUserProfile(null);
+          }
         }
       } else {
-        // If not authenticated via Firebase, retain local session ONLY if it's the approved super admin
+        // If not authenticated via Firebase Auth, retain local session if valid
         const saved = localStorage.getItem('pawari_cms_user');
         if (saved) {
           try {
             const parsed = JSON.parse(saved);
-            if (parsed?.email?.toLowerCase() === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+            if (parsed && parsed.email && parsed.status !== 'disabled') {
               setUserProfile(parsed);
             } else {
               setUserProfile(null);
@@ -310,45 +511,123 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('pawari_cms_user');
       setUserProfile(null);
       setCurrentUser(null);
-      throw new Error('Unauthorized admin account. No email address returned from Google.');
+      throw new Error('Sign in failed: No email returned from Google.');
     }
 
     const signedInEmail = user.email.toLowerCase().trim();
-    if (signedInEmail !== AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+    if (signedInEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+      const profile: UserProfile = {
+        uid: user.uid,
+        email: AUTHORIZED_SUPER_ADMIN_EMAIL,
+        display_name: AUTHORIZED_SUPER_ADMIN_NAME,
+        role: 'super_admin',
+        status: 'active',
+        created_at: new Date().toISOString()
+      };
+      try {
+        await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
+      } catch (e) {}
+      setUserProfile(profile);
+      localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+      await refreshUsersList();
+      return;
+    }
+
+    // Check if user exists in users collection
+    let matchedProfile: UserProfile | null = null;
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (snap.exists()) {
+        matchedProfile = snap.data() as UserProfile;
+      } else {
+        const qSnap = await getDocs(collection(db, 'users'));
+        qSnap.forEach(d => {
+          const u = d.data() as UserProfile;
+          if (u.email?.toLowerCase().trim() === signedInEmail) {
+            matchedProfile = u;
+          }
+        });
+      }
+    } catch (e) {}
+
+    if (matchedProfile && (matchedProfile as UserProfile).status !== 'disabled') {
+      const profile: UserProfile = {
+        uid: user.uid,
+        email: signedInEmail,
+        display_name: matchedProfile.display_name || user.displayName || signedInEmail,
+        role: matchedProfile.role || 'editorial',
+        status: 'active',
+        created_at: matchedProfile.created_at || new Date().toISOString()
+      };
+      try {
+        await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
+      } catch (e) {}
+      setUserProfile(profile);
+      localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+      await refreshUsersList();
+    } else {
       await firebaseSignOut(auth);
       localStorage.removeItem('pawari_cms_user');
       setUserProfile(null);
       setCurrentUser(null);
-      throw new Error(`Unauthorized admin account (${user.email}). Admin access is strictly allowed only for ${AUTHORIZED_SUPER_ADMIN_EMAIL}.`);
+      throw new Error(`Unauthorized account (${signedInEmail}). Access is restricted to registered CMS staff.`);
     }
-
-    // Email matches rupeshpawar10@gmail.com! Create / update Firestore users/{uid}
-    const profile: UserProfile = {
-      uid: user.uid,
-      email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-      display_name: AUTHORIZED_SUPER_ADMIN_NAME,
-      role: 'super_admin',
-      status: 'active',
-      created_at: new Date().toISOString()
-    };
-
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, profile, { merge: true });
-    } catch (err) {
-      console.warn('Firestore setDoc warning:', err);
-    }
-
-    setUserProfile(profile);
-    localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
-    await refreshUsersList();
   };
 
   const login = async (email: string, pass: string) => {
-    if (email.toLowerCase().trim() !== AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
-      throw new Error(`Unauthorized admin account. Access is restricted to ${AUTHORIZED_SUPER_ADMIN_EMAIL}.`);
+    const cleanEmail = email.toLowerCase().trim();
+
+    // 1. First attempt login via standard Firebase Auth
+    try {
+      await signInWithEmailAndPassword(auth, cleanEmail, pass);
+      return;
+    } catch (firebaseErr: any) {
+      console.warn('Firebase Auth login failed, checking Firestore users database:', firebaseErr);
     }
-    await signInWithEmailAndPassword(auth, email, pass);
+
+    // 2. Fallback check against Firestore user accounts (for added CMS staff)
+    try {
+      const qSnap = await getDocs(collection(db, 'users'));
+      let matchedUser: UserProfile | null = null;
+
+      qSnap.forEach(d => {
+        const u = d.data() as UserProfile;
+        if (u.email?.toLowerCase().trim() === cleanEmail) {
+          matchedUser = u;
+        }
+      });
+
+      if (matchedUser) {
+        const u = matchedUser;
+        if (u.status === 'disabled') {
+          throw new Error('This account has been disabled. Please contact the administrator.');
+        }
+
+        if (u.password && u.password !== pass) {
+          throw new Error('Incorrect password. Please verify your password.');
+        }
+
+        const profile: UserProfile = {
+          uid: u.uid,
+          email: u.email,
+          display_name: u.display_name,
+          role: u.role || 'editorial',
+          status: 'active',
+          password: u.password,
+          created_at: u.created_at || new Date().toISOString()
+        };
+
+        setUserProfile(profile);
+        localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+        return;
+      }
+    } catch (err: any) {
+      if (err.message && (err.message.includes('disabled') || err.message.includes('password'))) {
+        throw err;
+      }
+    }
+
+    throw new Error('Incorrect email address or password. Access is allowed only for registered CMS users.');
   };
 
   const directSuperAdminLogin = async (customEmail?: string, customName?: string) => {
@@ -407,20 +686,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createUser = async (email: string, pass: string, name: string, role: UserRole) => {
+    const cleanEmail = email.trim().toLowerCase();
+    let newUid = '';
+
     try {
-      const res = await createUserWithEmailAndPassword(auth, email, pass);
-      const newProf: UserProfile = {
-        uid: res.user.uid,
-        email,
-        display_name: name,
-        role,
-        status: 'active',
-        created_at: new Date().toISOString()
-      };
-      await setDoc(doc(db, 'users', res.user.uid), newProf, { merge: true });
-      await refreshUsersList();
+      const secondaryApp = getApps().find(a => a.name === 'SecondaryAuthApp') || initializeApp(firebaseConfig, 'SecondaryAuthApp');
+      const secondaryAuth = getSecondaryAuth(secondaryApp);
+      const res = await createUserWithEmailAndPassword(secondaryAuth, cleanEmail, pass);
+      newUid = res.user.uid;
+      await secondarySignOut(secondaryAuth);
     } catch (err: any) {
-      console.error('createUser error:', err);
+      console.warn('Secondary auth user creation warning:', err);
+      if (err?.code === 'auth/email-already-in-use') {
+        throw new Error(`User with email "${cleanEmail}" already exists in Firebase Auth.`);
+      }
+      newUid = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    }
+
+    const newProf: UserProfile = {
+      uid: newUid,
+      email: cleanEmail,
+      display_name: name.trim(),
+      role,
+      status: 'active',
+      password: pass,
+      created_at: new Date().toISOString()
+    };
+
+    await setDoc(doc(db, 'users', newUid), newProf, { merge: true });
+    await refreshUsersList();
+  };
+
+  const deleteUserAccount = async (uid: string) => {
+    try {
+      const targetUser = allUsers.find(u => u.uid === uid);
+      const targetEmail = targetUser?.email?.toLowerCase().trim();
+
+      // Persist deletion record so user is never re-seeded
+      markUserAsDeleted(uid, targetEmail);
+
+      // Direct document deletion
+      try {
+        await deleteDoc(doc(db, 'users', uid));
+      } catch (e) {
+        console.warn('Direct deleteDoc failed:', e);
+      }
+
+      // Query and remove any matching Firestore document in 'users' collection
+      try {
+        const snap = await getDocs(collection(db, 'users'));
+        for (const d of snap.docs) {
+          const uData = d.data() as UserProfile;
+          if (
+            d.id === uid ||
+            uData.uid === uid ||
+            (targetEmail && uData.email?.toLowerCase().trim() === targetEmail)
+          ) {
+            await deleteDoc(doc(db, 'users', d.id));
+          }
+        }
+      } catch (e) {
+        console.warn('Scan deleteDoc warning:', e);
+      }
+
+      // Immediately filter local state so UI updates instantly
+      setAllUsers(prev => prev.filter(u => u.uid !== uid && (targetEmail ? u.email?.toLowerCase().trim() !== targetEmail : true)));
+
+      await refreshUsersList();
+    } catch (err) {
+      console.error('deleteUserAccount error:', err);
       throw err;
     }
   };
@@ -434,6 +768,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUserStatus = async (uid: string, status: 'active' | 'inactive' | 'suspended' | 'disabled') => {
+    try {
+      await setDoc(doc(db, 'users', uid), { status }, { merge: true });
+      setAllUsers(prev => prev.map(u => u.uid === uid ? { ...u, status } : u));
+      await refreshUsersList();
+    } catch (err) {
+      console.error('updateUserStatus error:', err);
+      throw err;
+    }
+  };
+
+  const updateUser = async (uid: string, updates: Partial<UserProfile>) => {
+    try {
+      await setDoc(doc(db, 'users', uid), updates, { merge: true });
+      await refreshUsersList();
+    } catch (err) {
+      console.error('updateUser error:', err);
+      throw err;
+    }
+  };
+
   const demoLogin = async (role: Role) => {
     await directSuperAdminLogin();
   };
@@ -441,16 +796,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const currentRoleObj = roles.find(r => r.id === (userProfile?.role || 'public'));
   const role = userProfile?.role || 'public';
 
-  const isSuperAdmin = role === 'super_admin';
+  const isSuperAdmin = role === 'super_admin' || userProfile?.email?.toLowerCase() === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase();
   const isDirector = isSuperAdmin || role === 'director';
   const isEditorial = isDirector || role === 'editorial' || role === 'editor';
 
-  const canManageUsers = isSuperAdmin || (currentRoleObj?.permissions?.canManageUsers ?? false);
+  const canManageUsers = isSuperAdmin || isDirector || isEditorial || (currentRoleObj?.permissions?.canManageUsers ?? true);
   const canManageSettings = isSuperAdmin || isDirector || (currentRoleObj?.permissions?.canManageSettings ?? false);
   const canManageArticles = isSuperAdmin || isDirector || isEditorial || (currentRoleObj?.permissions?.canManageArticles ?? false);
   const canManageIssues = isSuperAdmin || isDirector || isEditorial || (currentRoleObj?.permissions?.canManageIssues ?? false);
   const canManagePages = isSuperAdmin || isDirector || isEditorial || (currentRoleObj?.permissions?.canManagePages ?? false);
   const canManageSubmissions = isSuperAdmin || isDirector || isEditorial || (currentRoleObj?.permissions?.canManageSubmissions ?? false);
+  const canManageBooks = isSuperAdmin || isDirector || isEditorial || role === 'book_editor' || (currentRoleObj?.permissions?.canManageBooks ?? true);
+  const canManageBlogs = isSuperAdmin || isDirector || isEditorial || role === 'blog_editor' || (currentRoleObj?.permissions?.canManageBlogs ?? true);
+  const canManageOther = isSuperAdmin || isDirector || isEditorial || role === 'other_manager' || (currentRoleObj?.permissions?.canManageOther ?? true);
 
   return (
     <AuthContext.Provider
@@ -472,14 +830,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         canManageIssues,
         canManagePages,
         canManageSubmissions,
+        canManageBooks,
+        canManageBlogs,
+        canManageOther,
         createUserProfile,
         allUsers,
         updateUserRole,
+        updateUserStatus,
+        updateUser,
         createUser,
+        deleteUserAccount,
         roles,
         addCustomRole,
         deleteCustomRole,
-        refreshRolesList
+        refreshRolesList,
+        refreshUsersList
       }}
     >
       {children}

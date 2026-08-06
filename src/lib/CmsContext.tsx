@@ -19,9 +19,21 @@ import {
   EditorialMember, 
   Announcement, 
   MediaFile,
-  ContactMessage
+  ContactMessage,
+  ActivityLogItem,
+  PawariShabdkoshItem,
+  PawariPaheliItem,
+  PawariLokgeetItem,
+  QuizQuestion,
+  QuizCertificate
 } from '../types';
 import { BookItem, BlogItem, SAMPLE_BOOKS, SAMPLE_BLOGS } from '../data/booksBlogsData';
+import { 
+  SAMPLE_SHABDKOSH, 
+  SAMPLE_PAHELI, 
+  SAMPLE_LOKGEET, 
+  SAMPLE_QUIZ_QUESTIONS 
+} from '../data/pawariCulturalData';
 import { 
   DEFAULT_SETTINGS, 
   DEFAULT_PAGES, 
@@ -32,6 +44,59 @@ import {
 } from '../data/seedData';
 import { fileBlobManager, saveFileToIndexedDB, base64ToBlob } from './fileBlobManager';
 
+export const INITIAL_SAMPLE_LOGS: ActivityLogItem[] = [
+  {
+    id: 'log_01',
+    timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+    action: 'update',
+    category: 'books',
+    title: 'Updated Book Details',
+    details: 'Modified pricing and publication metadata for "पावारी लोक साहित्य एवं संस्कृति"',
+    performedBy: 'Rupesh Pawar',
+    performedByEmail: 'rupeshpawar10@gmail.com'
+  },
+  {
+    id: 'log_02',
+    timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    action: 'create',
+    category: 'blogs',
+    title: 'Published New Community Blog',
+    details: 'Created blog entry titled "पावारी भाषा में बाल साहित्य का महत्व"',
+    performedBy: 'Editorial Team',
+    performedByEmail: 'editorial@pawarishodh.org'
+  },
+  {
+    id: 'log_03',
+    timestamp: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
+    action: 'status_change',
+    category: 'users',
+    title: 'User Account Status Changed',
+    details: 'Changed status of user account (editor@pawarishodh.org) to Active (सक्रिय)',
+    performedBy: 'Super Admin',
+    performedByEmail: 'rupeshpawar10@gmail.com'
+  },
+  {
+    id: 'log_04',
+    timestamp: new Date(Date.now() - 1000 * 60 * 1440).toISOString(),
+    action: 'role_change',
+    category: 'users',
+    title: 'User Account Credentials & Role Updated',
+    details: 'Assigned "book_editor" role and assigned module access permissions (Books, Blogs, Other)',
+    performedBy: 'Super Admin',
+    performedByEmail: 'rupeshpawar10@gmail.com'
+  },
+  {
+    id: 'log_05',
+    timestamp: new Date(Date.now() - 1000 * 60 * 2880).toISOString(),
+    action: 'create',
+    category: 'books',
+    title: 'Published New Book',
+    details: 'Added book entry "पावारी व्याकरण एवं भाषा-शास्त्रीय अध्ययन" by Dr. Ashok Pawar',
+    performedBy: 'Book Editor',
+    performedByEmail: 'book_editor@pawarishodh.org'
+  }
+];
+
 export type PublicPageView = 
   | 'home' 
   | 'about' 
@@ -39,6 +104,10 @@ export type PublicPageView =
   | 'archive' 
   | 'articles' 
   | 'books_blogs'
+  | 'pawari_shabdkosh'
+  | 'pawari_paheli'
+  | 'pawari_lokgeet'
+  | 'pawari_quiz'
   | 'article_detail' 
   | 'editorial_board' 
   | 'author_guidelines' 
@@ -51,6 +120,11 @@ export type AdminTab =
   | 'articles' 
   | 'issues' 
   | 'books_blogs'
+  | 'shabdkosh'
+  | 'paheli'
+  | 'lokgeet'
+  | 'cultural_quizzes'
+  | 'public_contributions'
   | 'pages' 
   | 'section_manager' 
   | 'editorial_board' 
@@ -59,7 +133,8 @@ export type AdminTab =
   | 'submissions'
   | 'settings' 
   | 'users'
-  | 'roles';
+  | 'roles'
+  | 'activity_log';
 
 interface CmsContextType {
   lang: 'hi' | 'en';
@@ -76,13 +151,22 @@ interface CmsContextType {
   issues: Issue[];
   books: BookItem[];
   blogs: BlogItem[];
+  shabdkoshList: PawariShabdkoshItem[];
+  paheliList: PawariPaheliItem[];
+  lokgeetList: PawariLokgeetItem[];
+  quizQuestions: QuizQuestion[];
   pages: Record<string, PageContent>;
   editorialMembers: EditorialMember[];
   announcements: Announcement[];
   mediaFiles: MediaFile[];
   contactMessages: ContactMessage[];
   submissions: import('../types').Submission[];
+  activityLogs: ActivityLogItem[];
   loadingData: boolean;
+
+  // Audit Activity Logger
+  logActivity: (item: Omit<ActivityLogItem, 'id' | 'timestamp'>) => Promise<void>;
+  clearActivityLogs: () => Promise<void>;
 
   // View PDF Modal State
   activePdfUrl: string | null;
@@ -100,6 +184,19 @@ interface CmsContextType {
   deleteBook: (id: string) => Promise<void>;
   saveBlog: (blog: BlogItem) => Promise<void>;
   deleteBlog: (id: string) => Promise<void>;
+  
+  // Shabdkosh, Paheli, Lokgeet, Quiz CRUD
+  saveShabdkosh: (item: PawariShabdkoshItem) => Promise<void>;
+  deleteShabdkosh: (id: string) => Promise<void>;
+  savePaheli: (item: PawariPaheliItem) => Promise<void>;
+  deletePaheli: (id: string) => Promise<void>;
+  saveLokgeet: (item: PawariLokgeetItem) => Promise<void>;
+  deleteLokgeet: (id: string) => Promise<void>;
+  saveQuizQuestion: (question: QuizQuestion) => Promise<void>;
+  deleteQuizQuestion: (id: string) => Promise<void>;
+  submitPublicContribution: (type: 'shabdkosh' | 'paheli' | 'lokgeet', itemData: any) => Promise<void>;
+  updateContributionStatus: (type: 'shabdkosh' | 'paheli' | 'lokgeet', id: string, status: 'approved' | 'pending' | 'rejected') => Promise<void>;
+
   savePage: (page: PageContent) => Promise<void>;
   saveEditorialMember: (member: EditorialMember) => Promise<void>;
   deleteEditorialMember: (id: string) => Promise<void>;
@@ -305,6 +402,68 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {}
     return SAMPLE_BLOGS;
   });
+
+  const [shabdkoshList, setShabdkoshList] = useState<PawariShabdkoshItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('pawari_shabdkosh_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return SAMPLE_SHABDKOSH;
+  });
+
+  const [paheliList, setPaheliList] = useState<PawariPaheliItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('pawari_paheli_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map((p: PawariPaheliItem) => p.id));
+          const missingSamples = SAMPLE_PAHELI.filter(s => !existingIds.has(s.id));
+          if (missingSamples.length > 0) {
+            const merged = [...parsed, ...missingSamples];
+            try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(merged)); } catch (e) {}
+            return merged;
+          }
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return SAMPLE_PAHELI;
+  });
+
+  const [lokgeetList, setLokgeetList] = useState<PawariLokgeetItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('pawari_lokgeet_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return SAMPLE_LOKGEET;
+  });
+
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(() => {
+    try {
+      const saved = localStorage.getItem('pawari_quiz_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map((q: QuizQuestion) => q.id));
+          const missingSamples = SAMPLE_QUIZ_QUESTIONS.filter(s => !existingIds.has(s.id));
+          if (missingSamples.length > 0) {
+            const merged = [...parsed, ...missingSamples];
+            try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(merged)); } catch (e) {}
+            return merged;
+          }
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return SAMPLE_QUIZ_QUESTIONS;
+  });
   const [pages, setPages] = useState<Record<string, PageContent>>(DEFAULT_PAGES);
   const [editorialMembers, setEditorialMembers] = useState<EditorialMember[]>(() => {
     try {
@@ -320,7 +479,54 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   const [submissions, setSubmissions] = useState<import('../types').Submission[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('pawari_activity_logs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return INITIAL_SAMPLE_LOGS;
+  });
   const [loadingData, setLoadingData] = useState<boolean>(true);
+
+  // Audit Activity Logger
+  const logActivity = async (entry: Omit<ActivityLogItem, 'id' | 'timestamp'>) => {
+    const currentUser = auth.currentUser;
+    const newLog: ActivityLogItem = {
+      ...entry,
+      id: 'log_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      timestamp: new Date().toISOString(),
+      performedBy: entry.performedBy || currentUser?.displayName || currentUser?.email || 'Admin User',
+      performedByEmail: entry.performedByEmail || currentUser?.email || ''
+    };
+
+    setActivityLogs(prev => [newLog, ...prev]);
+
+    try {
+      const local = localStorage.getItem('pawari_activity_logs');
+      const logs = local ? JSON.parse(local) : INITIAL_SAMPLE_LOGS;
+      localStorage.setItem('pawari_activity_logs', JSON.stringify([newLog, ...logs.slice(0, 100)]));
+    } catch (e) {}
+
+    try {
+      await setDoc(doc(db, 'activity_logs', newLog.id), newLog, { merge: true });
+    } catch (e) {}
+  };
+
+  const clearActivityLogs = async () => {
+    setActivityLogs([]);
+    try {
+      localStorage.removeItem('pawari_activity_logs');
+    } catch (e) {}
+    try {
+      const snap = await getDocs(collection(db, 'activity_logs'));
+      snap.docs.forEach(async (d) => {
+        await deleteDoc(doc(db, 'activity_logs', d.id));
+      });
+    } catch (e) {}
+  };
 
   // PDF Modal Viewer
   const [activePdfUrl, setActivePdfUrl] = useState<string | null>(null);
@@ -803,6 +1009,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveBook = async (book: BookItem) => {
+    const isNew = !books.some(b => b.id === book.id);
     const updated = books.filter(b => b.id !== book.id);
     updated.unshift(book);
     setBooks(updated);
@@ -814,9 +1021,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.error('Error saving book:', e);
     }
+
+    logActivity({
+      category: 'books',
+      action: isNew ? 'create' : 'update',
+      title: isNew ? `Published New Book "${book.title_hindi || book.title_english}"` : `Updated Book Metadata "${book.title_hindi || book.title_english}"`,
+      details: `Authors: ${book.authors || 'N/A'}, Category: ${book.category || 'N/A'}, Price: ${book.price || 'N/A'}`
+    }).catch(console.warn);
   };
 
   const deleteBook = async (id: string) => {
+    const bookToDelete = books.find(b => b.id === id);
     const updated = books.filter(b => b.id !== id);
     setBooks(updated);
     try {
@@ -827,9 +1042,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.error('Error deleting book:', e);
     }
+
+    logActivity({
+      category: 'books',
+      action: 'delete',
+      title: `Deleted Book "${bookToDelete?.title_hindi || bookToDelete?.title_english || id}"`,
+      details: `Removed book item from literature catalog`
+    }).catch(console.warn);
   };
 
   const saveBlog = async (blog: BlogItem) => {
+    const isNew = !blogs.some(b => b.id === blog.id);
     const updated = blogs.filter(b => b.id !== blog.id);
     updated.unshift(blog);
     setBlogs(updated);
@@ -841,9 +1064,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.error('Error saving blog:', e);
     }
+
+    logActivity({
+      category: 'blogs',
+      action: isNew ? 'create' : 'update',
+      title: isNew ? `Published Blog Post "${blog.title_hindi || blog.title_english}"` : `Updated Blog Post "${blog.title_hindi || blog.title_english}"`,
+      details: `Author: ${blog.author || 'N/A'}, Category: ${blog.category || 'N/A'}`
+    }).catch(console.warn);
   };
 
   const deleteBlog = async (id: string) => {
+    const blogToDelete = blogs.find(b => b.id === id);
     const updated = blogs.filter(b => b.id !== id);
     setBlogs(updated);
     try {
@@ -854,6 +1085,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       console.error('Error deleting blog:', e);
     }
+
+    logActivity({
+      category: 'blogs',
+      action: 'delete',
+      title: `Deleted Blog Post "${blogToDelete?.title_hindi || blogToDelete?.title_english || id}"`,
+      details: `Removed blog post entry`
+    }).catch(console.warn);
   };
 
   const savePage = async (page: PageContent) => {
@@ -1147,6 +1385,193 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Shabdkosh CRUD
+  const saveShabdkosh = async (item: PawariShabdkoshItem) => {
+    const isNew = !shabdkoshList.some(s => s.id === item.id);
+    const updated = shabdkoshList.filter(s => s.id !== item.id);
+    updated.unshift(item);
+    setShabdkoshList(updated);
+    try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(updated)); } catch (e) {}
+    try { await setDoc(doc(db, 'shabdkosh', item.id), item); } catch (e) { console.error(e); }
+
+    logActivity({
+      category: 'shabdkosh',
+      action: isNew ? 'create' : 'update',
+      title: isNew ? `Added Shabdkosh Word "${item.word_pawari}"` : `Updated Shabdkosh Word "${item.word_pawari}"`,
+      details: `Meaning: ${item.meaning_hindi}, Category: ${item.category}`
+    }).catch(console.warn);
+  };
+
+  const deleteShabdkosh = async (id: string) => {
+    const itemToDelete = shabdkoshList.find(s => s.id === id);
+    const updated = shabdkoshList.filter(s => s.id !== id);
+    setShabdkoshList(updated);
+    try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(updated)); } catch (e) {}
+    try { await deleteDoc(doc(db, 'shabdkosh', id)); } catch (e) { console.error(e); }
+
+    logActivity({
+      category: 'shabdkosh',
+      action: 'delete',
+      title: `Deleted Shabdkosh Word "${itemToDelete?.word_pawari || id}"`,
+      details: `Removed word entry from dictionary`
+    }).catch(console.warn);
+  };
+
+  // Paheli CRUD
+  const savePaheli = async (item: PawariPaheliItem) => {
+    const isNew = !paheliList.some(p => p.id === item.id);
+    const updated = paheliList.filter(p => p.id !== item.id);
+    updated.unshift(item);
+    setPaheliList(updated);
+    try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(updated)); } catch (e) {}
+    try { await setDoc(doc(db, 'paheli', item.id), item); } catch (e) { console.error(e); }
+
+    logActivity({
+      category: 'paheli',
+      action: isNew ? 'create' : 'update',
+      title: isNew ? `Added Paheli Riddle` : `Updated Paheli Riddle`,
+      details: `Riddle: "${item.riddle_pawari.slice(0, 40)}...", Answer: ${item.answer_hindi}`
+    }).catch(console.warn);
+  };
+
+  const deletePaheli = async (id: string) => {
+    const itemToDelete = paheliList.find(p => p.id === id);
+    const updated = paheliList.filter(p => p.id !== id);
+    setPaheliList(updated);
+    try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(updated)); } catch (e) {}
+    try { await deleteDoc(doc(db, 'paheli', id)); } catch (e) { console.error(e); }
+
+    logActivity({
+      category: 'paheli',
+      action: 'delete',
+      title: `Deleted Paheli Riddle`,
+      details: `Removed riddle "${itemToDelete?.riddle_pawari.slice(0, 30)}..."`
+    }).catch(console.warn);
+  };
+
+  // Lokgeet CRUD
+  const saveLokgeet = async (item: PawariLokgeetItem) => {
+    const isNew = !lokgeetList.some(l => l.id === item.id);
+    const updated = lokgeetList.filter(l => l.id !== item.id);
+    updated.unshift(item);
+    setLokgeetList(updated);
+    try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
+    try { await setDoc(doc(db, 'lokgeet', item.id), item); } catch (e) { console.error(e); }
+
+    logActivity({
+      category: 'lokgeet',
+      action: isNew ? 'create' : 'update',
+      title: isNew ? `Added Lokgeet "${item.title_pawari}"` : `Updated Lokgeet "${item.title_pawari}"`,
+      details: `Category: ${item.category}, Collector: ${item.singer_or_collector || 'N/A'}`
+    }).catch(console.warn);
+  };
+
+  const deleteLokgeet = async (id: string) => {
+    const itemToDelete = lokgeetList.find(l => l.id === id);
+    const updated = lokgeetList.filter(l => l.id !== id);
+    setLokgeetList(updated);
+    try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
+    try { await deleteDoc(doc(db, 'lokgeet', id)); } catch (e) { console.error(e); }
+
+    logActivity({
+      category: 'lokgeet',
+      action: 'delete',
+      title: `Deleted Lokgeet "${itemToDelete?.title_pawari || id}"`,
+      details: `Removed folk song entry`
+    }).catch(console.warn);
+  };
+
+  // Quiz Question CRUD
+  const saveQuizQuestion = async (question: QuizQuestion) => {
+    const isNew = !quizQuestions.some(q => q.id === question.id);
+    const updated = quizQuestions.filter(q => q.id !== question.id);
+    updated.unshift(question);
+    setQuizQuestions(updated);
+    try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(updated)); } catch (e) {}
+    try { await setDoc(doc(db, 'quiz_questions', question.id), question); } catch (e) { console.error(e); }
+
+    logActivity({
+      category: 'quiz',
+      action: isNew ? 'create' : 'update',
+      title: isNew ? `Added Quiz Question` : `Updated Quiz Question`,
+      details: `Question: "${question.question_hindi.slice(0, 40)}..."`
+    }).catch(console.warn);
+  };
+
+  const deleteQuizQuestion = async (id: string) => {
+    const qToDelete = quizQuestions.find(q => q.id === id);
+    const updated = quizQuestions.filter(q => q.id !== id);
+    setQuizQuestions(updated);
+    try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(updated)); } catch (e) {}
+    try { await deleteDoc(doc(db, 'quiz_questions', id)); } catch (e) { console.error(e); }
+
+    logActivity({
+      category: 'quiz',
+      action: 'delete',
+      title: `Deleted Quiz Question`,
+      details: `Removed question "${qToDelete?.question_hindi.slice(0, 30)}..."`
+    }).catch(console.warn);
+  };
+
+  // Public User Contributions
+  const submitPublicContribution = async (type: 'shabdkosh' | 'paheli' | 'lokgeet', itemData: any) => {
+    const id = 'contrib_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const newItem = {
+      ...itemData,
+      id,
+      status: 'pending' as const,
+      created_at: new Date().toISOString()
+    };
+
+    if (type === 'shabdkosh') {
+      const updated = [newItem as PawariShabdkoshItem, ...shabdkoshList];
+      setShabdkoshList(updated);
+      try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(updated)); } catch (e) {}
+    } else if (type === 'paheli') {
+      const updated = [newItem as PawariPaheliItem, ...paheliList];
+      setPaheliList(updated);
+      try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(updated)); } catch (e) {}
+    } else if (type === 'lokgeet') {
+      const updated = [newItem as PawariLokgeetItem, ...lokgeetList];
+      setLokgeetList(updated);
+      try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
+    }
+
+    try { await setDoc(doc(db, type, id), newItem); } catch (e) { console.error(e); }
+
+    logActivity({
+      category: type === 'shabdkosh' ? 'shabdkosh' : type === 'paheli' ? 'paheli' : 'lokgeet',
+      action: 'create',
+      title: `New Public User Submission (${type.toUpperCase()})`,
+      details: `Submitted by: ${itemData.contributor_name || 'Public Reader'}`
+    }).catch(console.warn);
+  };
+
+  const updateContributionStatus = async (type: 'shabdkosh' | 'paheli' | 'lokgeet', id: string, status: 'approved' | 'pending' | 'rejected') => {
+    if (type === 'shabdkosh') {
+      const updated = shabdkoshList.map(item => item.id === id ? { ...item, status } : item);
+      setShabdkoshList(updated);
+      try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(updated)); } catch (e) {}
+    } else if (type === 'paheli') {
+      const updated = paheliList.map(item => item.id === id ? { ...item, status } : item);
+      setPaheliList(updated);
+      try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(updated)); } catch (e) {}
+    } else if (type === 'lokgeet') {
+      const updated = lokgeetList.map(item => item.id === id ? { ...item, status } : item);
+      setLokgeetList(updated);
+      try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
+    }
+
+    try { await updateDoc(doc(db, type, id), { status }); } catch (e) { console.error(e); }
+
+    logActivity({
+      category: type === 'shabdkosh' ? 'shabdkosh' : type === 'paheli' ? 'paheli' : 'lokgeet',
+      action: 'status_change',
+      title: `Changed Submission Status to ${status.toUpperCase()} (${type.toUpperCase()})`,
+      details: `Item ID: ${id}`
+    }).catch(console.warn);
+  };
+
   return (
     <CmsContext.Provider
       value={{
@@ -1163,13 +1588,20 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         issues,
         books,
         blogs,
+        shabdkoshList,
+        paheliList,
+        lokgeetList,
+        quizQuestions,
         pages,
         editorialMembers,
         announcements,
         mediaFiles,
         contactMessages,
         submissions,
+        activityLogs,
         loadingData,
+        logActivity,
+        clearActivityLogs,
         activePdfUrl,
         activePdfTitle,
         openPdfViewer,
@@ -1183,6 +1615,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteBook,
         saveBlog,
         deleteBlog,
+        saveShabdkosh,
+        deleteShabdkosh,
+        savePaheli,
+        deletePaheli,
+        saveLokgeet,
+        deleteLokgeet,
+        saveQuizQuestion,
+        deleteQuizQuestion,
+        submitPublicContribution,
+        updateContributionStatus,
         savePage,
         saveEditorialMember,
         deleteEditorialMember,

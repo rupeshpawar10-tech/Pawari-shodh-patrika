@@ -4,6 +4,7 @@ import { useAuth } from '../../lib/AuthContext';
 import { 
   FileText, 
   BookOpen, 
+  Book,
   Users, 
   Download, 
   Eye, 
@@ -122,53 +123,60 @@ export const AdminDashboard: React.FC = () => {
           Quick Management Modules
         </h2>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-xs">
           <button
             onClick={() => setActiveAdminTab('articles')}
-            className="p-4 bg-slate-50 hover:bg-amber-50/80 border border-slate-200 hover:border-amber-400/50 rounded-xl text-left space-y-1 transition"
+            className="p-3 bg-slate-50 hover:bg-amber-50/80 border border-slate-200 hover:border-amber-400/50 rounded-xl text-left space-y-1 transition"
           >
             <FileText className="w-5 h-5 text-red-900" />
-            <p className="font-serif font-bold text-slate-900">Articles Manager</p>
-            <p className="text-[11px] text-slate-500">Manage research papers & PDFs</p>
+            <p className="font-serif font-bold text-slate-900">Articles</p>
+            <p className="text-[10px] text-slate-500">Research papers</p>
           </button>
 
           <button
             onClick={() => setActiveAdminTab('issues')}
-            className="p-4 bg-slate-50 hover:bg-amber-50/80 border border-slate-200 hover:border-amber-400/50 rounded-xl text-left space-y-1 transition"
+            className="p-3 bg-slate-50 hover:bg-amber-50/80 border border-slate-200 hover:border-amber-400/50 rounded-xl text-left space-y-1 transition"
           >
             <BookOpen className="w-5 h-5 text-amber-600" />
             <p className="font-serif font-bold text-slate-900">Volumes & Issues</p>
-            <p className="text-[11px] text-slate-500">Manage journal editions</p>
+            <p className="text-[10px] text-slate-500">Journal editions</p>
           </button>
 
           <button
-            onClick={() => setActiveAdminTab('section_manager')}
-            className="p-4 bg-slate-50 hover:bg-amber-50/80 border border-slate-200 hover:border-amber-400/50 rounded-xl text-left space-y-1 transition"
+            onClick={() => setActiveAdminTab('books_blogs')}
+            className="p-3 bg-slate-50 hover:bg-amber-50/80 border border-slate-200 hover:border-amber-400/50 rounded-xl text-left space-y-1 transition"
+          >
+            <Book className="w-5 h-5 text-amber-800" />
+            <p className="font-serif font-bold text-slate-900">Books & Blogs</p>
+            <p className="text-[10px] text-slate-500">Books, reviews & essays</p>
+          </button>
+
+          <button
+            onClick={() => setActiveAdminTab('public_contributions')}
+            className="p-3 bg-slate-50 hover:bg-amber-50/80 border border-slate-200 hover:border-amber-400/50 rounded-xl text-left space-y-1 transition"
+          >
+            <Users className="w-5 h-5 text-sky-600" />
+            <p className="font-serif font-bold text-slate-900">Reader Contributions</p>
+            <p className="text-[10px] text-slate-500">Approvals & submissions</p>
+          </button>
+
+          <button
+            onClick={() => setActiveAdminTab('shabdkosh')}
+            className="p-3 bg-slate-50 hover:bg-amber-50/80 border border-slate-200 hover:border-amber-400/50 rounded-xl text-left space-y-1 transition"
           >
             <Sparkles className="w-5 h-5 text-emerald-600" />
-            <p className="font-serif font-bold text-slate-900">Section Order</p>
-            <p className="text-[11px] text-slate-500">Show/hide & reorder home</p>
+            <p className="font-serif font-bold text-slate-900">Pawari Literature</p>
+            <p className="text-[10px] text-slate-500">Shabdkosh, Paheli, Lokgeet</p>
           </button>
 
           <button
             onClick={() => setActiveAdminTab('settings')}
-            className="p-4 bg-slate-50 hover:bg-amber-50/80 border border-slate-200 hover:border-amber-400/50 rounded-xl text-left space-y-1 transition"
+            className="p-3 bg-slate-50 hover:bg-amber-50/80 border border-slate-200 hover:border-amber-400/50 rounded-xl text-left space-y-1 transition"
           >
             <Settings className="w-5 h-5 text-slate-700" />
             <p className="font-serif font-bold text-slate-900">Journal Settings</p>
-            <p className="text-[11px] text-slate-500">ISSN, Title, Footer & Labels</p>
+            <p className="text-[10px] text-slate-500">Title, ISSN, Footer</p>
           </button>
-
-          {isSuperAdmin && (
-            <button
-              onClick={() => setActiveAdminTab('roles')}
-              className="p-4 bg-slate-50 hover:bg-amber-50/80 border border-slate-200 hover:border-amber-400/50 rounded-xl text-left space-y-1 transition"
-            >
-              <Key className="w-5 h-5 text-red-900" />
-              <p className="font-serif font-bold text-slate-900">Manage Roles</p>
-              <p className="text-[11px] text-slate-500">Configure custom roles & access</p>
-            </button>
-          )}
         </div>
       </div>
 
