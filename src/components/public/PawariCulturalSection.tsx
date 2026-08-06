@@ -23,7 +23,8 @@ import {
   Send,
   Volume2,
   FileCheck2,
-  Check
+  Check,
+  AlertCircle
 } from 'lucide-react';
 
 interface PawariCulturalSectionProps {
@@ -42,6 +43,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [shabdkoshCategory, setShabdkoshCategory] = useState('all');
+  const [paheliCategory, setPaheliCategory] = useState('all');
   const [revealedPaheli, setRevealedPaheli] = useState<Record<string, boolean>>({});
 
   // Public Contribution Modal state
@@ -82,10 +84,13 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   });
 
   // Paheli Filtering
-  const filteredPaheli = approvedPaheli.filter(item => 
-    item.riddle_pawari.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.answer_hindi.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPaheli = approvedPaheli.filter(item => {
+    const matchesSearch = item.riddle_pawari.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.answer_hindi.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.explanation_hindi && item.explanation_hindi.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = paheliCategory === 'all' || item.category === paheliCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   // Lokgeet Filtering
   const filteredLokgeet = approvedLokgeet.filter(item => 
@@ -141,13 +146,17 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     }
   };
 
-  // Quiz logic
+  // Quiz logic - select top 10 questions for active quiz
+  const activeQuizQuestions = React.useMemo(() => {
+    return (quizQuestions || []).slice(0, 10);
+  }, [quizQuestions]);
+
   const handleSelectOption = (optIndex: number) => {
     setUserAnswers(prev => ({ ...prev, [currentQIndex]: optIndex }));
   };
 
   const handleNextQuiz = () => {
-    if (currentQIndex < quizQuestions.length - 1) {
+    if (currentQIndex < activeQuizQuestions.length - 1) {
       setCurrentQIndex(prev => prev + 1);
     }
   };
@@ -165,13 +174,14 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     }
 
     let score = 0;
-    quizQuestions.forEach((q, idx) => {
+    activeQuizQuestions.forEach((q, idx) => {
       if (userAnswers[idx] === q.correct_option_index) {
         score += 1;
       }
     });
 
-    const percentage = Math.round((score / quizQuestions.length) * 100);
+    const totalQ = activeQuizQuestions.length || 10;
+    const percentage = Math.round((score / totalQ) * 100);
     const certNo = 'PCH-' + Math.floor(100000 + Math.random() * 900000);
 
     const cert: QuizCertificate = {
@@ -179,7 +189,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       user_name: userName.trim(),
       user_photo_url: userPhoto,
       quiz_score: score,
-      total_questions: quizQuestions.length,
+      total_questions: totalQ,
       percentage,
       issued_date: new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
       certificate_no: certNo
@@ -321,6 +331,24 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                   }`}
                 >
                   {cat === 'all' ? 'सभी शब्द' : cat}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'paheli' && (
+            <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+              {['all', 'चिहनन की काहयनी (पहलोड़ी)', 'घरेलू सामान', 'खान-पान', 'कृषि/खेती', 'प्रकृति', 'पशु-पक्षी एवं जीव', 'शरीर के अंग', 'संस्कृति एवं परम्परा'].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setPaheliCategory(cat)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                    paheliCategory === cat 
+                      ? 'bg-amber-500 text-amber-950 font-bold' 
+                      : 'bg-slate-800 text-amber-200 hover:bg-slate-700'
+                  }`}
+                >
+                  {cat === 'all' ? 'सभी पहेलियाँ' : cat}
                 </button>
               ))}
             </div>
@@ -637,26 +665,26 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-amber-900/30">
                 <div>
                   <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
-                    प्रश्न {currentQIndex + 1} / {quizQuestions.length}
+                    प्रश्न {currentQIndex + 1} / {activeQuizQuestions.length}
                   </span>
                   <h3 className="text-lg md:text-xl font-bold text-amber-100 font-serif mt-1">
-                    {quizQuestions[currentQIndex]?.question_pawari}
+                    {activeQuizQuestions[currentQIndex]?.question_pawari}
                   </h3>
-                  {quizQuestions[currentQIndex]?.question_hindi && (
+                  {activeQuizQuestions[currentQIndex]?.question_hindi && (
                     <p className="text-xs text-amber-400/70 mt-0.5">
-                      ({quizQuestions[currentQIndex]?.question_hindi})
+                      ({activeQuizQuestions[currentQIndex]?.question_hindi})
                     </p>
                   )}
                 </div>
 
                 <div className="w-12 h-12 rounded-full bg-amber-950 border border-amber-600/50 flex items-center justify-center font-bold text-amber-300 text-sm flex-shrink-0">
-                  {currentQIndex + 1}/{quizQuestions.length}
+                  {currentQIndex + 1}/{activeQuizQuestions.length}
                 </div>
               </div>
 
               {/* Options */}
               <div className="space-y-3 mb-8">
-                {quizQuestions[currentQIndex]?.options.map((opt, optIdx) => {
+                {activeQuizQuestions[currentQIndex]?.options.map((opt, optIdx) => {
                   const isSelected = userAnswers[currentQIndex] === optIdx;
                   return (
                     <button
@@ -685,12 +713,12 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                 <button
                   onClick={handlePrevQuiz}
                   disabled={currentQIndex === 0}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-amber-200 text-xs font-semibold disabled:opacity-40"
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-amber-200 text-xs font-semibold disabled:opacity-40 cursor-pointer"
                 >
                   पिछला प्रश्न
                 </button>
 
-                {currentQIndex < quizQuestions.length - 1 ? (
+                {currentQIndex < activeQuizQuestions.length - 1 ? (
                   <button
                     onClick={handleNextQuiz}
                     className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold text-sm shadow-lg cursor-pointer"
@@ -708,8 +736,8 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                 )}
               </div>
             </div>
-          ) : (
-            /* CERTIFICATE DISPLAY & DOWNLOAD CARD */
+          ) : certificateData && certificateData.percentage >= 60 ? (
+            /* CERTIFICATE DISPLAY & DOWNLOAD CARD FOR PASSING SCORE (>= 60%) */
             <div className="space-y-6">
               <div className="bg-slate-900/90 border border-amber-500/40 p-6 rounded-3xl text-center space-y-4 shadow-2xl">
                 <div className="inline-flex p-3 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">
@@ -821,6 +849,40 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          ) : (
+            /* RETAKE QUIZ CARD FOR SCORES BELOW 60% */
+            <div className="bg-slate-900/90 border border-amber-700/50 p-8 rounded-3xl text-center space-y-5 shadow-2xl">
+              <div className="inline-flex p-4 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                <AlertCircle className="w-12 h-12 text-amber-400" />
+              </div>
+
+              <h3 className="text-2xl font-black text-amber-100 font-serif">
+                प्रयास पूर्ण: {certificateData?.user_name}
+              </h3>
+
+              <p className="text-base text-amber-200/90">
+                आपने {certificateData?.total_questions} में से <strong className="text-amber-400 font-bold">{certificateData?.quiz_score}</strong> प्रश्नों के सही उत्तर दिए हैं (प्राप्तांक: <strong className="text-amber-400 font-bold">{certificateData?.percentage}%</strong>)।
+              </p>
+
+              <div className="p-4 bg-amber-950/70 border border-amber-700/60 rounded-2xl max-w-md mx-auto text-xs text-amber-200 leading-relaxed text-left space-y-1">
+                <p className="font-bold text-amber-400 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  प्रमाण-पत्र पात्रता दिशानिर्देश:
+                </p>
+                <p>• पवारी ई-प्रमाण-पत्र प्राप्त करने हेतु न्यूनतम <strong>60% अंक (10 में से कम से कम 6 सही उत्तर)</strong> आवश्यक हैं।</p>
+                <p>• कृपया पवारी शब्दकोश एवं पहेलियों का पुनः अध्ययन कर दोबारा प्रयास करें।</p>
+              </div>
+
+              <div className="pt-3">
+                <button
+                  onClick={handleResetQuiz}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-bold text-sm shadow-xl inline-flex items-center gap-2 cursor-pointer transition-all"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>पुनः क्विज़ का प्रयास करें (Retake Quiz)</span>
+                </button>
               </div>
             </div>
           )}

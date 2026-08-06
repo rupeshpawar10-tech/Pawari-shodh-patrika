@@ -13,8 +13,21 @@ import {
   Upload, 
   Image as ImageIcon,
   Sparkles,
-  Volume2
+  Volume2,
+  Table,
+  Save,
+  FileSpreadsheet
 } from 'lucide-react';
+
+interface BatchShabdkoshRow {
+  id?: string;
+  word_pawari: string;
+  pronunciation_hindi: string;
+  meaning_hindi: string;
+  meaning_english: string;
+  example_pawari: string;
+  category: string;
+}
 
 export const ShabdkoshManager: React.FC = () => {
   const { shabdkoshList, saveShabdkosh, deleteShabdkosh, uploadFileToStorage } = useCms();
@@ -23,6 +36,12 @@ export const ShabdkoshManager: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PawariShabdkoshItem | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Batch Edit State
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [batchRows, setBatchRows] = useState<BatchShabdkoshRow[]>([]);
+  const [batchText, setBatchText] = useState('');
+  const [isProcessingBatch, setIsProcessingBatch] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState<Partial<PawariShabdkoshItem>>({
@@ -134,13 +153,38 @@ export const ShabdkoshManager: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAddModal}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-bold shadow-lg shadow-amber-900/30 transition-all cursor-pointer"
-        >
-          <Plus className="w-5 h-5" />
-          <span>नया शब्द जोड़ें</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              // Populate batch edit with current list or quick template
+              const rows = shabdkoshList.slice(0, 10).map(s => ({
+                id: s.id,
+                word_pawari: s.word_pawari,
+                pronunciation_hindi: s.pronunciation_hindi || '',
+                meaning_hindi: s.meaning_hindi,
+                meaning_english: s.meaning_english || '',
+                example_pawari: s.example_pawari || '',
+                category: s.category || 'दैनिक शब्द'
+              }));
+              setBatchRows(rows.length > 0 ? rows : [
+                { word_pawari: '', pronunciation_hindi: '', meaning_hindi: '', meaning_english: '', example_pawari: '', category: 'दैनिक शब्द' }
+              ]);
+              setIsBatchModalOpen(true);
+            }}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-600/50 text-amber-200 font-semibold shadow-md transition-all cursor-pointer text-sm"
+          >
+            <Table className="w-4 h-4 text-amber-400" />
+            <span>बैच संपादन (Batch Edit / CSV)</span>
+          </button>
+
+          <button
+            onClick={handleOpenAddModal}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-bold shadow-lg shadow-amber-900/30 transition-all cursor-pointer"
+          >
+            <Plus className="w-5 h-5" />
+            <span>नया शब्द जोड़ें</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -427,6 +471,231 @@ export const ShabdkoshManager: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* BATCH EDIT / BULK ADD MODAL */}
+      {isBatchModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-amber-800/60 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-amber-100">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-amber-950/70 border-b border-amber-800/40 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-400 font-bold">
+                <Table className="w-5 h-5 text-amber-400" />
+                <span>शब्दकोश बैच संपादन (Batch / Bulk Shabdkosh Editor)</span>
+              </div>
+              <button
+                onClick={() => setIsBatchModalOpen(false)}
+                className="p-1 text-amber-300 hover:text-white rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1">
+              <div className="bg-amber-950/30 border border-amber-800/30 p-4 rounded-xl text-xs text-amber-200/90 space-y-2">
+                <p className="font-semibold text-amber-300">💡 बैच संपादन निर्देश (Batch Editing Instructions):</p>
+                <p>1. नीचे दी गई तालिका (Table) में सीधे शब्द, उच्चारण, हिंदी अर्थ, अंग्रेजी अर्थ तथा वाक्य प्रयोग भरें।</p>
+                <p>2. आप **"पंक्ति जोड़ें (Add Row)"** बटन दबाकर नए शब्द जोड़ सकते हैं, फिर एक साथ **"सभी सहेजें (Save All)"** कर सकते हैं।</p>
+                <p>3. अथवा "CSV / पाठ फ़ॉर्मेट" टैब का उपयोग करके अल्पविराम (Comma/Tab) से अलग की गई पंक्तियाँ पेस्ट कर सकते हैं।</p>
+              </div>
+
+              {/* Table Edit Grid */}
+              <div className="border border-amber-900/40 rounded-xl overflow-x-auto">
+                <table className="w-full text-left text-xs text-amber-100">
+                  <thead className="bg-amber-950/80 text-amber-300 border-b border-amber-900/60 uppercase font-semibold">
+                    <tr>
+                      <th className="p-2.5 w-10 text-center">#</th>
+                      <th className="p-2.5 min-w-[140px]">पवारी शब्द *</th>
+                      <th className="p-2.5 min-w-[130px]">उच्चारण (हिंदी)</th>
+                      <th className="p-2.5 min-w-[160px]">हिंदी अर्थ *</th>
+                      <th className="p-2.5 min-w-[140px]">अंग्रेजी अर्थ</th>
+                      <th className="p-2.5 min-w-[180px]">पवारी वाक्य प्रयोग</th>
+                      <th className="p-2.5 min-w-[120px]">श्रेणी</th>
+                      <th className="p-2.5 w-12 text-center flex-none">कार्य</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-900/30 bg-slate-950/60">
+                    {batchRows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-amber-950/20 transition">
+                        <td className="p-2.5 text-center text-amber-400 font-mono">{idx + 1}</td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={row.word_pawari}
+                            onChange={(e) => {
+                              const updated = [...batchRows];
+                              updated[idx].word_pawari = e.target.value;
+                              setBatchRows(updated);
+                            }}
+                            placeholder="पवारी शब्द"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-amber-900/40 rounded text-amber-100 focus:border-amber-500 text-xs"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={row.pronunciation_hindi}
+                            onChange={(e) => {
+                              const updated = [...batchRows];
+                              updated[idx].pronunciation_hindi = e.target.value;
+                              setBatchRows(updated);
+                            }}
+                            placeholder="उच्चारण"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-amber-900/40 rounded text-amber-100 focus:border-amber-500 text-xs"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={row.meaning_hindi}
+                            onChange={(e) => {
+                              const updated = [...batchRows];
+                              updated[idx].meaning_hindi = e.target.value;
+                              setBatchRows(updated);
+                            }}
+                            placeholder="हिंदी अर्थ"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-amber-900/40 rounded text-amber-100 focus:border-amber-500 text-xs"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={row.meaning_english}
+                            onChange={(e) => {
+                              const updated = [...batchRows];
+                              updated[idx].meaning_english = e.target.value;
+                              setBatchRows(updated);
+                            }}
+                            placeholder="English Meaning"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-amber-900/40 rounded text-amber-100 focus:border-amber-500 text-xs"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={row.example_pawari}
+                            onChange={(e) => {
+                              const updated = [...batchRows];
+                              updated[idx].example_pawari = e.target.value;
+                              setBatchRows(updated);
+                            }}
+                            placeholder="वाक्य प्रयोग"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-amber-900/40 rounded text-amber-100 focus:border-amber-500 text-xs"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <select
+                            value={row.category}
+                            onChange={(e) => {
+                              const updated = [...batchRows];
+                              updated[idx].category = e.target.value;
+                              setBatchRows(updated);
+                            }}
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-amber-900/40 rounded text-amber-100 focus:border-amber-500 text-xs"
+                          >
+                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </td>
+                        <td className="p-2.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBatchRows(batchRows.filter((_, i) => i !== idx));
+                            }}
+                            className="text-red-400 hover:text-red-300 p-1"
+                            title="पंक्ति हटाएँ"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBatchRows([...batchRows, {
+                      word_pawari: '',
+                      pronunciation_hindi: '',
+                      meaning_hindi: '',
+                      meaning_english: '',
+                      example_pawari: '',
+                      category: 'दैनिक शब्द'
+                    }]);
+                  }}
+                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-amber-700/50 text-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>एक और पंक्ति जोड़ें (Add Row)</span>
+                </button>
+
+                <div className="text-xs text-amber-400/80 font-medium">
+                  कुल {batchRows.length} प्रविष्टियाँ (Entries)
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-amber-950/80 border-t border-amber-800/40 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setIsBatchModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-200 rounded-xl text-xs font-semibold"
+              >
+                रद्द करें
+              </button>
+
+              <button
+                type="button"
+                disabled={isProcessingBatch}
+                onClick={async () => {
+                  const validRows = batchRows.filter(r => r.word_pawari.trim() && r.meaning_hindi.trim());
+                  if (validRows.length === 0) {
+                    alert('कृपया कम से कम एक शब्द एवं हिंदी अर्थ दर्ज करें।');
+                    return;
+                  }
+
+                  setIsProcessingBatch(true);
+                  try {
+                    for (const row of validRows) {
+                      const itemToSave: PawariShabdkoshItem = {
+                        id: row.id || 'shabd_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                        word_pawari: row.word_pawari.trim(),
+                        pronunciation_hindi: row.pronunciation_hindi.trim(),
+                        meaning_hindi: row.meaning_hindi.trim(),
+                        meaning_english: row.meaning_english.trim(),
+                        example_pawari: row.example_pawari.trim(),
+                        example_hindi: '',
+                        category: row.category || 'दैनिक शब्द',
+                        image_url: '',
+                        audio_url: '',
+                        contributor_name: 'एडमिन बैच',
+                        status: 'approved',
+                        created_at: new Date().toISOString()
+                      };
+                      await saveShabdkosh(itemToSave);
+                    }
+                    alert(`सफलतापूर्वक ${validRows.length} शब्द सहेजे गए!`);
+                    setIsBatchModalOpen(false);
+                  } catch (err) {
+                    alert('बैच सहेजने में त्रुटि हुई');
+                  } finally {
+                    setIsProcessingBatch(false);
+                  }
+                }}
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-bold rounded-xl text-xs shadow-lg flex items-center gap-2 cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isProcessingBatch ? 'सहेजा जा रहा है...' : `बैच के सभी ${batchRows.filter(r => r.word_pawari.trim() && r.meaning_hindi.trim()).length} शब्द सहेजें`}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

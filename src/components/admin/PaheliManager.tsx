@@ -14,8 +14,19 @@ import {
   Lightbulb, 
   Sparkles,
   Eye,
-  EyeOff
+  EyeOff,
+  Table,
+  Save
 } from 'lucide-react';
+
+interface BatchPaheliRow {
+  id?: string;
+  riddle_pawari: string;
+  answer_hindi: string;
+  answer_pawari: string;
+  hint_hindi: string;
+  category: string;
+}
 
 export const PaheliManager: React.FC = () => {
   const { paheliList, savePaheli, deletePaheli, uploadFileToStorage } = useCms();
@@ -24,6 +35,11 @@ export const PaheliManager: React.FC = () => {
   const [editingItem, setEditingItem] = useState<PawariPaheliItem | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
+
+  // Batch Edit State
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [batchRows, setBatchRows] = useState<BatchPaheliRow[]>([]);
+  const [isProcessingBatch, setIsProcessingBatch] = useState(false);
 
   const [formData, setFormData] = useState<Partial<PawariPaheliItem>>({
     riddle_pawari: '',
@@ -130,13 +146,36 @@ export const PaheliManager: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAddModal}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-bold shadow-lg shadow-amber-900/30 transition-all cursor-pointer"
-        >
-          <Plus className="w-5 h-5" />
-          <span>नयी पहेली जोड़ें</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              const rows = paheliList.slice(0, 10).map(p => ({
+                id: p.id,
+                riddle_pawari: p.riddle_pawari,
+                answer_hindi: p.answer_hindi,
+                answer_pawari: p.answer_pawari || '',
+                hint_hindi: p.hint_hindi || '',
+                category: p.category || 'प्रकृति'
+              }));
+              setBatchRows(rows.length > 0 ? rows : [
+                { riddle_pawari: '', answer_hindi: '', answer_pawari: '', hint_hindi: '', category: 'प्रकृति' }
+              ]);
+              setIsBatchModalOpen(true);
+            }}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-600/50 text-amber-200 font-semibold shadow-md transition-all cursor-pointer text-sm"
+          >
+            <Table className="w-4 h-4 text-amber-400" />
+            <span>बैच संपादन (Batch Edit)</span>
+          </button>
+
+          <button
+            onClick={handleOpenAddModal}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-bold shadow-lg shadow-amber-900/30 transition-all cursor-pointer"
+          >
+            <Plus className="w-5 h-5" />
+            <span>नयी पहेली जोड़ें</span>
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -403,6 +442,212 @@ export const PaheliManager: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* BATCH EDIT / BULK ADD PAHELI MODAL */}
+      {isBatchModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-amber-800/60 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-amber-100">
+            {/* Header */}
+            <div className="px-6 py-4 bg-amber-950/70 border-b border-amber-800/40 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-400 font-bold">
+                <Table className="w-5 h-5 text-amber-400" />
+                <span>पहेली बैच संपादन (Batch / Bulk Paheli Editor)</span>
+              </div>
+              <button
+                onClick={() => setIsBatchModalOpen(false)}
+                className="p-1 text-amber-300 hover:text-white rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1">
+              <div className="bg-amber-950/30 border border-amber-800/30 p-4 rounded-xl text-xs text-amber-200/90 space-y-2">
+                <p className="font-semibold text-amber-300">💡 बैच संपादन निर्देश (Batch Instructions):</p>
+                <p>1. सीधे ग्रिड तालिका में पहेली (बुझौवल), उत्तर तथा संकेत भरें।</p>
+                <p>2. "पंक्ति जोड़ें (Add Row)" दबाकर एक साथ अनेक पहेलियाँ प्रविष्ट करें और एक ही क्लिक में सहेजें।</p>
+              </div>
+
+              {/* Table */}
+              <div className="border border-amber-900/40 rounded-xl overflow-x-auto">
+                <table className="w-full text-left text-xs text-amber-100">
+                  <thead className="bg-amber-950/80 text-amber-300 border-b border-amber-900/60 uppercase font-semibold">
+                    <tr>
+                      <th className="p-2.5 w-10 text-center">#</th>
+                      <th className="p-2.5 min-w-[200px]">पहेली (बुझौवल - पवारी) *</th>
+                      <th className="p-2.5 min-w-[150px]">उत्तर (हिंदी) *</th>
+                      <th className="p-2.5 min-w-[140px]">उत्तर (पवारी)</th>
+                      <th className="p-2.5 min-w-[160px]">संकेत (Hint)</th>
+                      <th className="p-2.5 min-w-[120px]">श्रेणी</th>
+                      <th className="p-2.5 w-12 text-center">कार्य</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-900/30 bg-slate-950/60">
+                    {batchRows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-amber-950/20 transition">
+                        <td className="p-2.5 text-center text-amber-400 font-mono">{idx + 1}</td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={row.riddle_pawari}
+                            onChange={(e) => {
+                              const updated = [...batchRows];
+                              updated[idx].riddle_pawari = e.target.value;
+                              setBatchRows(updated);
+                            }}
+                            placeholder="पवारी पहेली दर्ज करें"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-amber-900/40 rounded text-amber-100 focus:border-amber-500 text-xs"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={row.answer_hindi}
+                            onChange={(e) => {
+                              const updated = [...batchRows];
+                              updated[idx].answer_hindi = e.target.value;
+                              setBatchRows(updated);
+                            }}
+                            placeholder="हिंदी उत्तर"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-amber-900/40 rounded text-amber-100 focus:border-amber-500 text-xs"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={row.answer_pawari}
+                            onChange={(e) => {
+                              const updated = [...batchRows];
+                              updated[idx].answer_pawari = e.target.value;
+                              setBatchRows(updated);
+                            }}
+                            placeholder="पवारी उत्तर"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-amber-900/40 rounded text-amber-100 focus:border-amber-500 text-xs"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <input
+                            type="text"
+                            value={row.hint_hindi}
+                            onChange={(e) => {
+                              const updated = [...batchRows];
+                              updated[idx].hint_hindi = e.target.value;
+                              setBatchRows(updated);
+                            }}
+                            placeholder="संकेत"
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-amber-900/40 rounded text-amber-100 focus:border-amber-500 text-xs"
+                          />
+                        </td>
+                        <td className="p-1.5">
+                          <select
+                            value={row.category}
+                            onChange={(e) => {
+                              const updated = [...batchRows];
+                              updated[idx].category = e.target.value;
+                              setBatchRows(updated);
+                            }}
+                            className="w-full px-2 py-1.5 bg-slate-900 border border-amber-900/40 rounded text-amber-100 focus:border-amber-500 text-xs"
+                          >
+                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </td>
+                        <td className="p-2.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBatchRows(batchRows.filter((_, i) => i !== idx));
+                            }}
+                            className="text-red-400 hover:text-red-300 p-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBatchRows([...batchRows, {
+                      riddle_pawari: '',
+                      answer_hindi: '',
+                      answer_pawari: '',
+                      hint_hindi: '',
+                      category: 'प्रकृति'
+                    }]);
+                  }}
+                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-amber-700/50 text-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>एक और पहेली पंक्ति जोड़ें</span>
+                </button>
+
+                <div className="text-xs text-amber-400/80 font-medium">
+                  कुल {batchRows.length} पहेलियाँ
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-amber-950/80 border-t border-amber-800/40 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setIsBatchModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-200 rounded-xl text-xs font-semibold"
+              >
+                रद्द करें
+              </button>
+
+              <button
+                type="button"
+                disabled={isProcessingBatch}
+                onClick={async () => {
+                  const validRows = batchRows.filter(r => r.riddle_pawari.trim() && r.answer_hindi.trim());
+                  if (validRows.length === 0) {
+                    alert('कृपया कम से कम एक पहेली एवं उत्तर दर्ज करें।');
+                    return;
+                  }
+
+                  setIsProcessingBatch(true);
+                  try {
+                    for (const row of validRows) {
+                      const itemToSave: PawariPaheliItem = {
+                        id: row.id || 'paheli_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                        riddle_pawari: row.riddle_pawari.trim(),
+                        answer_hindi: row.answer_hindi.trim(),
+                        answer_pawari: row.answer_pawari.trim(),
+                        hint_hindi: row.hint_hindi.trim(),
+                        explanation_hindi: '',
+                        category: row.category || 'प्रकृति',
+                        image_url: '',
+                        contributor_name: 'एडमिन बैच',
+                        status: 'approved',
+                        created_at: new Date().toISOString()
+                      };
+                      await savePaheli(itemToSave);
+                    }
+                    alert(`सफलतापूर्वक ${validRows.length} पहेलियाँ सहेजी गईं!`);
+                    setIsBatchModalOpen(false);
+                  } catch (err) {
+                    alert('बैच सहेजने में त्रुटि हुई');
+                  } finally {
+                    setIsProcessingBatch(false);
+                  }
+                }}
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-bold rounded-xl text-xs shadow-lg flex items-center gap-2 cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isProcessingBatch ? 'सहेजा जा रहा है...' : `बैच की सभी ${batchRows.filter(r => r.riddle_pawari.trim() && r.answer_hindi.trim()).length} पहेलियाँ सहेजें`}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

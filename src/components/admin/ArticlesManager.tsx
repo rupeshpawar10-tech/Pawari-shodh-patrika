@@ -341,32 +341,67 @@ export const ArticlesManager: React.FC = () => {
                     </td>
 
                     <td className="p-4">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase ${
-                        art.status === 'published' ? 'bg-emerald-100 text-emerald-800' :
-                        art.status === 'draft' ? 'bg-amber-100 text-amber-800' :
-                        'bg-slate-100 text-slate-800'
-                      }`}>
-                        {art.status}
-                      </span>
+                      <select
+                        value={art.status}
+                        onChange={(e) => {
+                          const newStatus = e.target.value as any;
+                          saveArticle({ ...art, status: newStatus });
+                        }}
+                        className={`px-2 py-1 text-[11px] font-bold rounded-lg uppercase cursor-pointer border ${
+                          art.status === 'published' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
+                          art.status === 'draft' ? 'bg-amber-50 text-amber-800 border-amber-300' :
+                          art.status === 'under_review' ? 'bg-sky-50 text-sky-800 border-sky-300' :
+                          'bg-slate-50 text-slate-800 border-slate-300'
+                        }`}
+                      >
+                        <option value="published">Published</option>
+                        <option value="draft">Draft</option>
+                        <option value="under_review">Under Review</option>
+                        <option value="archived">Archived</option>
+                      </select>
                     </td>
 
                     <td className="p-4">
-                      <button
-                        onClick={() => openPdfViewer(art.pdf_url || '', art.title_english)}
-                        className="p-1.5 bg-slate-100 hover:bg-red-900 hover:text-white rounded text-slate-700 transition"
-                        title="View PDF"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      {art.pdf_url ? (
+                        <button
+                          onClick={() => openPdfViewer(art.pdf_url || '', art.title_english)}
+                          className="p-1.5 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded text-emerald-700 border border-emerald-200 transition flex items-center space-x-1"
+                          title="View PDF Document"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span className="text-[10px] font-bold">PDF</span>
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 italic">No PDF</span>
+                      )}
                     </td>
 
-                    <td className="p-4 text-right space-x-2">
+                    <td className="p-4 text-right space-x-1.5">
                       <button
                         onClick={() => handleEdit(art)}
                         className="p-1.5 bg-amber-500/20 hover:bg-amber-500 text-amber-900 rounded font-bold transition"
                         title="Edit Article"
                       >
                         <Edit3 className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          const cloned: Article = {
+                            ...art,
+                            id: 'art_' + Date.now(),
+                            title_hindi: `${art.title_hindi} (प्रतिलिपि / Copy)`,
+                            title_english: `${art.title_english} (Copy)`,
+                            slug: `${art.slug}-copy-${Date.now()}`,
+                            status: 'draft',
+                            created_at: new Date().toISOString().split('T')[0]
+                          };
+                          saveArticle(cloned);
+                        }}
+                        className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition"
+                        title="Duplicate Article as Draft"
+                      >
+                        <PlusCircle className="w-4 h-4" />
                       </button>
 
                       {(isDirector || isSuperAdmin) && (
@@ -851,21 +886,35 @@ export const ArticlesManager: React.FC = () => {
                 )}
               </div>
 
-              {/* Submit Buttons */}
-              <div className="pt-4 border-t flex items-center justify-end space-x-3">
+              {/* Submit & Reset Buttons */}
+              <div className="pt-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold"
+                  onClick={() => {
+                    if (window.confirm('Reset form fields back to default?')) {
+                      handleCreateNew();
+                    }
+                  }}
+                  className="text-xs text-slate-500 hover:text-slate-800 underline font-medium"
                 >
-                  Cancel
+                  Clear & Reset Form Fields
                 </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-red-950 text-amber-100 font-bold rounded-lg text-xs hover:bg-red-900 transition"
-                >
-                  Save Research Paper
-                </button>
+
+                <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-red-950 text-amber-100 font-bold rounded-lg text-xs hover:bg-red-900 transition shadow-xs"
+                  >
+                    Save Research Paper
+                  </button>
+                </div>
               </div>
 
             </form>

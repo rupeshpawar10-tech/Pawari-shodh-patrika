@@ -292,14 +292,14 @@ export const ArticleDetailView: React.FC = () => {
             </div>
 
             {/* Keywords */}
-            <div className="pt-2">
-              <h4 className="text-xs font-serif font-bold text-slate-500 uppercase tracking-wider mb-2">
-                {lang === 'hi' ? 'बीज शब्द (Keywords)' : 'Index Keywords'}
+            <div className="pt-2 border-t border-slate-100">
+              <h4 className="text-[11px] font-serif font-bold text-slate-500 uppercase tracking-widest mb-2.5">
+                {lang === 'hi' ? 'बीज शब्द (Keywords / Index Terms)' : 'Index Terms & Keywords'}
               </h4>
               <div className="flex flex-wrap gap-2">
                 {article.keywords.map((kw, i) => (
-                  <span key={i} className="text-xs font-mono font-semibold bg-red-900/10 text-red-950 border border-red-900/20 px-3 py-1 rounded-full">
-                    #{kw}
+                  <span key={i} className="text-xs font-serif font-medium bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 rounded-md">
+                    {kw}
                   </span>
                 ))}
               </div>
