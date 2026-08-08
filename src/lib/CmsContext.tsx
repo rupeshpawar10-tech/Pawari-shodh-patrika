@@ -628,6 +628,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           } catch (e) {}
         }
 
+        // Ensure all sample articles exist in loadedArticles
+        SAMPLE_ARTICLES.forEach((sampleArt) => {
+          if (!loadedArticles.some(a => a.id === sampleArt.id || a.slug === sampleArt.slug)) {
+            loadedArticles.push(sampleArt);
+          }
+        });
+
         if (loadedArticles.length > 0 && isMounted) {
           setArticles(loadedArticles);
           try { localStorage.setItem('local_articles_cache', JSON.stringify(loadedArticles)); } catch (e) {}
@@ -641,12 +648,21 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } catch (e) {
         const cached = localStorage.getItem('local_articles_cache');
+        let fallbackArticles: Article[] = SAMPLE_ARTICLES;
         if (cached && isMounted) {
           try {
             const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) setArticles(parsed);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              SAMPLE_ARTICLES.forEach((sampleArt) => {
+                if (!parsed.some((a: Article) => a.id === sampleArt.id || a.slug === sampleArt.slug)) {
+                  parsed.push(sampleArt);
+                }
+              });
+              fallbackArticles = parsed;
+            }
           } catch (err) {}
         }
+        if (isMounted) setArticles(fallbackArticles);
       }
 
       // 3. Issues

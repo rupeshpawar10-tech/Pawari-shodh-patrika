@@ -269,7 +269,26 @@ export function updateMetaTags(
   addMeta('og:site_name', journalTitle, true);
   if (settings.logo_url) addMeta('og:image', settings.logo_url, true);
 
-  // JSON-LD WebSite & Periodical Schema
+  // Breadcrumb items for JSON-LD Structured Data
+  const breadcrumbList = [
+    {
+      '@type': 'ListItem',
+      'position': 1,
+      'name': lang === 'hi' ? 'मुख्य पृष्ठ' : 'Home',
+      'item': DEFAULT_DOMAIN
+    }
+  ];
+
+  if (view !== 'home') {
+    breadcrumbList.push({
+      '@type': 'ListItem',
+      'position': 2,
+      'name': pageTitle.split('|')[0].trim(),
+      'item': pageUrl
+    });
+  }
+
+  // JSON-LD WebSite, Periodical & BreadcrumbList Schema
   addJsonLd({
     '@context': 'https://schema.org',
     '@graph': [
@@ -279,6 +298,7 @@ export function updateMetaTags(
         'url': DEFAULT_DOMAIN,
         'name': journalTitle,
         'description': description,
+        'inLanguage': ['hi', 'en'],
         'publisher': {
           '@type': 'Organization',
           'name': settings.publisher_english || 'Maa Tapti Research Institute, Multai',
@@ -295,6 +315,11 @@ export function updateMetaTags(
           '@type': 'Organization',
           'name': settings.publisher_english || 'Maa Tapti Research Institute, Multai'
         }
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': `${pageUrl}#breadcrumb`,
+        'itemListElement': breadcrumbList
       }
     ]
   });
