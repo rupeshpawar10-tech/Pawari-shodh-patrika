@@ -219,43 +219,43 @@ export const SettingsManager: React.FC = () => {
           </div>
         </div>
 
-        {/* Journal Impact Metrics & Indexing Badges Settings */}
+        {/* Journal Badges & Indexing Settings */}
         <div className="space-y-4 bg-slate-900 text-slate-100 p-5 rounded-2xl border border-amber-500/30 shadow-md">
           <div className="border-b border-amber-500/30 pb-3">
             <h2 className="text-sm font-serif font-bold text-amber-400 uppercase flex items-center space-x-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Journal Impact Metrics & Indexing Badges (प्रभाव गुणांक एवं इंडेक्सिंग मान्यताएँ)</span>
+              <span>Journal Academic Recognition & Indexing Badges (अकादमिक मान्यता एवं इंडेक्सिंग)</span>
             </h2>
             <p className="text-xs text-slate-300 mt-0.5">
-              Edit top header impact factor values, peer review statements, UGC-CARE approval status, and Copernicus recognition badges displayed at the top of the homepage.
+              Edit peer review statements, open access declarations, and repository badges displayed across the portal.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-slate-800">
             <div>
-              <label className="block font-bold text-amber-200 text-xs mb-1">Impact Factor Label</label>
+              <label className="block font-bold text-amber-200 text-xs mb-1">Journal Access & Type Label</label>
               <input
                 type="text"
-                value={formSettings.journal_metrics?.impact_factor_label ?? 'SJIF Impact Factor (2026)'}
+                value={formSettings.journal_metrics?.impact_factor_label ?? 'Peer-Reviewed & Open Access Journal'}
                 onChange={e => setFormSettings({
                   ...formSettings,
                   journal_metrics: { ...formSettings.journal_metrics, impact_factor_label: e.target.value }
                 })}
-                placeholder="e.g. SJIF Impact Factor (2026)"
+                placeholder="e.g. Peer-Reviewed & Open Access Journal"
                 className="w-full p-2.5 bg-slate-800 border border-slate-700 text-amber-100 rounded-lg text-xs font-mono font-bold"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-amber-200 text-xs mb-1">Impact Factor Value</label>
+              <label className="block font-bold text-amber-200 text-xs mb-1">Journal Language Model</label>
               <input
                 type="text"
-                value={formSettings.journal_metrics?.impact_factor_value ?? '4.852'}
+                value={formSettings.journal_metrics?.impact_factor_value ?? 'Bilingual'}
                 onChange={e => setFormSettings({
                   ...formSettings,
                   journal_metrics: { ...formSettings.journal_metrics, impact_factor_value: e.target.value }
                 })}
-                placeholder="e.g. 4.852"
+                placeholder="e.g. Bilingual"
                 className="w-full p-2.5 bg-slate-800 border border-slate-700 text-amber-300 rounded-lg text-xs font-mono font-bold"
               />
             </div>
@@ -275,29 +275,29 @@ export const SettingsManager: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-300 text-xs mb-1">Indexing Badge 1 (UGC-CARE)</label>
+              <label className="block font-bold text-slate-300 text-xs mb-1">Indexing Badge 1</label>
               <input
                 type="text"
-                value={formSettings.journal_metrics?.indexing_badge_1 ?? 'UGC-CARE Approved (Group I)'}
+                value={formSettings.journal_metrics?.indexing_badge_1 ?? 'Google Scholar'}
                 onChange={e => setFormSettings({
                   ...formSettings,
                   journal_metrics: { ...formSettings.journal_metrics, indexing_badge_1: e.target.value }
                 })}
-                placeholder="e.g. UGC-CARE Approved (Group I)"
+                placeholder="e.g. Google Scholar"
                 className="w-full p-2.5 bg-slate-800 border border-slate-700 text-slate-100 rounded-lg text-xs"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-slate-300 text-xs mb-1">Indexing Badge 2 (Copernicus)</label>
+              <label className="block font-bold text-slate-300 text-xs mb-1">Indexing Badge 2</label>
               <input
                 type="text"
-                value={formSettings.journal_metrics?.indexing_badge_2 ?? 'Index Copernicus Recognized'}
+                value={formSettings.journal_metrics?.indexing_badge_2 ?? 'Zenodo'}
                 onChange={e => setFormSettings({
                   ...formSettings,
                   journal_metrics: { ...formSettings.journal_metrics, indexing_badge_2: e.target.value }
                 })}
-                placeholder="e.g. Index Copernicus Recognized"
+                placeholder="e.g. Zenodo"
                 className="w-full p-2.5 bg-slate-800 border border-slate-700 text-slate-100 rounded-lg text-xs"
               />
             </div>

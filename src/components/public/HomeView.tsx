@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
+import { getUrlForView } from '../../lib/router';
 import { downloadPdf, downloadManuscriptTemplate, downloadCopyrightForm } from '../../lib/pdfUtils';
 import { SafeImage } from '../common/SafeImage';
 import { SharePaperModal } from '../common/SharePaperModal';
@@ -329,12 +330,18 @@ export const HomeView: React.FC = () => {
                         alt="Issue Cover" 
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-red-950/90 via-transparent to-transparent flex flex-col justify-end p-4 text-amber-100 text-left">
-                        <span className="text-[10px] font-mono uppercase bg-amber-500 text-red-950 px-2 py-0.5 rounded font-bold self-start mb-1">
-                          Refereed Issue
-                        </span>
-                        <span className="text-sm font-serif font-bold">Vol. {currentIssue.volume}, No. {currentIssue.issue_number}</span>
-                        <span className="text-xs text-amber-200">{currentIssue.year}</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-red-950/95 via-red-950/40 to-transparent flex flex-col justify-end p-4 text-amber-100 text-left">
+                        <div className="mb-1">
+                          <span className="text-[10px] font-mono uppercase bg-amber-500 text-red-950 px-2 py-0.5 rounded font-bold inline-block">
+                            Peer-Reviewed Refereed Issue
+                          </span>
+                        </div>
+                        <div className="text-sm font-serif font-bold text-amber-100">
+                          Volume {currentIssue.volume}, Issue {currentIssue.issue_number}
+                        </div>
+                        <div className="text-xs text-amber-200/90 font-medium mt-0.5">
+                          Publication Year: {currentIssue.year}
+                        </div>
                       </div>
                     </div>
 
@@ -370,7 +377,18 @@ export const HomeView: React.FC = () => {
                           </div>
 
                           <h4 className="text-sm font-serif font-bold text-slate-900 group-hover:text-red-950 transition leading-snug">
-                            {lang === 'hi' ? art.title_hindi : art.title_english}
+                            <a 
+                              href={getUrlForView('article_detail', art.slug || art.id)}
+                              onClick={(e) => {
+                                if (!e.metaKey && !e.ctrlKey) {
+                                  e.preventDefault();
+                                  handleArticleClick(art.slug || art.id);
+                                }
+                              }}
+                              className="hover:underline"
+                            >
+                              {lang === 'hi' ? art.title_hindi : art.title_english}
+                            </a>
                           </h4>
 
                           <p className="text-xs text-slate-600 font-medium">
@@ -507,7 +525,18 @@ export const HomeView: React.FC = () => {
                       </div>
 
                       <h3 className="font-serif font-bold text-slate-900 group-hover:text-red-950 text-base leading-snug">
-                        {lang === 'hi' ? art.title_hindi : art.title_english}
+                        <a 
+                          href={getUrlForView('article_detail', art.slug || art.id)}
+                          onClick={(e) => {
+                            if (!e.metaKey && !e.ctrlKey) {
+                              e.preventDefault();
+                              handleArticleClick(art.slug || art.id);
+                            }
+                          }}
+                          className="hover:underline"
+                        >
+                          {lang === 'hi' ? art.title_hindi : art.title_english}
+                        </a>
                       </h3>
 
                       <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
@@ -541,13 +570,13 @@ export const HomeView: React.FC = () => {
                           <Quote className="w-3 h-3 text-amber-700" />
                           <span>Cite</span>
                         </button>
-                        <span className="flex items-center space-x-1">
+                        <span className="flex items-center space-x-1 text-slate-600 font-mono text-[11px]" title="Views">
                           <Eye className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{art.views_count || 0}</span>
+                          <span>{art.views_count || 0} views</span>
                         </span>
-                        <span className="flex items-center space-x-1">
+                        <span className="flex items-center space-x-1 text-slate-600 font-mono text-[11px]" title="Downloads">
                           <Download className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{art.downloads_count || 0}</span>
+                          <span>{art.downloads_count || 0} downloads</span>
                         </span>
                       </div>
                     </div>

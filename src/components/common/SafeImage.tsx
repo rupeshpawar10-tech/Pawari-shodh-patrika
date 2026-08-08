@@ -88,9 +88,12 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 
   if (hasError && showFallbackIconOnFail && (!resolvedUrl || resolvedUrl === fallbackSrc)) {
     return (
-      <div className={`flex flex-col items-center justify-center bg-slate-800 text-slate-400 p-4 text-center ${className}`}>
-        <ImageIcon className="w-8 h-8 opacity-50 mb-1" />
-        <span className="text-[10px] font-mono">Image preview unavailable</span>
+      <div className={`flex flex-col items-center justify-center bg-gradient-to-br from-red-950 to-amber-950 text-amber-200 p-3 text-center border border-amber-500/30 ${className}`}>
+        <div className="w-8 h-8 rounded-full bg-amber-400/20 flex items-center justify-center mb-1 text-amber-300 font-serif font-bold text-xs">
+          प
+        </div>
+        <span className="text-[11px] font-serif font-bold text-amber-100 tracking-wider">पवारी शोध पत्रिका</span>
+        <span className="text-[9px] text-amber-300/80 uppercase font-sans tracking-widest mt-0.5">Academic Journal</span>
       </div>
     );
   }

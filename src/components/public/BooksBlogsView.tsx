@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useCms } from '../../lib/CmsContext';
+import { fileBlobManager } from '../../lib/fileBlobManager';
 import { SafeImage } from '../common/SafeImage';
 import { SAMPLE_BOOKS, SAMPLE_BLOGS, BookItem, BlogItem } from '../../data/booksBlogsData';
 import { downloadPdf } from '../../lib/pdfUtils';
@@ -28,7 +29,15 @@ import {
   Bookmark,
   HelpCircle,
   Music,
-  Award
+  Award,
+  Upload,
+  Plus,
+  Send,
+  Check,
+  FileUp,
+  Image as ImageIcon,
+  AlertCircle,
+  PenTool
 } from 'lucide-react';
 
 interface BooksBlogsViewProps {
@@ -36,10 +45,13 @@ interface BooksBlogsViewProps {
 }
 
 export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'all' }) => {
-  const { lang, articles, books: cmsBooks, blogs: cmsBlogs, setActiveView } = useCms();
+  const { lang, articles, books: cmsBooks, blogs: cmsBlogs, saveBook, saveBlog, submitPublicContribution, uploadFileToStorage, logActivity, setActiveView } = useCms();
 
-  const booksList = (cmsBooks && cmsBooks.length > 0) ? cmsBooks : SAMPLE_BOOKS;
-  const blogsList = (cmsBlogs && cmsBlogs.length > 0) ? cmsBlogs : SAMPLE_BLOGS;
+  const rawBooks = (cmsBooks && cmsBooks.length > 0) ? cmsBooks : SAMPLE_BOOKS;
+  const rawBlogs = (cmsBlogs && cmsBlogs.length > 0) ? cmsBlogs : SAMPLE_BLOGS;
+
+  const booksList = rawBooks.filter(b => b.status === 'approved' || (!b.status && !b.id.startsWith('pub_') && !b.id.startsWith('contrib_')));
+  const blogsList = rawBlogs.filter(b => b.status === 'approved' || (!b.status && !b.id.startsWith('pub_') && !b.id.startsWith('contrib_')));
 
   const [activeTab, setActiveTab] = useState<'all' | 'books' | 'blogs' | 'reviews' | 'research_papers' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz'>(initialTab);
 
@@ -48,6 +60,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
       setActiveTab(initialTab);
     }
   }, [initialTab]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
@@ -55,6 +68,195 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
   const [selectedBook, setSelectedBook] = useState<BookItem | null>(null);
   const [selectedBlog, setSelectedBlog] = useState<BlogItem | null>(null);
   const [likedBlogs, setLikedBlogs] = useState<Record<string, number>>({});
+
+  // Publication Submission Modal State
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [publishTab, setPublishTab] = useState<'book' | 'review' | 'blog'>('book');
+
+  const [subForm, setSubForm] = useState({
+    authorName: '',
+    authorRole: '',
+    email: '',
+    phone: '',
+    titleHindi: '',
+    titleEnglish: '',
+    category: 'भाषाविज्ञान एवं लोकसाहित्य',
+    reviewedBookDetails: '',
+    publisher: 'पावारी शोध संस्थान प्रकाशन',
+    isbn: '',
+    pages: '150',
+    content: '',
+    tags: 'पवारी, लोकसाहित्य, शोध',
+    coverImageUrl: '',
+    pdfUrl: ''
+  });
+
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [isSubmittingPublish, setIsSubmittingPublish] = useState(false);
+  const [submitRefNo, setSubmitRefNo] = useState<string | null>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOpenPublishModal = (tab: 'book' | 'review' | 'blog' = 'book') => {
+    setPublishTab(tab);
+    setSubmitRefNo(null);
+    setIsPublishModalOpen(true);
+  };
+
+  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setCoverFile(e.target.files[0]);
+    }
+  };
+
+  const handlePdfFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setPdfFile(e.target.files[0]);
+    }
+  };
+
+  const readFileAsDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handlePublishSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subForm.authorName.trim() || !subForm.titleHindi.trim() || !subForm.content.trim()) {
+      alert(lang === 'hi' ? 'कृपया सभी आवश्यक फ़ील्ड भरें (लेखक का नाम, शीर्षक एवं विवरण)' : 'Please fill all required fields (Author name, title & details)');
+      return;
+    }
+
+    setIsSubmittingPublish(true);
+
+    try {
+      let coverUrl = subForm.coverImageUrl.trim();
+      let pdfUrl = subForm.pdfUrl.trim();
+
+      if (coverFile) {
+        try {
+          const res = await uploadFileToStorage(coverFile, 'covers');
+          coverUrl = res.url;
+        } catch (e) {
+          coverUrl = await readFileAsDataUrl(coverFile);
+        }
+      }
+
+      if (pdfFile) {
+        try {
+          const res = await uploadFileToStorage(pdfFile, 'manuscripts');
+          pdfUrl = res.url;
+        } catch (e) {
+          pdfUrl = fileBlobManager.registerBlob('file_' + Date.now(), pdfFile);
+        }
+      }
+
+      const generatedId = 'pub_' + Date.now();
+      const generatedRefNo = 'PUB-' + Math.floor(100000 + Math.random() * 900000);
+
+      if (publishTab === 'book') {
+        const newBook: BookItem & { status?: 'pending' | 'approved' | 'rejected'; contributor_name?: string } = {
+          id: generatedId,
+          title_hindi: subForm.titleHindi,
+          title_english: subForm.titleEnglish || subForm.titleHindi,
+          authors: subForm.authorName + (subForm.authorRole ? ` (${subForm.authorRole})` : ''),
+          publisher: subForm.publisher || 'पावारी शोध संस्थान प्रकाशन',
+          publication_year: new Date().getFullYear().toString(),
+          pages: parseInt(subForm.pages) || 120,
+          isbn: subForm.isbn || ('978-93-' + Math.floor(100000 + Math.random() * 900000) + '-0'),
+          category: subForm.category,
+          cover_image: coverUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600',
+          synopsis_hindi: subForm.content,
+          synopsis_english: subForm.content,
+          price: 'Open Access / निःशुल्क',
+          sample_pdf_url: pdfUrl || undefined,
+          status: 'pending',
+          contributor_name: subForm.authorName
+        };
+        await submitPublicContribution('books', newBook);
+      } else if (publishTab === 'review') {
+        const newReview: BlogItem & { status?: 'pending' | 'approved' | 'rejected'; contributor_name?: string } = {
+          id: generatedId,
+          title_hindi: `पुस्तक समीक्षा: ${subForm.titleHindi}`,
+          title_english: `Book Review: ${subForm.titleEnglish || subForm.titleHindi}`,
+          author: subForm.authorName,
+          author_role: subForm.authorRole || 'विद्वान समीक्षक',
+          date: new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
+          read_time: '6 मिनट',
+          category: 'पुस्तक समीक्षा',
+          cover_image: coverUrl || 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600',
+          excerpt_hindi: `समीक्षित पुस्तक/कृति: ${subForm.reviewedBookDetails || subForm.titleHindi}\n${subForm.content.slice(0, 150)}...`,
+          excerpt_english: subForm.content.slice(0, 150),
+          content_hindi: `### समीक्षित पुस्तक विवरण\n**पुस्तक एवं लेखक:** ${subForm.reviewedBookDetails || subForm.titleHindi}\n\n### समीक्षा आलेख\n${subForm.content}\n\n### समीक्षक परिचय\n**नाम:** ${subForm.authorName}\n**संबद्धता:** ${subForm.authorRole || 'शोधार्थी / समीक्षक'}`,
+          content_english: subForm.content,
+          tags: ['पुस्तक_समीक्षा', 'साहित्य', 'पवारी_शोध'],
+          likes_count: 0,
+          pdf_url: pdfUrl || undefined,
+          status: 'pending',
+          contributor_name: subForm.authorName
+        };
+        await submitPublicContribution('blogs', newReview);
+      } else {
+        const newBlog: BlogItem & { status?: 'pending' | 'approved' | 'rejected'; contributor_name?: string } = {
+          id: generatedId,
+          title_hindi: subForm.titleHindi,
+          title_english: subForm.titleEnglish || subForm.titleHindi,
+          author: subForm.authorName,
+          author_role: subForm.authorRole || 'लेखक एवं शोधकर्ता',
+          date: new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
+          read_time: '5 मिनट',
+          category: subForm.category || 'लोकसंस्कृति',
+          cover_image: coverUrl || 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=600',
+          excerpt_hindi: subForm.content.slice(0, 160) + '...',
+          excerpt_english: subForm.content.slice(0, 160),
+          content_hindi: subForm.content,
+          content_english: subForm.content,
+          tags: subForm.tags ? subForm.tags.split(',').map(t => t.trim()) : ['पवारी', 'ब्लॉग', 'लोकसंस्कृति'],
+          likes_count: 0,
+          pdf_url: pdfUrl || undefined,
+          status: 'pending',
+          contributor_name: subForm.authorName
+        };
+        await submitPublicContribution('blogs', newBlog);
+      }
+
+      setSubmitRefNo(generatedRefNo);
+      setIsSubmittingPublish(false);
+    } catch (err) {
+      console.error(err);
+      setIsSubmittingPublish(false);
+      alert(lang === 'hi' ? 'जमा करने में त्रुटि आई। कृपया पुनः प्रयास करें।' : 'Error submitting form. Please try again.');
+    }
+  };
+
+  const handleResetPublishForm = () => {
+    setSubForm({
+      authorName: '',
+      authorRole: '',
+      email: '',
+      phone: '',
+      titleHindi: '',
+      titleEnglish: '',
+      category: 'भाषाविज्ञान एवं लोकसाहित्य',
+      reviewedBookDetails: '',
+      publisher: 'पावारी शोध संस्थान प्रकाशन',
+      isbn: '',
+      pages: '150',
+      content: '',
+      tags: 'पवारी, लोकसाहित्य, शोध',
+      coverImageUrl: '',
+      pdfUrl: ''
+    });
+    setCoverFile(null);
+    setPdfFile(null);
+    setSubmitRefNo(null);
+    setIsPublishModalOpen(false);
+  };
 
   // Published research papers from CMS
   const publishedArticles = articles.filter(a => a.status === 'published');
@@ -105,9 +307,19 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-amber-500/10 to-transparent pointer-events-none" />
 
         <div className="relative z-10 space-y-3">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 font-mono text-xs uppercase tracking-wider">
-            <BookOpen className="w-4 h-4 text-amber-400" />
-            <span>{lang === 'hi' ? 'पुस्तकालय एवं वैचारिक मंच' : 'Library & Scholarly Blog'}</span>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 font-mono text-xs uppercase tracking-wider">
+              <BookOpen className="w-4 h-4 text-amber-400" />
+              <span>{lang === 'hi' ? 'पुस्तकालय एवं वैचारिक मंच' : 'Library & Scholarly Blog'}</span>
+            </div>
+
+            <button
+              onClick={() => handleOpenPublishModal('book')}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-red-950 font-bold text-xs sm:text-sm shadow-xl flex items-center space-x-2 transition-all cursor-pointer transform hover:scale-[1.02]"
+            >
+              <Upload className="w-4 h-4 text-red-950" />
+              <span>{lang === 'hi' ? 'अपनी पुस्तक, समीक्षा या ब्लॉग प्रकाशित कराएं' : 'Publish Book, Review or Blog'}</span>
+            </button>
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-serif font-bold text-amber-100 leading-tight">
@@ -798,6 +1010,382 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- PUBLICATION SUBMISSION MODAL ---------------- */}
+      {isPublishModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-amber-500/30 relative max-h-[92vh] overflow-y-auto">
+            <button
+              onClick={handleResetPublishForm}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800 rounded-full hover:bg-slate-100 transition z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="space-y-2 border-b border-slate-100 pb-4">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold font-mono">
+                <FileUp className="w-3.5 h-3.5 text-amber-700" />
+                <span>{lang === 'hi' ? 'मां ताप्ती पवारी शोध संस्थान प्रकाशन' : 'Research & Publication Portal'}</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
+                {lang === 'hi' ? 'अपनी पुस्तक, समीक्षा या ब्लॉग प्रकाशित कराएं' : 'Submit Book, Book Review or Blog Article'}
+              </h2>
+              <p className="text-xs text-slate-600">
+                {lang === 'hi'
+                  ? 'पवारी भाषा, लोकसंस्कृति, इतिहास एवं शोध पर आधारित अपनी कृतियां व आलेख डिजिटल एवं मुद्रित माध्यम हेतु जमा करें।'
+                  : 'Submit your books, manuscripts, book reviews or blog articles for digital and print publication.'}
+              </p>
+            </div>
+
+            {/* Submission Success Screen */}
+            {submitRefNo ? (
+              <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-6 text-center space-y-4 animate-in zoom-in-95 duration-200">
+                <div className="w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto shadow-lg">
+                  <Check className="w-8 h-8 stroke-[3]" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-serif font-bold text-emerald-950">
+                    {lang === 'hi' ? 'प्रकाशन हेतु सफलतापूर्वक जमा किया गया!' : 'Successfully Submitted for Publication!'}
+                  </h3>
+                  <p className="text-xs text-emerald-800">
+                    {lang === 'hi'
+                      ? 'आपकी प्रविष्टि समीक्षा हेतु मां ताप्ती शोध संस्थान प्रकाशन समिति को भेज दी गई है।'
+                      : 'Your submission has been sent to the Editorial Review Committee.'}
+                  </p>
+                </div>
+                <div className="p-3 bg-white border border-emerald-200 rounded-xl inline-block font-mono text-xs font-bold text-slate-800">
+                  {lang === 'hi' ? 'संदर्भ / ट्रैकिंग नंबर:' : 'Reference No:'} <span className="text-red-900">{submitRefNo}</span>
+                </div>
+                <div>
+                  <button
+                    onClick={handleResetPublishForm}
+                    className="px-6 py-2.5 bg-red-950 hover:bg-red-900 text-amber-200 text-xs font-bold rounded-xl shadow-md transition"
+                  >
+                    {lang === 'hi' ? 'पुस्तकालय व ब्लॉग में देखें' : 'View in Library & Blogs'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handlePublishSubmit} className="space-y-5">
+                {/* Tab Selector: Book vs Review vs Blog */}
+                <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setPublishTab('book')}
+                    className={`py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
+                      publishTab === 'book'
+                        ? 'bg-red-950 text-amber-300 shadow-md'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    }`}
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    <span>{lang === 'hi' ? '1. पुस्तक (Book)' : '1. Book'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPublishTab('review')}
+                    className={`py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
+                      publishTab === 'review'
+                        ? 'bg-red-950 text-amber-300 shadow-md'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    }`}
+                  >
+                    <Award className="w-4 h-4" />
+                    <span>{lang === 'hi' ? '2. पुस्तक समीक्षा' : '2. Book Review'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPublishTab('blog')}
+                    className={`py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5 ${
+                      publishTab === 'blog'
+                        ? 'bg-red-950 text-amber-300 shadow-md'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    }`}
+                  >
+                    <PenTool className="w-4 h-4" />
+                    <span>{lang === 'hi' ? '3. ब्लॉग / लेख' : '3. Blog Article'}</span>
+                  </button>
+                </div>
+
+                {/* Author Info */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {lang === 'hi' ? 'लेखक / समीक्षक का नाम *' : 'Author / Reviewer Name *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={subForm.authorName}
+                      onChange={(e) => setSubForm({ ...subForm, authorName: e.target.value })}
+                      placeholder={lang === 'hi' ? 'उदा. डॉ. रामेश्वर पवार' : 'e.g. Dr. Rameshwar Pawar'}
+                      className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {lang === 'hi' ? 'पद एवं संस्थान / संबद्धता' : 'Role / Affiliation'}
+                    </label>
+                    <input
+                      type="text"
+                      value={subForm.authorRole}
+                      onChange={(e) => setSubForm({ ...subForm, authorRole: e.target.value })}
+                      placeholder={lang === 'hi' ? 'उदा. प्रोफेसर / पवारी लोकसाहित्य शोधार्थी' : 'e.g. Pawari Culture Scholar'}
+                      className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {lang === 'hi' ? 'ईमेल (Email ID)' : 'Email ID'}
+                    </label>
+                    <input
+                      type="email"
+                      value={subForm.email}
+                      onChange={(e) => setSubForm({ ...subForm, email: e.target.value })}
+                      placeholder="author@example.com"
+                      className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {lang === 'hi' ? 'संपर्क मोबाइल नंबर' : 'Phone Number'}
+                    </label>
+                    <input
+                      type="tel"
+                      value={subForm.phone}
+                      onChange={(e) => setSubForm({ ...subForm, phone: e.target.value })}
+                      placeholder="+91 9876543210"
+                      className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Content Title & Details */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        {publishTab === 'book'
+                          ? (lang === 'hi' ? 'पुस्तक का शीर्षक (हिन्दी/पवारी) *' : 'Book Title (Hindi/Pawari) *')
+                          : publishTab === 'review'
+                          ? (lang === 'hi' ? 'समीक्षा शीर्षक *' : 'Review Title *')
+                          : (lang === 'hi' ? 'लेख का शीर्षक *' : 'Article Title *')}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={subForm.titleHindi}
+                        onChange={(e) => setSubForm({ ...subForm, titleHindi: e.target.value })}
+                        placeholder={
+                          publishTab === 'book'
+                            ? 'उदा. पवारी लोककथाएं एवं संस्कृति'
+                            : publishTab === 'review'
+                            ? 'उदा. पवारी व्याकरण ग्रंथ का समालोचनात्मक अध्ययन'
+                            : 'उदा. सतपुड़ा की पहाड़ियों में पवारी गीतों की स्वर-लहरी'
+                        }
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        {lang === 'hi' ? 'शीर्षक अंग्रेजी में (Title in English)' : 'Title in English'}
+                      </label>
+                      <input
+                        type="text"
+                        value={subForm.titleEnglish}
+                        onChange={(e) => setSubForm({ ...subForm, titleEnglish: e.target.value })}
+                        placeholder="e.g. Pawari Folktales and Heritage"
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Review-Specific Field */}
+                  {publishTab === 'review' && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        {lang === 'hi' ? 'समीक्षित की जाने वाली पुस्तक एवं उसके लेखक का विवरण *' : 'Reviewed Book & Author Details *'}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={subForm.reviewedBookDetails}
+                        onChange={(e) => setSubForm({ ...subForm, reviewedBookDetails: e.target.value })}
+                        placeholder="उदा. 'पवारी शब्दकोश' (लेखक: डॉ. कैलाश पवार, प्रकाशक: सतपुड़ा संस्थान)"
+                        className="w-full text-xs p-2.5 bg-amber-50 border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Category & Metadata */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        {lang === 'hi' ? 'विषय श्रेणी' : 'Category'}
+                      </label>
+                      <select
+                        value={subForm.category}
+                        onChange={(e) => setSubForm({ ...subForm, category: e.target.value })}
+                        className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"
+                      >
+                        <option value="भाषाविज्ञान एवं लोकसाहित्य">भाषाविज्ञान एवं लोकसाहित्य</option>
+                        <option value="लोकसंस्कृति एवं परम्परा">लोकसंस्कृति एवं परम्परा</option>
+                        <option value="इतिहास व शोध">इतिहास व शोध</option>
+                        <option value="दर्शन व समाजशास्त्र">दर्शन व समाजशास्त्र</option>
+                        <option value="काव्य एवं साहित्य">काव्य एवं साहित्य</option>
+                        <option value="पुस्तक समीक्षा">पुस्तक समीक्षा</option>
+                      </select>
+                    </div>
+
+                    {publishTab === 'book' && (
+                      <>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            {lang === 'hi' ? 'प्रस्तावित प्रकाशक' : 'Publisher'}
+                          </label>
+                          <input
+                            type="text"
+                            value={subForm.publisher}
+                            onChange={(e) => setSubForm({ ...subForm, publisher: e.target.value })}
+                            className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            {lang === 'hi' ? 'अनुमानित पृष्ठ संख्या' : 'Approx Pages'}
+                          </label>
+                          <input
+                            type="number"
+                            value={subForm.pages}
+                            onChange={(e) => setSubForm({ ...subForm, pages: e.target.value })}
+                            className="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Main Content Area */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      {publishTab === 'book'
+                        ? (lang === 'hi' ? 'पुस्तक का सारांश / परिचय / प्रस्तावना *' : 'Book Abstract / Synopsis *')
+                        : publishTab === 'review'
+                        ? (lang === 'hi' ? 'पुस्तक समीक्षा आलेख (पूर्ण पाठ) *' : 'Book Review Full Content *')
+                        : (lang === 'hi' ? 'ब्लॉग आलेख का पूरा पाठ *' : 'Full Article Content *')}
+                    </label>
+                    <textarea
+                      required
+                      rows={6}
+                      value={subForm.content}
+                      onChange={(e) => setSubForm({ ...subForm, content: e.target.value })}
+                      placeholder={
+                        publishTab === 'review'
+                          ? 'यहाँ पुस्तक समीक्षा का विस्तृत आलेख लिखें (उद्देश्य, विषय-वस्तु, भाषा-शैली, निष्कर्ष)...'
+                          : 'यहाँ अपना पूरा पाठ या सारांश लिखें...'
+                      }
+                      className="w-full text-xs p-3 bg-white border border-slate-300 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none leading-relaxed font-sans"
+                    />
+                  </div>
+
+                  {/* File Uploads: Cover Image + PDF Document */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-amber-50/60 p-4 rounded-2xl border border-amber-200">
+                    {/* Cover Image Upload */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                        <ImageIcon className="w-4 h-4 text-amber-600" />
+                        <span>{lang === 'hi' ? 'कवर / मुख्य चित्र (Cover Image)' : 'Cover Image Upload'}</span>
+                      </label>
+                      <input
+                        type="file"
+                        ref={coverInputRef}
+                        accept="image/*"
+                        onChange={handleCoverFileChange}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => coverInputRef.current?.click()}
+                        className="w-full p-2.5 bg-white border border-dashed border-amber-400 rounded-xl hover:bg-amber-100/50 transition text-xs font-bold text-slate-700 flex items-center justify-center space-x-2 cursor-pointer"
+                      >
+                        <Upload className="w-4 h-4 text-amber-600" />
+                        <span>
+                          {coverFile ? coverFile.name : (lang === 'hi' ? 'चित्र अपलोड करें (Browse Image)' : 'Browse Cover Image')}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* PDF Manuscript Upload */}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                        <FileUp className="w-4 h-4 text-red-700" />
+                        <span>{lang === 'hi' ? 'मूल PDF दस्तावेज़ (PDF Manuscript)' : 'Upload PDF Document'}</span>
+                      </label>
+                      <input
+                        type="file"
+                        ref={pdfInputRef}
+                        accept="application/pdf"
+                        onChange={handlePdfFileChange}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => pdfInputRef.current?.click()}
+                        className="w-full p-2.5 bg-white border border-dashed border-red-300 rounded-xl hover:bg-red-50 transition text-xs font-bold text-slate-700 flex items-center justify-center space-x-2 cursor-pointer"
+                      >
+                        <FileText className="w-4 h-4 text-red-700" />
+                        <span>
+                          {pdfFile ? pdfFile.name : (lang === 'hi' ? 'PDF अपलोड करें (Browse PDF)' : 'Browse PDF File')}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modal Footer Buttons */}
+                <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={handleResetPublishForm}
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition"
+                  >
+                    {lang === 'hi' ? 'रद्द करें' : 'Cancel'}
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingPublish}
+                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-red-950 text-xs font-bold rounded-xl shadow-lg transition flex items-center space-x-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmittingPublish ? (
+                      <span>{lang === 'hi' ? 'जमा हो रहा है...' : 'Submitting...'}</span>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>
+                          {publishTab === 'book'
+                            ? (lang === 'hi' ? 'पुस्तक जमा करें' : 'Submit Book')
+                            : publishTab === 'review'
+                            ? (lang === 'hi' ? 'समीक्षा जमा करें' : 'Submit Review')
+                            : (lang === 'hi' ? 'ब्लॉग जमा करें' : 'Submit Blog')}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

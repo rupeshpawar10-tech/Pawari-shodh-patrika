@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCms, PublicPageView } from '../../lib/CmsContext';
 import { useAuth } from '../../lib/AuthContext';
+import { getUrlForView } from '../../lib/router';
 import { SafeImage } from './SafeImage';
 import { 
   BookOpen, 
@@ -51,8 +52,14 @@ export const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between gap-2 sm:gap-4">
         
         {/* Logo + Full Journal Title */}
-        <div 
-          onClick={() => handleNavClick('home')}
+        <a 
+          href={getUrlForView('home')}
+          onClick={(e) => {
+            if (!e.metaKey && !e.ctrlKey) {
+              e.preventDefault();
+              handleNavClick('home');
+            }
+          }}
           className="flex items-center space-x-2.5 sm:space-x-3.5 cursor-pointer group select-none min-w-0 flex-1"
         >
           {/* Emblem / Seal Logo */}
@@ -75,7 +82,7 @@ export const Header: React.FC = () => {
               {lang === 'hi' ? settings.subtitle_hindi : settings.subtitle_english}
             </p>
           </div>
-        </div>
+        </a>
 
         {/* Right Controls: Language Switcher + CMS + Mobile Menu Toggle Button */}
         <div className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
@@ -155,10 +162,17 @@ export const Header: React.FC = () => {
           <nav className="hidden lg:flex items-center justify-between overflow-x-auto py-0">
             {navItems.map((item) => {
               const isActive = activeView === item.key;
+              const href = getUrlForView(item.key);
               return (
-                <button
+                <a
                   key={item.key}
-                  onClick={() => handleNavClick(item.key)}
+                  href={href}
+                  onClick={(e) => {
+                    if (!e.metaKey && !e.ctrlKey) {
+                      e.preventDefault();
+                      handleNavClick(item.key);
+                    }
+                  }}
                   className={`px-3 py-1.5 text-xs font-medium tracking-wide transition relative whitespace-nowrap ${
                     isActive
                       ? 'text-amber-300 bg-red-900/90 font-bold border-b-2 border-amber-400'
@@ -166,7 +180,7 @@ export const Header: React.FC = () => {
                   }`}
                 >
                   {item.label}
-                </button>
+                </a>
               );
             })}
           </nav>
@@ -178,10 +192,17 @@ export const Header: React.FC = () => {
           <div className="lg:hidden bg-red-950 border-t border-amber-500/20 px-3 py-2 space-y-1 animate-in slide-in-from-top-2 duration-150">
             {navItems.map((item) => {
               const isActive = activeView === item.key;
+              const href = getUrlForView(item.key);
               return (
-                <button
+                <a
                   key={item.key}
-                  onClick={() => handleNavClick(item.key)}
+                  href={href}
+                  onClick={(e) => {
+                    if (!e.metaKey && !e.ctrlKey) {
+                      e.preventDefault();
+                      handleNavClick(item.key);
+                    }
+                  }}
                   className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md flex items-center justify-between transition ${
                     isActive
                       ? 'bg-amber-400 text-red-950 font-bold'
@@ -190,7 +211,7 @@ export const Header: React.FC = () => {
                 >
                   <span>{item.label}</span>
                   <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-red-950' : 'text-amber-400/60'}`} />
-                </button>
+                </a>
               );
             })}
           </div>

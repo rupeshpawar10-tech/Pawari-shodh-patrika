@@ -24,7 +24,8 @@ import {
   Volume2,
   FileCheck2,
   Check,
-  AlertCircle
+  AlertCircle,
+  Copy
 } from 'lucide-react';
 
 interface PawariCulturalSectionProps {
@@ -45,10 +46,65 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const [shabdkoshCategory, setShabdkoshCategory] = useState('all');
   const [paheliCategory, setPaheliCategory] = useState('all');
   const [revealedPaheli, setRevealedPaheli] = useState<Record<string, boolean>>({});
+  const [copiedPaheliId, setCopiedPaheliId] = useState<string | null>(null);
+
+  const handleSharePaheli = async (item: PawariPaheliItem) => {
+    const isAnswerRevealed = !!revealedPaheli[item.id];
+    let shareText = `🧩 *पवारी पहेली (पवारी बुझौवल)* 🧩\n\n"${item.riddle_pawari}"`;
+    if (item.hint_hindi) {
+      shareText += `\n\n💡 *संकेत:* ${item.hint_hindi}`;
+    }
+    if (isAnswerRevealed) {
+      shareText += `\n\n✅ *उत्तर:* ${item.answer_hindi}`;
+      if (item.answer_pawari) shareText += ` (${item.answer_pawari})`;
+    } else {
+      shareText += `\n\n🤔 *उत्तर बुझिए पवारी शोध पत्रिका पोर्टल पर!*`;
+    }
+    shareText += `\n\n📖 *पवारी भाषा एवं संस्कृति शोध पत्रिका*: ${window.location.origin}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'पवारी पहेली',
+          text: shareText,
+          url: window.location.href,
+        });
+        return;
+      } catch (e) {
+        // Fallback to clipboard
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopiedPaheliId(item.id);
+      setTimeout(() => setCopiedPaheliId(null), 2500);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleWhatsAppSharePaheli = (item: PawariPaheliItem) => {
+    const isAnswerRevealed = !!revealedPaheli[item.id];
+    let shareText = `🧩 *पवारी पहेली (पवारी बुझौवल)* 🧩\n\n"${item.riddle_pawari}"`;
+    if (item.hint_hindi) {
+      shareText += `\n\n💡 *संकेत:* ${item.hint_hindi}`;
+    }
+    if (isAnswerRevealed) {
+      shareText += `\n\n✅ *उत्तर:* ${item.answer_hindi}`;
+      if (item.answer_pawari) shareText += ` (${item.answer_pawari})`;
+    } else {
+      shareText += `\n\n🤔 *उत्तर बुझिए पवारी शोध पत्रिका पोर्टल पर!*`;
+    }
+    shareText += `\n\n📖 *पवारी भाषा एवं संस्कृति शोध पत्रिका*: ${window.location.origin}`;
+
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+    window.open(waUrl, '_blank');
+  };
 
   // Public Contribution Modal state
   const [isContribModalOpen, setIsContribModalOpen] = useState(false);
-  const [contribType, setContribType] = useState<'shabdkosh' | 'paheli' | 'lokgeet'>('shabdkosh');
+  const [contribType, setContribType] = useState<'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'review'>('shabdkosh');
   const [contribFormData, setContribFormData] = useState<any>({
     contributor_name: '',
     word_pawari: '',
@@ -59,10 +115,13 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     answer_hindi: '',
     hint_hindi: '',
     title_pawari: '',
+    title_hindi: '',
+    title_english: '',
     lyrics_pawari: '',
-    lyrics_hindi_meaning: '',
-    singer_or_collector: '',
-    category: 'दैनिक शब्द',
+    content_hindi: '',
+    synopsis_hindi: '',
+    reviewedBookDetails: '',
+    category: 'भाषाविज्ञान एवं लोकसाहित्य',
     image_url: ''
   });
   const [contribSuccess, setContribSuccess] = useState(false);
@@ -104,7 +163,72 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
   const handleContribSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await submitPublicContribution(contribType, contribFormData);
+
+    let targetType: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' = 'shabdkosh';
+    let payload: any = { ...contribFormData };
+
+    if (contribType === 'shabdkosh') {
+      targetType = 'shabdkosh';
+    } else if (contribType === 'paheli') {
+      targetType = 'paheli';
+    } else if (contribType === 'lokgeet') {
+      targetType = 'lokgeet';
+    } else if (contribType === 'blogs') {
+      targetType = 'blogs';
+      payload = {
+        title_hindi: contribFormData.title_hindi || contribFormData.title_pawari,
+        title_english: contribFormData.title_english || contribFormData.title_hindi || contribFormData.title_pawari,
+        author: contribFormData.contributor_name || 'पाठक',
+        contributor_name: contribFormData.contributor_name || 'पाठक',
+        published_date: new Date().toLocaleDateString('hi-IN'),
+        category: contribFormData.category || 'लोकसंस्कृति',
+        read_time: '5 मिनट',
+        excerpt_hindi: contribFormData.content_hindi ? contribFormData.content_hindi.slice(0, 150) + '...' : '',
+        excerpt_english: '',
+        content_hindi: contribFormData.content_hindi || '',
+        content_english: '',
+        tags: ['पवारी', 'पाठक_योगदान', 'संस्कृति'],
+        likes_count: 0,
+        cover_image_url: contribFormData.image_url || 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&q=80&w=800'
+      };
+    } else if (contribType === 'review') {
+      targetType = 'blogs';
+      payload = {
+        title_hindi: `पुस्तक समीक्षा: ${contribFormData.title_hindi || contribFormData.title_pawari}`,
+        title_english: `Book Review: ${contribFormData.title_english || contribFormData.title_hindi || contribFormData.title_pawari}`,
+        author: contribFormData.contributor_name || 'पाठक',
+        contributor_name: contribFormData.contributor_name || 'पाठक',
+        published_date: new Date().toLocaleDateString('hi-IN'),
+        category: 'पुस्तक समीक्षा',
+        read_time: '7 मिनट',
+        excerpt_hindi: `समीक्षित पुस्तक विवरण: ${contribFormData.reviewedBookDetails || ''}`,
+        excerpt_english: '',
+        content_hindi: contribFormData.content_hindi || '',
+        content_english: '',
+        tags: ['पुस्तक_समीक्षा', 'साहित्य', 'पवारी_शोध'],
+        likes_count: 0,
+        cover_image_url: contribFormData.image_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=800'
+      };
+    } else if (contribType === 'books') {
+      targetType = 'books';
+      payload = {
+        title_hindi: contribFormData.title_hindi || contribFormData.title_pawari,
+        title_english: contribFormData.title_english || contribFormData.title_hindi || contribFormData.title_pawari,
+        authors: contribFormData.contributor_name || 'पाठक',
+        contributor_name: contribFormData.contributor_name || 'पाठक',
+        publisher: 'माँ ताप्ती शोध संस्थान (प्रस्तावित)',
+        publish_year: new Date().getFullYear().toString(),
+        isbn: 'PUB-' + Math.floor(100000 + Math.random() * 900000),
+        pages: 120,
+        category: contribFormData.category || 'भाषाविज्ञान एवं लोकसाहित्य',
+        cover_image_url: contribFormData.image_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=800',
+        synopsis_hindi: contribFormData.synopsis_hindi || contribFormData.content_hindi || '',
+        synopsis_english: '',
+        price: 'Open Access / निःशुल्क'
+      };
+    }
+
+    await submitPublicContribution(targetType, payload);
     setContribSuccess(true);
     setTimeout(() => {
       setContribSuccess(false);
@@ -119,10 +243,13 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
         answer_hindi: '',
         hint_hindi: '',
         title_pawari: '',
+        title_hindi: '',
+        title_english: '',
         lyrics_pawari: '',
-        lyrics_hindi_meaning: '',
-        singer_or_collector: '',
-        category: 'दैनिक शब्द',
+        content_hindi: '',
+        synopsis_hindi: '',
+        reviewedBookDetails: '',
+        category: 'भाषाविज्ञान एवं लोकसाहित्य',
         image_url: ''
       });
     }, 1500);
@@ -146,9 +273,14 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     }
   };
 
-  // Quiz logic - select top 10 questions for active quiz
-  const activeQuizQuestions = React.useMemo(() => {
-    return (quizQuestions || []).slice(0, 10);
+  // Quiz logic - select 10 questions for active quiz
+  const [activeQuizQuestions, setActiveQuizQuestions] = React.useState<QuizQuestion[]>([]);
+
+  React.useEffect(() => {
+    if (quizQuestions && quizQuestions.length > 0) {
+      const shuffled = [...quizQuestions].sort(() => 0.5 - Math.random());
+      setActiveQuizQuestions(shuffled.slice(0, 10));
+    }
   }, [quizQuestions]);
 
   const handleSelectOption = (optIndex: number) => {
@@ -200,6 +332,10 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   };
 
   const handleResetQuiz = () => {
+    if (quizQuestions && quizQuestions.length > 0) {
+      const shuffled = [...quizQuestions].sort(() => 0.5 - Math.random());
+      setActiveQuizQuestions(shuffled.slice(0, 10));
+    }
     setCurrentQIndex(0);
     setUserAnswers({});
     setIsQuizSubmitted(false);
@@ -498,18 +634,47 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                     </div>
                   </div>
 
-                  {/* Interactive Answer Reveal */}
-                  <div className="mt-5 pt-3 border-t border-amber-900/30">
-                    <button
-                      onClick={() => togglePaheliAnswer(item.id)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-950 hover:bg-slate-950/80 rounded-xl border border-amber-900/40 text-xs font-bold text-amber-300 transition-colors cursor-pointer"
-                    >
-                      <span>उत्तर बुझो / उत्तर देखें (Reveal Answer)</span>
-                      {isRevealed ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-amber-400" />}
-                    </button>
+                  {/* Interactive Answer Reveal & Share Controls */}
+                  <div className="mt-5 pt-3 border-t border-amber-900/30 space-y-2.5">
+                    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                      <button
+                        onClick={() => togglePaheliAnswer(item.id)}
+                        className="flex-1 flex items-center justify-between px-3.5 py-2.5 bg-slate-950 hover:bg-slate-950/80 rounded-xl border border-amber-900/40 text-xs font-bold text-amber-300 transition-colors cursor-pointer"
+                      >
+                        <span>उत्तर बुझो / उत्तर देखें (Reveal)</span>
+                        {isRevealed ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-amber-400" />}
+                      </button>
+
+                      <button
+                        onClick={() => handleWhatsAppSharePaheli(item)}
+                        title="व्हाट्सएप पर शेयर करें"
+                        className="px-3 py-2.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        <Share2 className="w-4 h-4 text-emerald-400" />
+                        <span>WhatsApp</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleSharePaheli(item)}
+                        title="पहेली शेयर / कॉपी करें"
+                        className="px-3 py-2.5 bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-700/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        {copiedPaheliId === item.id ? (
+                          <>
+                            <Check className="w-4 h-4 text-emerald-400" />
+                            <span className="text-emerald-300">कॉपी हुआ!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4 text-amber-400" />
+                            <span>शेयर</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
 
                     {isRevealed && (
-                      <div className="mt-3 p-4 bg-gradient-to-r from-amber-950/60 to-slate-950 rounded-xl border border-amber-700/40 space-y-1 animate-fadeIn">
+                      <div className="p-4 bg-gradient-to-r from-amber-950/60 to-slate-950 rounded-xl border border-amber-700/40 space-y-1 animate-fadeIn">
                         <p className="text-base font-bold text-amber-200">
                           उत्तर: {item.answer_hindi}
                         </p>
@@ -530,6 +695,13 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
                 <div className="pt-3 border-t border-amber-900/20 text-[11px] text-amber-400/50 mt-4 flex justify-between items-center">
                   <span>संग्रहकर्ता: {item.contributor_name || 'माँ ताप्ती शोध संस्थान'}</span>
+                  <button
+                    onClick={() => handleSharePaheli(item)}
+                    className="text-amber-400/80 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Share2 className="w-3 h-3" />
+                    <span>शेयर करें</span>
+                  </button>
                 </div>
               </div>
             );
@@ -933,16 +1105,19 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
                 <div>
                   <label className="block text-xs font-semibold text-amber-300 mb-1">
-                    योगदान का वर्ग (Select Type)
+                    योगदान का वर्ग (Select Type) *
                   </label>
                   <select
                     value={contribType}
                     onChange={(e) => setContribType(e.target.value as any)}
-                    className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 focus:outline-none focus:border-amber-500 text-sm"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 focus:outline-none focus:border-amber-500 text-sm font-medium"
                   >
-                    <option value="shabdkosh">पवारी शब्दकोश (Word & Meaning)</option>
-                    <option value="paheli">पवारी पहेली (Riddle & Answer)</option>
-                    <option value="lokgeet">पवारी लोकगीत (Folk Song)</option>
+                    <option value="shabdkosh" className="bg-slate-900 text-amber-100">📖 पवारी शब्दकोश (Word & Meaning)</option>
+                    <option value="paheli" className="bg-slate-900 text-amber-100">🧩 पवारी पहेली (Riddle & Answer)</option>
+                    <option value="lokgeet" className="bg-slate-900 text-amber-100">🎵 पवारी लोकगीत (Folk Song)</option>
+                    <option value="blogs" className="bg-slate-900 text-amber-100">✍️ ब्लॉग / लेख (Blog Article)</option>
+                    <option value="books" className="bg-slate-900 text-amber-100">📚 पुस्तक / शोध ग्रंथ (Book Proposal)</option>
+                    <option value="review" className="bg-slate-900 text-amber-100">📑 पुस्तक समीक्षा (Book Review)</option>
                   </select>
                 </div>
 
@@ -1037,6 +1212,101 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                         value={contribFormData.lyrics_pawari || ''}
                         onChange={(e) => setContribFormData((prev: any) => ({ ...prev, lyrics_pawari: e.target.value }))}
                         className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm font-serif"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Dynamic Fields for Blogs */}
+                {contribType === 'blogs' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-300 mb-1">ब्लॉग का शीर्षक (Title) *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="जैसे: पवारी लोकसाहित्य में ताप्ती संस्कृति का प्रभाव"
+                        value={contribFormData.title_hindi || ''}
+                        onChange={(e) => setContribFormData((prev: any) => ({ ...prev, title_hindi: e.target.value }))}
+                        className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-300 mb-1">ब्लॉग सामग्री (Full Article) *</label>
+                      <textarea
+                        rows={5}
+                        required
+                        placeholder="यहाँ अपना आलेख विस्तार से लिखें..."
+                        value={contribFormData.content_hindi || ''}
+                        onChange={(e) => setContribFormData((prev: any) => ({ ...prev, content_hindi: e.target.value }))}
+                        className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Dynamic Fields for Books */}
+                {contribType === 'books' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-300 mb-1">पुस्तक का शीर्षक (Book Title) *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="जैसे: पवारी व्याकरण एवं शब्द कोश"
+                        value={contribFormData.title_hindi || ''}
+                        onChange={(e) => setContribFormData((prev: any) => ({ ...prev, title_hindi: e.target.value }))}
+                        className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-300 mb-1">पुस्तक सारांश / परिचय (Synopsis) *</label>
+                      <textarea
+                        rows={5}
+                        required
+                        placeholder="पुस्तक का परिचय, विषय-वस्तु एवं उद्देश्य लिखें..."
+                        value={contribFormData.synopsis_hindi || ''}
+                        onChange={(e) => setContribFormData((prev: any) => ({ ...prev, synopsis_hindi: e.target.value }))}
+                        className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Dynamic Fields for Book Review */}
+                {contribType === 'review' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-300 mb-1">समीक्षा का शीर्षक (Review Title) *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="जैसे: पवारी लोककथाएं पुस्तक की समालोचना"
+                        value={contribFormData.title_hindi || ''}
+                        onChange={(e) => setContribFormData((prev: any) => ({ ...prev, title_hindi: e.target.value }))}
+                        className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-300 mb-1">समीक्षित पुस्तक एवं लेखक का नाम *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="जैसे: 'पवारी कहावतें' (लेखक: डॉ. रामेश्वर पवार)"
+                        value={contribFormData.reviewedBookDetails || ''}
+                        onChange={(e) => setContribFormData((prev: any) => ({ ...prev, reviewedBookDetails: e.target.value }))}
+                        className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-300 mb-1">समीक्षा आलेख (Review Article) *</label>
+                      <textarea
+                        rows={4}
+                        required
+                        placeholder="विस्तृत समीक्षा लिखें..."
+                        value={contribFormData.content_hindi || ''}
+                        onChange={(e) => setContribFormData((prev: any) => ({ ...prev, content_hindi: e.target.value }))}
+                        className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm"
                       />
                     </div>
                   </div>

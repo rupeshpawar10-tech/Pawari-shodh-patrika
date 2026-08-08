@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
+import { fileBlobManager } from '../../lib/fileBlobManager';
 import { BookItem, BlogItem, SAMPLE_BOOKS, SAMPLE_BLOGS } from '../../data/booksBlogsData';
 import { SafeImage } from '../common/SafeImage';
 import { 
@@ -253,16 +254,15 @@ export const BooksBlogsManager: React.FC = () => {
       setTimeout(() => setUploadProgress(null), 3000);
     } catch (err) {
       console.warn('Storage upload error, using fallback:', err);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64Url = event.target?.result as string;
-        if (target === 'book' && editingBook) setEditingBook(prev => prev ? ({ ...prev, cover_image: base64Url }) : null);
-        else if (target === 'book_pdf' && editingBook) setEditingBook(prev => prev ? ({ ...prev, sample_pdf_url: base64Url }) : null);
-        else if (target === 'blog' && editingBlog) setEditingBlog(prev => prev ? ({ ...prev, cover_image: base64Url }) : null);
-        else if (target === 'blog_pdf' && editingBlog) setEditingBlog(prev => prev ? ({ ...prev, pdf_url: base64Url }) : null);
-        else if (target === 'avatar' && editingBlog) setEditingBlog(prev => prev ? ({ ...prev, author_avatar: base64Url }) : null);
-      };
-      reader.readAsDataURL(file);
+      const fileId = 'file_' + Date.now();
+      const fallbackUrl = fileBlobManager.registerBlob(fileId, file);
+      
+      if (target === 'book' && editingBook) setEditingBook(prev => prev ? ({ ...prev, cover_image: fallbackUrl }) : null);
+      else if (target === 'book_pdf' && editingBook) setEditingBook(prev => prev ? ({ ...prev, sample_pdf_url: fallbackUrl }) : null);
+      else if (target === 'blog' && editingBlog) setEditingBlog(prev => prev ? ({ ...prev, cover_image: fallbackUrl }) : null);
+      else if (target === 'blog_pdf' && editingBlog) setEditingBlog(prev => prev ? ({ ...prev, pdf_url: fallbackUrl }) : null);
+      else if (target === 'avatar' && editingBlog) setEditingBlog(prev => prev ? ({ ...prev, author_avatar: fallbackUrl }) : null);
+
       setUploadProgress('फ़ाइल सहेजी गई!');
       setTimeout(() => setUploadProgress(null), 3000);
     } finally {

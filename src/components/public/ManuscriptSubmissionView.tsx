@@ -1,19 +1,28 @@
 import React, { useState, useRef } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { downloadManuscriptTemplate, downloadCopyrightForm } from '../../lib/pdfUtils';
+import { FileUploadZone } from '../common/FileUploadZone';
 import { UploadCloud, FileType, CheckCircle2, AlertCircle, Send, File as FileIcon, X, ShieldAlert, FileDown, FileCheck } from 'lucide-react';
 
 export const ManuscriptSubmissionView: React.FC = () => {
-  const { lang, setActiveView, addSubmission, settings } = useCms();
+  const { lang, setActiveView, addSubmission, settings, uploadFileToStorage } = useCms();
   
   const [formData, setFormData] = useState({
     authorName: '',
     email: '',
+    coAuthors: '',
+    affiliation: '',
     title: '',
+    paperType: 'Journal Article',
+    category: 'भाषाविज्ञान एवं लोकसाहित्य',
+    keywords: '',
+    doi: '',
+    licenseType: 'CC-BY Open Access',
     abstract: '',
   });
   
   const [file, setFile] = useState<File | null>(null);
+  const [fileUrlInput, setFileUrlInput] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -69,20 +78,34 @@ export const ManuscriptSubmissionView: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!file) {
-      alert(lang === 'hi' ? 'कृपया शोध पत्र की फ़ाइल अपलोड करें।' : 'Please upload the manuscript file.');
+    if (!file && !fileUrlInput) {
+      alert(lang === 'hi' ? 'कृपया शोध पत्र की फ़ाइल अपलोड करें या ऑनलाइन लिंक दर्ज करें।' : 'Please upload the manuscript file or provide a direct paper URL.');
       return;
     }
     
     setIsSubmitting(true);
     
     try {
+      let finalFileUrl = fileUrlInput || '';
+      if (file) {
+        const uploadRes = await uploadFileToStorage(file, 'submissions');
+        finalFileUrl = uploadRes.url || uploadRes.fileId || uploadRes.path;
+      }
+
       await addSubmission({
         author_name: formData.authorName,
         email: formData.email,
+        co_authors: formData.coAuthors,
+        affiliation: formData.affiliation,
         title: formData.title,
+        paper_type: formData.paperType,
+        category: formData.category,
+        keywords: formData.keywords,
+        doi: formData.doi,
+        license_type: formData.licenseType,
         abstract: formData.abstract,
-        file_name: file.name
+        file_name: file ? file.name : 'External Linked Paper',
+        file_url: finalFileUrl || undefined
       });
       setIsSubmitting(false);
       setIsSuccess(true);
@@ -99,10 +122,18 @@ export const ManuscriptSubmissionView: React.FC = () => {
     setFormData({
       authorName: '',
       email: '',
+      coAuthors: '',
+      affiliation: '',
       title: '',
+      paperType: 'Journal Article',
+      category: 'भाषाविज्ञान एवं लोकसाहित्य',
+      keywords: '',
+      doi: '',
+      licenseType: 'CC-BY Open Access',
       abstract: '',
     });
     setFile(null);
+    setFileUrlInput('');
   };
 
   if (isSuccess) {
@@ -113,12 +144,12 @@ export const ManuscriptSubmissionView: React.FC = () => {
             <CheckCircle2 className="w-10 h-10 text-emerald-600" />
           </div>
           <h2 className="text-3xl font-serif font-bold text-slate-900">
-            {lang === 'hi' ? 'पांडुलिपि सफलतापूर्वक सबमिट हो गई!' : 'Manuscript Submitted Successfully!'}
+            {lang === 'hi' ? 'शोध पत्र सफलतापूर्वक जमा हुआ!' : 'Paper Submitted Successfully!'}
           </h2>
           <p className="text-slate-600 max-w-lg mx-auto">
             {lang === 'hi' 
-              ? 'आपकी पांडुलिपि हमें प्राप्त हो गई है। संपादकीय टीम इसकी प्रारंभिक जांच करेगी और जल्द ही आपके ईमेल पर आगे की प्रक्रिया की जानकारी भेजी जाएगी।' 
-              : 'We have received your manuscript. The editorial team will conduct a preliminary check and notify you via email regarding the next steps.'}
+              ? 'आपका शोध पत्र/पांडुलिपि अकादमिक रिकॉर्ड्स में दर्ज कर ली गई है। संपादकीय बोर्ड द्वारा समीक्षा के पश्चात् इसे प्रकाशित एवं इंडेक्स किया जाएगा।' 
+              : 'Your research paper has been registered in our academic repository. It will be reviewed by the editorial board prior to indexing.'}
           </p>
           <div className="pt-6 border-t border-slate-100 flex items-center justify-center space-x-4">
             <button
@@ -131,7 +162,7 @@ export const ManuscriptSubmissionView: React.FC = () => {
               onClick={handleReset}
               className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow-md"
             >
-              {lang === 'hi' ? 'एक और पांडुलिपि सबमिट करें' : 'Submit Another'}
+              {lang === 'hi' ? 'एक और शोध पत्र जोड़ें' : 'Add Another Paper'}
             </button>
           </div>
         </div>
@@ -144,13 +175,18 @@ export const ManuscriptSubmissionView: React.FC = () => {
       
       {/* Header */}
       <div className="bg-gradient-to-r from-red-950 via-red-900 to-amber-950 text-amber-100 rounded-2xl p-6 sm:p-10 shadow-md border border-amber-500/30">
+        <div className="flex items-center space-x-3 mb-2">
+          <span className="px-3 py-1 bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-bold uppercase rounded-full tracking-wider">
+            Academia.edu Style Paper Portal
+          </span>
+        </div>
         <h1 className="text-3xl font-serif font-bold text-amber-100">
-          {lang === 'hi' ? 'शोध पत्र सबमिशन' : 'Manuscript Submission'}
+          {lang === 'hi' ? 'शोध पत्र अपलोड एवं प्रकाशन हेतु सबमिशन' : 'Upload Research Paper & Manuscript'}
         </h1>
         <p className="text-sm text-amber-200/80 mt-2">
           {lang === 'hi' 
-            ? 'नीचे दिए गए फॉर्म को भरकर अपनी पांडुलिपि जमा करें। कृपया सुनिश्चित करें कि आपने लेखक दिशानिर्देशों का पालन किया है।' 
-            : 'Submit your manuscript by filling out the form below. Please ensure you have followed the author guidelines.'}
+            ? 'Academia.edu की तर्ज पर अपना शोध पत्र, सम्मेलन आलेख, पुस्तक अध्याय या शोध-प्रबंध शीर्षक, सह-लेखकों, DOI एवं पीडीएफ सहित अपलोड करें।' 
+            : 'Add your research paper, conference article, book chapter, or dissertation along with co-authors, DOI, and manuscript file.'}
         </p>
       </div>
 
@@ -200,162 +236,250 @@ export const ManuscriptSubmissionView: React.FC = () => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-8">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Author Name */}
+          {/* Work Type Selection */}
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-slate-800">
+              {lang === 'hi' ? '1. कार्य / शोध पत्र का प्रकार (Paper Work Type)' : '1. Paper Work Type'} <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {[
+                { id: 'Journal Article', labelHi: 'शोध आलेख', labelEn: 'Journal Article' },
+                { id: 'Conference Paper', labelHi: 'सम्मेलन पत्र', labelEn: 'Conference Paper' },
+                { id: 'Book Chapter', labelHi: 'पुस्तक अध्याय', labelEn: 'Book Chapter' },
+                { id: 'Dissertation/Thesis', labelHi: 'शोध प्रबंध', labelEn: 'Thesis / Dissertation' },
+                { id: 'Working Paper', labelHi: 'प्री-प्रिंट', labelEn: 'Working Paper / Preprint' }
+              ].map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, paperType: item.id })}
+                  className={`p-3 rounded-xl border text-left text-xs font-bold transition flex flex-col justify-between ${
+                    formData.paperType === item.id
+                      ? 'bg-amber-900 border-amber-800 text-amber-100 shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-amber-400'
+                  }`}
+                >
+                  <span className="text-sm font-serif">{lang === 'hi' ? item.labelHi : item.labelEn}</span>
+                  <span className="text-[10px] opacity-75 mt-1">{item.id}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Author Details */}
+          <div className="space-y-4 pt-2 border-t border-slate-100">
+            <h3 className="text-base font-serif font-bold text-slate-900 flex items-center space-x-2">
+              <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center">2</span>
+              <span>{lang === 'hi' ? 'लेखक एवं सह-लेखक विवरण (Authors & Affiliation)' : 'Authors & Affiliation'}</span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Primary Author Name */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  {lang === 'hi' ? 'मुख्य / पत्राचार लेखक (Primary Author Name)' : 'Primary Author Name'} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.authorName}
+                  onChange={e => setFormData({...formData, authorName: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 text-sm outline-none transition"
+                  placeholder={lang === 'hi' ? 'जैसे: डॉ. रामेश्वर पवार' : 'e.g. Dr. Rameshwar Pawar'}
+                />
+              </div>
+
+              {/* Email */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  {lang === 'hi' ? 'ईमेल (Email Address)' : 'Email Address'} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={e => setFormData({...formData, email: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 text-sm outline-none transition"
+                  placeholder="author@university.edu"
+                />
+              </div>
+
+              {/* Co-Authors */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  {lang === 'hi' ? 'सह-लेखक (Co-Authors, optional)' : 'Co-Authors'}
+                </label>
+                <input
+                  type="text"
+                  value={formData.coAuthors}
+                  onChange={e => setFormData({...formData, coAuthors: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 text-sm outline-none transition"
+                  placeholder={lang === 'hi' ? 'जैसे: डॉ. ए. के. शर्मा, प्रो. विकास वर्मा' : 'e.g. Dr. A. K. Sharma, Prof. Vikas Verma'}
+                />
+              </div>
+
+              {/* Institution / Affiliation */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  {lang === 'hi' ? 'संस्थान / विश्वविद्यालय (University / Affiliation)' : 'Institution / Affiliation'}
+                </label>
+                <input
+                  type="text"
+                  value={formData.affiliation}
+                  onChange={e => setFormData({...formData, affiliation: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 text-sm outline-none transition"
+                  placeholder={lang === 'hi' ? 'जैसे: देवी अहिल्या विश्वविद्यालय, इंदौर' : 'e.g. Devi Ahilya University, Indore'}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Metadata & Title */}
+          <div className="space-y-4 pt-2 border-t border-slate-100">
+            <h3 className="text-base font-serif font-bold text-slate-900 flex items-center space-x-2">
+              <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center">3</span>
+              <span>{lang === 'hi' ? 'शोध पत्र शीर्षक एवं मेटाडेटा (Title & Metadata)' : 'Title & Paper Metadata'}</span>
+            </h3>
+
+            {/* Title */}
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">
-                {lang === 'hi' ? 'लेखक का नाम (Corresponding Author)' : 'Corresponding Author Name'} <span className="text-red-500">*</span>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                {lang === 'hi' ? 'शोध पत्र का पूरा शीर्षक (Full Title)' : 'Full Paper Title'} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 required
-                value={formData.authorName}
-                onChange={e => setFormData({...formData, authorName: e.target.value})}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition"
-                placeholder={lang === 'hi' ? 'अपना पूरा नाम दर्ज करें' : 'Enter your full name'}
+                value={formData.title}
+                onChange={e => setFormData({...formData, title: e.target.value})}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 text-sm outline-none transition font-serif font-bold text-slate-900"
+                placeholder={lang === 'hi' ? 'अपने शोध पत्र का शीर्षक दर्ज करें...' : 'Enter the complete title of your research paper...'}
               />
             </div>
 
-            {/* Email */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Category */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  {lang === 'hi' ? 'विषय श्रेणी (Category)' : 'Category'}
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={e => setFormData({...formData, category: e.target.value})}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium"
+                >
+                  <option value="भाषाविज्ञान एवं लोकसाहित्य">भाषाविज्ञान एवं लोकसाहित्य</option>
+                  <option value="ताप्ती लोकसंस्कृति">ताप्ती लोकसंस्कृति</option>
+                  <option value="पवारी इतिहास व समाज">पवारी इतिहास व समाज</option>
+                  <option value="मध्य भारतीय बोलियाँ">मध्य भारतीय बोलियाँ</option>
+                  <option value="मानवशास्त्र व सांस्कृतिक धरोहर">मानवशास्त्र व सांस्कृतिक धरोहर</option>
+                </select>
+              </div>
+
+              {/* DOI */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  {lang === 'hi' ? 'DOI (यदि उपलब्ध हो)' : 'DOI (Digital Object Identifier)'}
+                </label>
+                <input
+                  type="text"
+                  value={formData.doi}
+                  onChange={e => setFormData({...formData, doi: e.target.value})}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-amber-900"
+                  placeholder="e.g. 10.5281/zenodo.1234567"
+                />
+              </div>
+
+              {/* Keywords */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  {lang === 'hi' ? 'बीज शब्द (Keywords)' : 'Keywords / Tags'}
+                </label>
+                <input
+                  type="text"
+                  value={formData.keywords}
+                  onChange={e => setFormData({...formData, keywords: e.target.value})}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  placeholder="e.g. पवारी, भाषाविज्ञान, लोकगीत, बैतूल"
+                />
+              </div>
+            </div>
+
+            {/* Abstract */}
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">
-                {lang === 'hi' ? 'ईमेल (Email Address)' : 'Email Address'} <span className="text-red-500">*</span>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                {lang === 'hi' ? 'शोध सार (Abstract)' : 'Abstract / Summary'}
               </label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={e => setFormData({...formData, email: e.target.value})}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition"
-                placeholder="name@university.edu"
+              <textarea
+                rows={4}
+                value={formData.abstract}
+                onChange={e => setFormData({...formData, abstract: e.target.value})}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 text-sm outline-none transition resize-y"
+                placeholder={lang === 'hi' ? 'अपने शोध का संक्षिप्त सार (Abstract) लिखें...' : 'Provide abstract summarizing your research methodology & conclusions...'}
               />
             </div>
           </div>
 
-          {/* Title */}
-          <div className="space-y-2">
-            <label className="block text-sm font-bold text-slate-700">
-              {lang === 'hi' ? 'शोध पत्र का शीर्षक (Manuscript Title)' : 'Manuscript Title'} <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.title}
-              onChange={e => setFormData({...formData, title: e.target.value})}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition"
-              placeholder={lang === 'hi' ? 'अपने शोध पत्र का शीर्षक यहाँ लिखें...' : 'Enter the title of your manuscript...'}
-            />
-          </div>
+            {/* File Upload & PDF Link */}
+            <div className="space-y-4 pt-2 border-t border-slate-100">
+              <h3 className="text-base font-serif font-bold text-slate-900 flex items-center space-x-2">
+                <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center">4</span>
+                <span>{lang === 'hi' ? 'पीडीएफ या वर्ड फ़ाइल अपलोड करें (Upload File or Add URL)' : 'Upload PDF/Doc File or Provide Web Link'}</span>
+              </h3>
 
-          {/* Abstract */}
-          <div className="space-y-2">
-            <label className="block text-sm font-bold text-slate-700">
-              {lang === 'hi' ? 'सारांश (Abstract)' : 'Abstract'}
-            </label>
-            <textarea
-              rows={4}
-              value={formData.abstract}
-              onChange={e => setFormData({...formData, abstract: e.target.value})}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition resize-y"
-              placeholder={lang === 'hi' ? 'अपने शोध का संक्षिप्त सारांश दर्ज करें (वैकल्पिक)...' : 'Brief abstract of your research (Optional)...'}
-            />
-          </div>
+              <FileUploadZone
+                label={lang === 'hi' ? 'शोध पत्र फ़ाइल अपलोड' : 'Manuscript File Upload'}
+                description={lang === 'hi' ? 'PDF, DOC, DOCX फ़ाइल अपलोड करें। अधिकतम 15MB।' : 'Upload your research paper in PDF, DOC, or DOCX format (Max 15MB).'}
+                acceptedCategory="documents"
+                maxFiles={1}
+                customFolder="submissions"
+                onUploadComplete={(fileItem) => {
+                  setFileUrlInput(fileItem.url);
+                  setFile(new File([], fileItem.name));
+                }}
+                onRemoveFile={() => {
+                  setFileUrlInput('');
+                  setFile(null);
+                }}
+              />
 
-          {/* File Upload Drag & Drop */}
-          <div className="space-y-2">
-            <label className="block text-sm font-bold text-slate-700">
-              {lang === 'hi' ? 'पांडुलिपि फ़ाइल (Manuscript File)' : 'Manuscript File'} <span className="text-red-500">*</span>
-            </label>
-            
-            <div 
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
-                isDragging 
-                  ? 'border-amber-500 bg-amber-50/50' 
-                  : file ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-300 hover:border-amber-400 bg-slate-50'
-              }`}
-            >
-              {!file ? (
-                <div className="space-y-4 flex flex-col items-center">
-                  <div className="w-16 h-16 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center">
-                    <UploadCloud className="w-8 h-8 text-amber-500" />
-                  </div>
-                  <div>
-                    <p className="text-slate-700 font-bold mb-1">
-                      {lang === 'hi' ? 'अपनी फ़ाइल यहाँ खींचें और छोड़ें' : 'Drag & drop your file here'}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {lang === 'hi' ? 'या ब्राउज़ करने के लिए नीचे क्लिक करें (.docx, .doc, .pdf)' : 'or click below to browse (.docx, .doc, .pdf)'}
-                    </p>
-                  </div>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    className="hidden" 
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 bg-white border border-slate-200 hover:border-amber-400 hover:text-amber-700 text-slate-700 text-sm font-bold rounded-lg transition shadow-sm"
-                  >
-                    {lang === 'hi' ? 'फ़ाइल चुनें' : 'Select File'}
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-16 h-16 bg-white rounded-full shadow-sm border border-emerald-100 flex items-center justify-center relative">
-                    <FileType className="w-8 h-8 text-emerald-500" />
-                    <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full border-2 border-white">
-                      <CheckCircle2 className="w-3 h-3" />
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm max-w-xs w-full">
-                    <FileIcon className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-bold text-slate-800 truncate">{file.name}</p>
-                      <p className="text-xs text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={removeFile}
-                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
+              <div className="pt-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  {lang === 'hi' ? 'या प्रत्यक्ष वेब / गूगल ड्राइव लिंक दर्ज करें' : 'Or Provide Direct Web / Google Drive Link'}
+                </label>
+                <input
+                  type="url"
+                  value={fileUrlInput}
+                  onChange={e => setFileUrlInput(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:ring-2 focus:ring-amber-500/50 outline-none"
+                  placeholder="https://drive.google.com/file/d/... or direct PDF URL"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
-            <p className="text-xs text-slate-500 flex items-center space-x-1">
-              <ShieldAlert className="w-4 h-4" />
-              <span>{lang === 'hi' ? 'आपका डेटा सुरक्षित है।' : 'Your data is securely transmitted.'}</span>
+          {/* Submit Action Bar */}
+          <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-slate-500 flex items-center space-x-1.5">
+              <ShieldAlert className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{lang === 'hi' ? 'खुला अभिगम (Open Access) एवं सर्वाधिकार सुरक्षित नीति लागू।' : 'Open Access CC-BY License Policy applies.'}</span>
             </p>
             <button
               type="submit"
-              disabled={isSubmitting || !file}
+              disabled={isSubmitting || (!file && !fileUrlInput)}
               className={`flex items-center space-x-2 px-8 py-3 rounded-xl font-bold text-sm shadow-md transition ${
-                isSubmitting || !file 
+                isSubmitting || (!file && !fileUrlInput)
                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
-                  : 'bg-red-900 hover:bg-red-800 text-amber-100 hover:shadow-lg'
+                  : 'bg-red-950 hover:bg-red-900 text-amber-100 hover:shadow-lg'
               }`}
             >
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-amber-100/30 border-t-amber-100 rounded-full animate-spin" />
-                  <span>{lang === 'hi' ? 'सबमिट हो रहा है...' : 'Submitting...'}</span>
+                  <span>{lang === 'hi' ? 'सबमिट हो रहा है...' : 'Submitting Paper...'}</span>
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  <span>{lang === 'hi' ? 'पांडुलिपि सबमिट करें' : 'Submit Manuscript'}</span>
+                  <span>{lang === 'hi' ? 'शोध पत्र सबमिट करें (Submit Paper)' : 'Submit Paper'}</span>
                 </>
               )}
             </button>

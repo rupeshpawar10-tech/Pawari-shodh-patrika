@@ -230,10 +230,12 @@ export const SAMPLE_ARTICLES: Article[] = [
     id: 'art-001',
     title_hindi: 'पवारी भाषा का उद्भव, विकास एवं उसकी ध्वन्यात्मक विशेषताएँ: एक भाषावैज्ञानिक अध्ययन',
     title_english: 'Origin, Evolution and Phonetic Characteristics of Pawari Dialect: A Linguistic Study',
+    short_title: 'Phonetic Study of Pawari Dialect',
     slug: 'origin-evolution-phonetic-characteristics-pawari-dialect',
+    article_type: 'Original Research Article (मूल शोध पत्र)',
     authors: [
-      { name: 'डॉ. रामेश्वर पवार', affiliation: 'विभागाध्यक्ष, भाषाविज्ञान विभाग, शासकीय स्नातकोत्तर महाविद्यालय, बालाघाट', email: 'r.pawar@balaghat.edu.in', is_corresponding: true },
-      { name: 'प्रो. सुनीता शिंदे', affiliation: 'सहायक प्राध्यापक, हिंदी विभाग, नागपुर विश्वविद्यालय', email: 'sunita.shinde@nagpur.ac.in' }
+      { name: 'डॉ. रामेश्वर पवार', affiliation: 'विभागाध्यक्ष, भाषाविज्ञान विभाग, शासकीय स्नातकोत्तर महाविद्यालय, बालाघाट', email: 'r.pawar@balaghat.edu.in', is_corresponding: true, orcid: '0000-0002-1823-9211' },
+      { name: 'प्रो. सुनीता शिंदे', affiliation: 'सहायक प्राध्यापक, हिंदी विभाग, नागपुर विश्वविद्यालय', email: 'sunita.shinde@nagpur.ac.in', orcid: '0000-0001-5099-2810' }
     ],
     abstract_hindi: 'प्रस्तुत शोध पत्र में मध्य भारत के सतपुड़ा एवं वैनगंगा मैदानी क्षेत्र में बोली जाने वाली पवारी बोली की ध्वन्यात्मक एवं व्याकरणिक विशेषताओं का गहन भाषावैज्ञानिक विश्लेषण प्रस्तुत किया गया है। शोध में पाया गया कि पवारी में राजस्थानी, मराठी एवं मालवी भाषा-परिवार के तत्त्वों का सुंदर समन्वय है। अध्ययन में पवारी के विशिष्ट स्वर एवं व्यंजन ध्वनियों का आरेखीय एवं तुलनात्मक विवरण दिया गया है।',
     abstract_english: 'This research paper presents a comprehensive linguistic analysis of the phonetic and grammatical features of the Pawari dialect spoken across the Satpura and Wainganga plains of Central India. The study reveals a unique confluence of Indo-Aryan elements including Rajasthani, Marathi, and Malvi roots. The paper systematically documents the vowel inventory, phonemes, and tonal variations unique to Pawari.',
@@ -249,6 +251,77 @@ export const SAMPLE_ARTICLES: Article[] = [
     language: 'Hindi',
     status: 'published',
     page_numbers: '01–14',
+    content_mode: 'full_text',
+    citation_text: 'Pawar, R., & Shinde, S. (2026). Origin, Evolution and Phonetic Characteristics of Pawari Dialect: A Linguistic Study. Pawari Shodh Patrika, 2(1), 01–14. https://doi.org/10.5281/zenodo.psp.2026.0101',
+    date_received: '2026-02-10',
+    date_revised: '2026-03-25',
+    date_accepted: '2026-04-18',
+    date_published: '2026-06-10',
+    full_text_introduction: `१. प्रस्तावना (Introduction)
+मध्य भारत का सतपुड़ा पर्वतमाला एवं वैनगंगा नदी घाटी क्षेत्र बहुसांस्कृतिक और बहुभाषी अंचल रहा है। इस क्षेत्र में बोली जाने वाली पवारी (पोवारी) बोली न केवल ऐतिहासिक दृष्टिकोण से समृद्ध है, बल्कि भाषावैज्ञानिक दृष्टि से भी अत्यंत रोचक संरचना प्रस्तुत करती है। पवार (परमार) राजवंश के धार एवं मालवा से दक्षिण-पूर्व की ओर पलायन के साथ इस बोली का बीजारोपण मध्य भारत के बालाघाट, सिवनी, गोंदिया तथा भंडारा जिलों में हुआ।
+
+प्रस्तुत अध्ययन का मुख्य उद्देश्य पवारी की ध्वन्यात्मक संरचना, इसके विशिष्ट स्वरों तथा व्यंजनों की ध्वन्यात्मक पहचान और इसके निकटवर्ती भाषा-रूपों (मराठी, मालवी, बुंदेली) के साथ इसके तुलनात्मक अध्ययन को रेखांकित करना है।`,
+    full_text_literature_review: `२. साहित्य अवलोकन (Literature Review)
+भारतीय भाषावैज्ञानिक सर्वेक्षण (Linguistic Survey of India) में सर जॉर्ज ग्रियर्सन ने पवारी को राजस्थानी समूह की मालवी बोली की एक उप-शाखा के रूप में वर्गीकृत किया था। तत्पश्चात, डॉ. हरदेव बाहरी तथा डॉ. धीरेंद्र वर्मा ने मध्य भारत की बोलियों का पुनर्मूल्यांकन करते हुए इसे एक स्वतंत्र बोली के रूप में मान्यता देने की अनुशंसा की। हाल के दशकों में पवार (२०१५) तथा देशमुख (२०२०) के अध्ययनों ने पवारी पर मराठी व्याकरण तथा मालवी शब्दावली के द्विभाषी प्रभाव की पुष्टि की है।`,
+    full_text_methodology: `३. अनुसंधान कार्यप्रणाली (Methodology)
+इस भाषावैज्ञानिक अध्ययन हेतु वर्णनात्मक एवं तुलनात्मक भाषाविज्ञान विधि का प्रयोग किया गया है:
+१. क्षेत्र-कार्य (Fieldwork): बालाघाट एवं गोंदिया जिले के २० ग्रामीण क्षेत्रों में ६० वक्ताओं (आयु वर्ग १८ से ७५ वर्ष) से ऑडियो-रिकॉर्डिंग एवं प्रत्यक्ष साक्षात्कार द्वारा सामग्री का संकलन।
+२. अंतर्राष्ट्रीय ध्वन्यात्मक वर्णमाला (IPA): संकलित पवारी उच्चारणों को IPA प्रतीकों में लिप्यंतरित किया गया।
+३. स्वर-यंत्र विश्लेषक उपकरण (Acoustic Phonetics): Praat सॉफ्टवेयर के माध्यम से फॉर्मेंट आवृत्तियों (F1, F2) का मापन कर पवारी स्वर त्रिकोण (Vowel Triangle) का निर्माण किया गया।`,
+    full_text_results_discussion: `४. परिणाम एवं विश्लेषण (Results and Discussion)
+४.१ स्वर ध्वनियाँ (Vowels):
+पवारी में कुल १० शुद्ध स्वर ध्वनियाँ पाई जाती हैं: [a, ā, i, ī, u, ū, e, ai, o, au]। मालवी की भाँति इसमें अनुनासिक स्वरों का प्रचुर प्रयोग मिलता है (उदा. 'खाँओ', 'जाँओ')।
+
+४.२ व्यंजन ध्वनियाँ (Consonants):
+पवारी व्यंजन तालिका में ३४ व्यंजन ध्वनियाँ चिह्नित की गई हैं। इसमें 'ल' का मूर्धन्य रूप 'ळ' (L retroflex) तथा 'र' की मूर्धन्य अल्पप्राण ध्वनि बहुतायत से प्रयुक्त होती है।
+
+४.३ प्रमुख ध्वन्यात्मक नियम (Phonetic Rules):
+१. अकारान्त लोप (Schwa Syncope): शब्द के अंतिम स्वर का लोप होकर व्यंजनांत उच्चारण।
+२. 'स' एवं 'ह' का विनिमय: कई स्थानीय वक्ताओं में 'स' ध्वनि 'ह' में परिवर्तित हो जाती है (उदा. 'सात' -> 'हात')।
+३. संयुक्त व्यंजनों का सरलीकरण: तत्सम शब्दों के संयुक्त व्यंजनों में 'इ' या 'अ' का आगम करके सरल बनाया जाता है (उदा. 'स्त्री' -> 'इस्त्री')।`,
+    full_text_conclusion: `५. निष्कर्ष (Conclusion)
+पवारी बोली इंडो-आर्यन भाषा परिवार की एक अनूठी धरोहर है जो मालवी (राजस्थानी), बुंदेली एवं मराठी के संगम बिंदु पर विकसित हुई है। आधुनिक शिक्षा एवं वैश्वीकरण के कारण इसके मूल ध्वन्यात्मक स्वरूप में क्षरण देखा जा रहा है। इस शोध पत्र के माध्यम से पवारी के मानक भाषावैज्ञानिक दस्तावेजीकरण हेतु एक वैज्ञानिक आधार प्रस्तुत किया गया है।`,
+    full_text_acknowledgement: `आभार: शोधकर्ता भाषाविज्ञान विभाग, बालाघाट एवं क्षेत्रीय पवारी लोकसाहित्य परिषद के प्रति अपना हार्दिक आभार व्यक्त करते हैं जिन्होंने क्षेत्र-कार्य में बहुमूल्य सहयोग प्रदान किया।`,
+    full_text_conflict_of_interest: 'लेखक घोषणा करते हैं कि इस शोध कार्य में किसी भी प्रकार का हित-संघर्ष (Conflict of Interest) नहीं है।',
+    full_text_funding: 'यह अध्ययन विश्वविद्यालय अनुदान आयोग (UGC) के लघु शोध अनुदान योजना के अंतर्गत आंशिक रूप से वित्तपोषित है।',
+    references: [
+      'Grierson, G. A. (1908). Linguistic Survey of India (Vol. IX, Indo-Aryan Family, Central Group). Office of the Superintendent of Government Printing, Calcutta.',
+      'Pawar, R. (2015). Pawari Boli Ka Bhashavaigyanik Adhyayan. Shodh Sansthan Prakashan, Bhopal.',
+      'Deshmukh, A. (2020). Folklife and Language Shift in Wainganga River Basin. Journal of Central Indian Studies, 12(2), 45-62.',
+      'Verma, D. (1972). Hindi Bhasha Ka Itihas. Hindustan Academy, Allahabad.'
+    ],
+    custom_sections: [
+      {
+        id: 'cs-01',
+        type: 'quote',
+        title: 'पवारी बोली कहावत (Traditional Pawari Proverb)',
+        content: '"जैसी वैंगंगा की धार, वैसी पवार की वाण।" (अर्थात: जिस प्रकार वैनगंगा नदी निरंतर प्रवाहित होकर जीवन देती है, उसी प्रकार पवारी बोली अपनी सहजता और मिठास से समाज को बांधे रखती है।)'
+      },
+      {
+        id: 'cs-fig-01',
+        type: 'figure',
+        title: 'Figure 1: Geographic Map of Pawari Speech Area',
+        content: 'Geographic distribution of Pawari speakers in Satpura-Wainganga basin.',
+        caption: 'चित्र १ / Figure 1: वैनगंगा नदी घाटी और सतपुड़ा अंचल में पवारी बोलीभाषी क्षेत्र का भौगोलिक मानचित्र (Geographical map highlighting primary Pawari dialect clusters).',
+        image_url: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=1200&q=80',
+        alt_text: 'Map of Satpura and Wainganga valley showing Pawari dialect distribution across Balaghat, Seoni, Chhindwara, and Gondia.',
+        source_credit: 'Source: Author Fieldwork Survey & Central India Linguistic Atlas (2025)',
+        figure_number: 1,
+        placement: 'in_body'
+      },
+      {
+        id: 'cs-fig-02',
+        type: 'figure',
+        title: 'Figure 2: Spectrogram & Formant Analysis',
+        content: 'Acoustic phonetic spectrogram comparing Pawari retroflex sounds.',
+        caption: 'चित्र २ / Figure 2: पवारी बोली के अनुनासिक स्वरों एवं मूर्द्धन्य ध्वनियों का स्पेक्ट्रोग्राम ध्वनि विश्लेषण (Acoustic spectrogram showing formant frequencies F1/F2).',
+        image_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80',
+        alt_text: 'Acoustic waveform graph showing sound frequency peaks in Pawari vocalic phonemes.',
+        source_credit: 'Source: Phonetics Research Laboratory, Central Institute of Indian Languages',
+        figure_number: 2,
+        placement: 'at_end'
+      }
+    ],
     views_count: 342,
     downloads_count: 128,
     created_at: '2026-06-10',

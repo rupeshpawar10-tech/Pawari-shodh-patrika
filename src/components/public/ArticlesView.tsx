@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useCms } from '../../lib/CmsContext';
+import { getUrlForView } from '../../lib/router';
 import { downloadPdf } from '../../lib/pdfUtils';
 import { SharePaperModal } from '../common/SharePaperModal';
 import { SafeImage } from '../common/SafeImage';
@@ -355,16 +356,34 @@ export const ArticlesView: React.FC = () => {
                                   className="bg-white hover:bg-amber-50/60 border border-slate-200 hover:border-amber-300 rounded-xl p-3 shadow-2xs transition cursor-pointer space-y-2 group"
                                 >
                                   <div className="flex items-center justify-between text-[11px] font-mono">
-                                    <span className="bg-red-100 text-red-950 font-bold px-2 py-0.5 rounded text-[10px]">
-                                      {art.category}
-                                    </span>
+                                    <div className="flex items-center space-x-1.5">
+                                      <span className="bg-red-100 text-red-950 font-bold px-2 py-0.5 rounded text-[10px]">
+                                        {art.category}
+                                      </span>
+                                      {(art.content_mode === 'full_text' || art.full_text_introduction) && (
+                                        <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold px-2 py-0.5 rounded text-[10px]">
+                                          Full-Text Available
+                                        </span>
+                                      )}
+                                    </div>
                                     {art.page_numbers && (
                                       <span className="text-slate-500">pp. {art.page_numbers}</span>
                                     )}
                                   </div>
 
                                   <h4 className="text-xs sm:text-sm font-serif font-bold text-slate-900 group-hover:text-red-950 leading-snug">
-                                    {lang === 'hi' ? art.title_hindi : art.title_english}
+                                    <a
+                                      href={getUrlForView('article_detail', art.slug || art.id)}
+                                      onClick={(e) => {
+                                        if (!e.metaKey && !e.ctrlKey) {
+                                          e.preventDefault();
+                                          handleArticleClick(art.slug || art.id);
+                                        }
+                                      }}
+                                      className="hover:underline"
+                                    >
+                                      {lang === 'hi' ? art.title_hindi : art.title_english}
+                                    </a>
                                   </h4>
 
                                   <p className="text-[11px] font-semibold text-slate-700">
@@ -453,6 +472,11 @@ export const ArticlesView: React.FC = () => {
                     <span className="bg-emerald-100 text-emerald-950 font-semibold px-2 py-0.5 rounded text-[10px]">
                       Open Access
                     </span>
+                    {(art.content_mode === 'full_text' || art.full_text_introduction) && (
+                      <span className="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px] shadow-2xs">
+                        Full-Text Article (पूर्ण पाठ आलेख)
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center space-x-1 text-slate-500 font-mono text-[11px]">
@@ -472,7 +496,18 @@ export const ArticlesView: React.FC = () => {
 
                 <div className="space-y-1">
                   <h2 className="text-lg sm:text-xl font-serif font-bold text-slate-900 group-hover:text-red-950 leading-snug">
-                    {lang === 'hi' ? art.title_hindi : art.title_english}
+                    <a 
+                      href={getUrlForView('article_detail', art.slug || art.id)}
+                      onClick={(e) => {
+                        if (!e.metaKey && !e.ctrlKey) {
+                          e.preventDefault();
+                          handleArticleClick(art.slug || art.id);
+                        }
+                      }}
+                      className="hover:underline"
+                    >
+                      {lang === 'hi' ? art.title_hindi : art.title_english}
+                    </a>
                   </h2>
                   {art.title_english && art.title_hindi && (
                     <p className="text-xs sm:text-sm font-serif italic text-slate-600">
@@ -501,17 +536,26 @@ export const ArticlesView: React.FC = () => {
 
                 <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex items-center space-x-4">
-                    <span className="text-red-900 font-bold group-hover:underline">
+                    <a 
+                      href={getUrlForView('article_detail', art.slug || art.id)}
+                      onClick={(e) => {
+                        if (!e.metaKey && !e.ctrlKey) {
+                          e.preventDefault();
+                          handleArticleClick(art.slug || art.id);
+                        }
+                      }}
+                      className="text-red-900 font-bold hover:underline"
+                    >
                       {lang === 'hi' ? 'पूर्ण शोध पत्र एवं विवरण →' : 'Read Full Manuscript →'}
-                    </span>
+                    </a>
                     <div className="flex items-center space-x-3 text-slate-400 font-mono text-[11px]">
                       <span className="flex items-center space-x-1" title="Views">
                         <Eye className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{art.views_count || 0}</span>
+                        <span>{art.views_count || 0} views</span>
                       </span>
                       <span className="flex items-center space-x-1" title="Downloads">
                         <Download className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{art.downloads_count || 0}</span>
+                        <span>{art.downloads_count || 0} downloads</span>
                       </span>
                     </div>
                   </div>

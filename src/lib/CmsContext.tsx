@@ -43,6 +43,15 @@ import {
   SAMPLE_ANNOUNCEMENTS 
 } from '../data/seedData';
 import { fileBlobManager, saveFileToIndexedDB, base64ToBlob } from './fileBlobManager';
+import { parseRouteFromUrl, navigateTo } from './router';
+
+export interface UploadProgressDetails {
+  loaded: number;
+  total: number;
+  speedBps: number;
+  timeRemainingSec: number;
+  statusText?: string;
+}
 
 export const INITIAL_SAMPLE_LOGS: ActivityLogItem[] = [
   {
@@ -140,9 +149,11 @@ interface CmsContextType {
   lang: 'hi' | 'en';
   setLang: (lang: 'hi' | 'en') => void;
   activeView: PublicPageView;
-  setActiveView: (view: PublicPageView) => void;
+  setActiveView: (view: PublicPageView, articleIdOrSlug?: string | null, issueId?: string | null) => void;
   selectedArticleId: string | null;
   setSelectedArticleId: (id: string | null) => void;
+  isNotFound: boolean;
+  setIsNotFound: (val: boolean) => void;
   activeAdminTab: AdminTab;
   setActiveAdminTab: (tab: AdminTab) => void;
   
@@ -194,8 +205,8 @@ interface CmsContextType {
   deleteLokgeet: (id: string) => Promise<void>;
   saveQuizQuestion: (question: QuizQuestion) => Promise<void>;
   deleteQuizQuestion: (id: string) => Promise<void>;
-  submitPublicContribution: (type: 'shabdkosh' | 'paheli' | 'lokgeet', itemData: any) => Promise<void>;
-  updateContributionStatus: (type: 'shabdkosh' | 'paheli' | 'lokgeet', id: string, status: 'approved' | 'pending' | 'rejected') => Promise<void>;
+  submitPublicContribution: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books', itemData: any) => Promise<void>;
+  updateContributionStatus: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'submissions', id: string, status: 'approved' | 'pending' | 'rejected') => Promise<void>;
 
   savePage: (page: PageContent) => Promise<void>;
   saveEditorialMember: (member: EditorialMember) => Promise<void>;
@@ -373,11 +384,39 @@ const parseDeepLinkFromUrl = (): { initialView: PublicPageView; initialArticleId
 };
 
 export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const initialDeepLink = parseDeepLinkFromUrl();
+  const initialRoute = parseRouteFromUrl();
   const [lang, setLang] = useState<'hi' | 'en'>('hi');
-  const [activeView, setActiveView] = useState<PublicPageView>(initialDeepLink.initialView);
-  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(initialDeepLink.initialArticleId);
+  const [activeView, setActiveViewRaw] = useState<PublicPageView>(initialRoute.view);
+  const [selectedArticleId, setSelectedArticleIdRaw] = useState<string | null>(initialRoute.articleIdOrSlug);
+  const [isNotFound, setIsNotFound] = useState<boolean>(initialRoute.isNotFound);
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('dashboard');
+
+  const setActiveView = (view: PublicPageView, articleIdOrSlug?: string | null, issueId?: string | null) => {
+    setIsNotFound(false);
+    setActiveViewRaw(view);
+    if (articleIdOrSlug !== undefined) {
+      setSelectedArticleIdRaw(articleIdOrSlug);
+    }
+    navigateTo(view, articleIdOrSlug !== undefined ? articleIdOrSlug : selectedArticleId, issueId);
+  };
+
+  const setSelectedArticleId = (id: string | null) => {
+    setSelectedArticleIdRaw(id);
+    if (activeView === 'article_detail') {
+      navigateTo('article_detail', id);
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const currentRoute = parseRouteFromUrl();
+      setActiveViewRaw(currentRoute.view);
+      setSelectedArticleIdRaw(currentRoute.articleIdOrSlug);
+      setIsNotFound(currentRoute.isNotFound);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const [settings, setSettings] = useState<JournalSettings>(DEFAULT_SETTINGS);
   const [articles, setArticles] = useState<Article[]>(SAMPLE_ARTICLES);
@@ -1155,10 +1194,77 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Fast client-side image/photo compression before uploading to Firebase Storage
+  const compressImageFileIfNeeded = async (file: File, maxDim = 1920, quality = 0.82): Promise<File> => {
+    const nameLower = file.name.toLowerCase();
+    const isSvg = file.type === 'image/svg+xml' || nameLower.endsWith('.svg');
+    const isGif = file.type === 'image/gif' || nameLower.endsWith('.gif');
+    
+    // Skip small images (<350KB), SVGs, and GIFs
+    if (isSvg || isGif || file.size <= 350 * 1024) {
+      return file;
+    }
+
+    return new Promise<File>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width <= maxDim && height <= maxDim && file.size <= 600 * 1024) {
+            resolve(file);
+            return;
+          }
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(file);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob && blob.size < file.size) {
+                const cleanName = file.name.replace(/\.[^/.]+$/, '') + '.jpg';
+                const compressedFile = new File([blob], cleanName, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now()
+                });
+                console.log(`[Image Compress] Reduced "${file.name}" from ${(file.size / 1024 / 1024).toFixed(2)}MB to ${(compressedFile.size / 1024).toFixed(1)}KB`);
+                resolve(compressedFile);
+              } else {
+                resolve(file);
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const uploadFileToStorage = async (
     rawFile: File, 
     folder?: string,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number, details?: UploadProgressDetails) => void
   ): Promise<{ url: string; path: string; fileId: string }> => {
     // 1. Verify File object
     if (!rawFile || !(rawFile instanceof File)) {
@@ -1169,35 +1275,90 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       throw new Error(`Empty File: Selected file "${rawFile.name}" has 0 bytes.`);
     }
 
-    if (onProgress) onProgress(10);
-
     const nameLower = rawFile.name.toLowerCase();
-    const isImage = rawFile.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(nameLower);
+    const isJpg = nameLower.endsWith('.jpg') || nameLower.endsWith('.jpeg') || rawFile.type === 'image/jpeg';
+    const isPng = nameLower.endsWith('.png') || rawFile.type === 'image/png';
+    const isWebp = nameLower.endsWith('.webp') || rawFile.type === 'image/webp';
+    const isImage = isJpg || isPng || isWebp || rawFile.type.startsWith('image/');
+
     const isPdf = rawFile.type === 'application/pdf' || nameLower.endsWith('.pdf');
+    const isDoc = rawFile.type.includes('word') || /\.(doc|docx)$/i.test(nameLower);
+    const isSupportedDoc = isPdf || isDoc;
+
+    // Reject unsupported formats clearly
+    if (!isImage && !isSupportedDoc) {
+      throw new Error(`Unsupported file format "${rawFile.name}". Only PDF, DOC, DOCX, JPG, PNG, and WEBP files are supported.`);
+    }
+
+    // Size validation: Images max 5MB, Documents max 15MB
+    const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+    const MAX_DOC_SIZE = 15 * 1024 * 1024;
+
+    if (isImage && rawFile.size > MAX_IMAGE_SIZE) {
+      throw new Error(`Image size (${(rawFile.size / 1024 / 1024).toFixed(1)} MB) exceeds maximum allowed 5 MB limit.`);
+    }
+
+    if (isSupportedDoc && rawFile.size > MAX_DOC_SIZE) {
+      throw new Error(`Document size (${(rawFile.size / 1024 / 1024).toFixed(1)} MB) exceeds maximum allowed 15 MB limit.`);
+    }
+
+    if (onProgress) {
+      onProgress(5, {
+        loaded: 0,
+        total: rawFile.size,
+        speedBps: 0,
+        timeRemainingSec: 0,
+        statusText: 'प्रारंभ हो रहा है...'
+      });
+    }
+
+    // Compress photo images over 350KB before upload for lightning-fast transfer
+    let fileToUpload = rawFile;
+    if (isImage) {
+      if (onProgress) onProgress(15);
+      fileToUpload = await compressImageFileIfNeeded(rawFile, 1920, 0.82);
+    }
+
+    const fileId = 'file_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+    // Register blob locally for instant preview (<10ms) & store in IndexedDB
+    const localBlobUrl = fileBlobManager.registerBlob(fileId, fileToUpload);
+    if (onProgress) {
+      onProgress(20, {
+        loaded: Math.round(fileToUpload.size * 0.2),
+        total: fileToUpload.size,
+        speedBps: 0,
+        timeRemainingSec: 0,
+        statusText: 'लोकल स्टोरेज में सुरक्षित...'
+      });
+    }
 
     // Determine specific Content-Type metadata
-    let contentType = rawFile.type;
+    let contentType = fileToUpload.type;
     if (!contentType || contentType === 'application/octet-stream') {
       if (isPdf) contentType = 'application/pdf';
-      else if (nameLower.endsWith('.png')) contentType = 'image/png';
-      else if (nameLower.endsWith('.jpg') || nameLower.endsWith('.jpeg')) contentType = 'image/jpeg';
-      else if (nameLower.endsWith('.webp')) contentType = 'image/webp';
-      else if (nameLower.endsWith('.gif')) contentType = 'image/gif';
-      else if (nameLower.endsWith('.svg')) contentType = 'image/svg+xml';
+      else if (nameLower.endsWith('.docx')) contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      else if (nameLower.endsWith('.doc')) contentType = 'application/msword';
+      else if (isPng) contentType = 'image/png';
+      else if (isWebp) contentType = 'image/webp';
+      else if (isJpg) contentType = 'image/jpeg';
       else if (isImage) contentType = 'image/jpeg';
       else contentType = 'application/octet-stream';
     }
 
-    const fileId = 'file_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-    const targetFolder = folder || (isImage ? 'editorial_photos' : isPdf ? 'documents' : 'uploads');
-    const cleanFileName = rawFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const currentUser = auth.currentUser;
+    const userUid = currentUser?.uid || 'guest';
+    
+    const userCategory = isImage ? 'images' : 'documents';
+    const targetFolder = folder || `users/${userUid}/${userCategory}`;
+    const cleanFileName = fileToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const storagePath = `${targetFolder}/${Date.now()}_${cleanFileName}`;
 
-    // Specific metadata containing contentType for standard Firebase Storage
     const metadata = {
       contentType: contentType,
       customMetadata: {
         originalName: rawFile.name,
+        uploadedBy: userUid,
         uploadedAt: new Date().toISOString()
       }
     };
@@ -1205,61 +1366,100 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let downloadUrl = '';
     let storageUploadSuccess = false;
 
-    // Standard Firebase Storage uploadBytes execution with 45s timeout
+    // Fast-track Resumable Firebase Storage upload with live percentage progress & 12s adaptive fallback
     try {
-      if (onProgress) onProgress(25);
       const storageRef = ref(storage, storagePath);
-      console.log(`[Firebase Storage uploadBytes] Uploading file "${rawFile.name}" with content-type "${contentType}" to "${storagePath}"...`);
+      console.log(`[Firebase Storage Upload] Uploading "${fileToUpload.name}" (${(fileToUpload.size / 1024).toFixed(1)} KB)...`);
 
-      const uploadPromise = uploadBytes(storageRef, rawFile, metadata);
+      const uploadTask = uploadBytesResumable(storageRef, fileToUpload, metadata);
+      const startTime = Date.now();
+
+      const taskPromise = new Promise<string>((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            if (snapshot.totalBytes > 0) {
+              const rawPct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+              const pct = Math.min(98, Math.max(20, rawPct));
+              const elapsedSec = Math.max(0.1, (Date.now() - startTime) / 1000);
+              const speedBps = snapshot.bytesTransferred / elapsedSec;
+              const remainingBytes = snapshot.totalBytes - snapshot.bytesTransferred;
+              const timeRemainingSec = speedBps > 0 ? Math.ceil(remainingBytes / speedBps) : 0;
+
+              if (onProgress) {
+                onProgress(pct, {
+                  loaded: snapshot.bytesTransferred,
+                  total: snapshot.totalBytes,
+                  speedBps,
+                  timeRemainingSec,
+                  statusText: `क्लाउड अपलोड जारी: ${pct}%`
+                });
+              }
+            }
+          },
+          (error) => {
+            reject(error);
+          },
+          async () => {
+            try {
+              const url = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve(url);
+            } catch (err) {
+              reject(err);
+            }
+          }
+        );
+      });
+
+      // 12s adaptive timeout for high-speed response
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Firebase Storage timeout (45s elapsed), using fallback')), 45000)
+        setTimeout(() => reject(new Error('Firebase Storage response timeout (12s limit reached)')), 12000)
       );
 
-      const snapshot = await Promise.race([uploadPromise, timeoutPromise]);
-      if (onProgress) onProgress(75);
-
-      downloadUrl = await getDownloadURL(snapshot.ref);
+      downloadUrl = await Promise.race([taskPromise, timeoutPromise]);
       storageUploadSuccess = true;
-      console.log(`[Firebase Storage uploadBytes] Upload Successful! Direct Storage URL:`, downloadUrl);
+      console.log(`[Firebase Storage Upload] Direct Storage URL:`, downloadUrl);
     } catch (storageErr) {
-      console.warn('[Firebase Storage uploadBytes] Storage upload error or unreachable, using fallback:', storageErr);
+      console.warn('[uploadFileToStorage] Firebase Storage direct upload skipped or timed out, using local persistent store:', storageErr);
     }
 
-    // Resilient fallback if Firebase Storage bucket is not available in environment
+    // Fallback URL if Storage skipped or timed out
     if (!storageUploadSuccess || !downloadUrl) {
-      if (onProgress) onProgress(45);
-      let dataUrl = await readFileAsDataUrl(rawFile);
-      if (isImage) {
-        dataUrl = await compressImageDataUrlIfNeeded(dataUrl, 1000, 0.80);
+      if (isImage && fileToUpload.size < 1024 * 1024 * 2) {
+        try {
+          let dataUrl = await readFileAsDataUrl(fileToUpload);
+          dataUrl = await compressImageDataUrlIfNeeded(dataUrl, 1000, 0.80);
+          downloadUrl = dataUrl;
+        } catch (e) {
+          downloadUrl = localBlobUrl;
+        }
+      } else {
+        downloadUrl = localBlobUrl;
       }
-      downloadUrl = dataUrl;
     }
 
-    if (onProgress) onProgress(85);
+    if (onProgress) {
+      onProgress(100, {
+        loaded: fileToUpload.size,
+        total: fileToUpload.size,
+        speedBps: 0,
+        timeRemainingSec: 0,
+        statusText: 'अपलोड पूर्ण (100%)'
+      });
+    }
 
-    // Save record to Firestore collections (user_files & media) for full persistence
-    const currentUser = auth.currentUser;
-    const userUid = currentUser ? currentUser.uid : 'admin_user';
-    const base64Content = downloadUrl.includes(',') ? downloadUrl.split(',')[1] : '';
-
+    // Save lightweight metadata record to Firestore collections (user_files & media)
     const userFileRecord = {
       id: fileId,
       name: rawFile.name,
       type: contentType,
-      size: rawFile.size,
+      size: fileToUpload.size,
       user_id: userUid,
-      content: base64Content,
-      base64: base64Content,
       url_id: fileId,
-      url: downloadUrl,
+      url: storageUploadSuccess ? downloadUrl : fileId,
       uploaded_at: new Date().toISOString(),
       storage_path: storagePath
     };
-
-    try {
-      localStorage.setItem(`pdf_cache_${fileId}`, downloadUrl);
-    } catch (e) {}
 
     try {
       await setDoc(doc(db, 'user_files', fileId), userFileRecord);
@@ -1270,10 +1470,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const mediaItem: MediaFile = {
       id: fileId,
       name: rawFile.name,
-      url: downloadUrl,
+      url: storageUploadSuccess ? downloadUrl : fileId,
       storage_path: storagePath,
       type: isPdf ? 'pdf' : isImage ? 'image' : 'doc',
-      size: rawFile.size,
+      size: fileToUpload.size,
       uploaded_at: new Date().toISOString()
     };
 
@@ -1284,7 +1484,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (onProgress) onProgress(100);
 
-    return { url: downloadUrl, path: storagePath, fileId: fileId };
+    return { 
+      url: storageUploadSuccess ? downloadUrl : localBlobUrl, 
+      path: storagePath, 
+      fileId: fileId 
+    };
   };
 
   const deleteFileFromStorage = async (path: string) => {
@@ -1514,13 +1718,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Public User Contributions
-  const submitPublicContribution = async (type: 'shabdkosh' | 'paheli' | 'lokgeet', itemData: any) => {
+  const submitPublicContribution = async (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books', itemData: any) => {
     const id = 'contrib_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
     const newItem = {
       ...itemData,
-      id,
+      id: itemData.id || id,
       status: 'pending' as const,
-      created_at: new Date().toISOString()
+      created_at: itemData.created_at || new Date().toISOString()
     };
 
     if (type === 'shabdkosh') {
@@ -1535,37 +1739,61 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const updated = [newItem as PawariLokgeetItem, ...lokgeetList];
       setLokgeetList(updated);
       try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
+    } else if (type === 'blogs') {
+      const updated = [newItem as BlogItem, ...blogs];
+      setBlogs(updated);
+      try { localStorage.setItem('local_blogs_cache', JSON.stringify(updated)); } catch (e) {}
+    } else if (type === 'books') {
+      const updated = [newItem as BookItem, ...books];
+      setBooks(updated);
+      try { localStorage.setItem('local_books_cache', JSON.stringify(updated)); } catch (e) {}
     }
 
-    try { await setDoc(doc(db, type, id), newItem); } catch (e) { console.error(e); }
+    try { await setDoc(doc(db, type, newItem.id), newItem); } catch (e) { console.error(e); }
 
     logActivity({
-      category: type === 'shabdkosh' ? 'shabdkosh' : type === 'paheli' ? 'paheli' : 'lokgeet',
+      category: type === 'shabdkosh' ? 'shabdkosh' : type === 'paheli' ? 'paheli' : type === 'lokgeet' ? 'lokgeet' : type === 'blogs' ? 'blogs' : 'books',
       action: 'create',
       title: `New Public User Submission (${type.toUpperCase()})`,
-      details: `Submitted by: ${itemData.contributor_name || 'Public Reader'}`
+      details: `Submitted by: ${itemData.contributor_name || itemData.author || itemData.authors || 'Public Reader'}`
     }).catch(console.warn);
   };
 
-  const updateContributionStatus = async (type: 'shabdkosh' | 'paheli' | 'lokgeet', id: string, status: 'approved' | 'pending' | 'rejected') => {
+  const updateContributionStatus = async (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'submissions', id: string, status: 'approved' | 'pending' | 'rejected') => {
     if (type === 'shabdkosh') {
       const updated = shabdkoshList.map(item => item.id === id ? { ...item, status } : item);
       setShabdkoshList(updated);
       try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(updated)); } catch (e) {}
+      try { await updateDoc(doc(db, 'shabdkosh', id), { status }); } catch (e) { console.error(e); }
     } else if (type === 'paheli') {
       const updated = paheliList.map(item => item.id === id ? { ...item, status } : item);
       setPaheliList(updated);
       try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(updated)); } catch (e) {}
+      try { await updateDoc(doc(db, 'paheli', id), { status }); } catch (e) { console.error(e); }
     } else if (type === 'lokgeet') {
       const updated = lokgeetList.map(item => item.id === id ? { ...item, status } : item);
       setLokgeetList(updated);
       try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
+      try { await updateDoc(doc(db, 'lokgeet', id), { status }); } catch (e) { console.error(e); }
+    } else if (type === 'blogs') {
+      const updated = blogs.map(item => item.id === id ? { ...item, status } : item);
+      setBlogs(updated);
+      try { localStorage.setItem('local_blogs_cache', JSON.stringify(updated)); } catch (e) {}
+      try { await updateDoc(doc(db, 'blogs', id), { status }); } catch (e) { console.error(e); }
+    } else if (type === 'books') {
+      const updated = books.map(item => item.id === id ? { ...item, status } : item);
+      setBooks(updated);
+      try { localStorage.setItem('local_books_cache', JSON.stringify(updated)); } catch (e) {}
+      try { await updateDoc(doc(db, 'books', id), { status }); } catch (e) { console.error(e); }
+    } else if (type === 'submissions') {
+      const mappedStatus = status === 'approved' ? 'accepted' : status === 'rejected' ? 'rejected' : 'pending';
+      const updated = submissions.map(item => item.id === id ? { ...item, status: mappedStatus as any } : item);
+      setSubmissions(updated);
+      try { await updateDoc(doc(db, 'submissions', id), { status: mappedStatus }); } catch (e) { console.error(e); }
     }
 
-    try { await updateDoc(doc(db, type, id), { status }); } catch (e) { console.error(e); }
-
     logActivity({
-      category: type === 'shabdkosh' ? 'shabdkosh' : type === 'paheli' ? 'paheli' : 'lokgeet',
+      category: (type === 'shabdkosh' || type === 'paheli' || type === 'lokgeet' || type === 'blogs' || type === 'books') ? type : 'general',
       action: 'status_change',
       title: `Changed Submission Status to ${status.toUpperCase()} (${type.toUpperCase()})`,
       details: `Item ID: ${id}`
@@ -1581,6 +1809,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveView,
         selectedArticleId,
         setSelectedArticleId,
+        isNotFound,
+        setIsNotFound,
         activeAdminTab,
         setActiveAdminTab,
         settings,

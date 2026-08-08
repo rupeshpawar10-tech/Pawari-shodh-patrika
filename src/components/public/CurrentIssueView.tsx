@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
+import { getUrlForView } from '../../lib/router';
 import { downloadPdf } from '../../lib/pdfUtils';
 import { SafeImage } from '../common/SafeImage';
 import { SharePaperModal } from '../common/SharePaperModal';
@@ -125,7 +126,18 @@ export const CurrentIssueView: React.FC = () => {
                 </div>
 
                 <h3 className="text-base sm:text-lg font-serif font-bold text-slate-900 group-hover:text-red-950 leading-snug">
-                  {lang === 'hi' ? art.title_hindi : art.title_english}
+                  <a 
+                    href={getUrlForView('article_detail', art.slug || art.id)}
+                    onClick={(e) => {
+                      if (!e.metaKey && !e.ctrlKey) {
+                        e.preventDefault();
+                        handleArticleClick(art.slug || art.id);
+                      }
+                    }}
+                    className="hover:underline"
+                  >
+                    {lang === 'hi' ? art.title_hindi : art.title_english}
+                  </a>
                 </h3>
 
                 <p className="text-xs sm:text-sm text-slate-700 font-medium">

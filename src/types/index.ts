@@ -49,13 +49,31 @@ export interface Author {
   affiliation?: string;
   email?: string;
   is_corresponding?: boolean;
+  orcid?: string;
+}
+
+export interface CustomSectionBlock {
+  id: string;
+  type: 'heading_h2' | 'subheading_h3' | 'paragraph' | 'quote' | 'figure' | 'table' | 'appendix' | 'footnote';
+  title?: string;
+  content: string;
+  caption?: string;
+  image_url?: string;
+  alt_text?: string;
+  is_decorative?: boolean;
+  source_credit?: string;
+  figure_number?: number;
+  placement?: 'in_body' | 'at_end';
+  table_data?: { headers: string[]; rows: string[][] };
 }
 
 export interface Article {
   id: string;
   title_hindi: string;
   title_english: string;
+  short_title?: string;
   slug: string;
+  article_type?: string;
   authors: Author[];
   abstract_hindi: string;
   abstract_english: string;
@@ -71,6 +89,29 @@ export interface Article {
   language: 'Hindi' | 'English' | 'Pawari' | 'Bilingual';
   status: 'published' | 'draft' | 'under_review' | 'archived';
   page_numbers?: string;
+  content_mode?: 'full_text' | 'pdf_only';
+  citation_text?: string;
+  
+  // Article History Dates
+  date_received?: string;
+  date_revised?: string;
+  date_accepted?: string;
+  date_published?: string;
+
+  // Full Article Content Sections
+  full_text_introduction?: string;
+  full_text_literature_review?: string;
+  full_text_methodology?: string;
+  full_text_results_discussion?: string;
+  full_text_conclusion?: string;
+  full_text_acknowledgement?: string;
+  full_text_conflict_of_interest?: string;
+  full_text_funding?: string;
+  references?: string[];
+
+  // Optional custom content blocks
+  custom_sections?: CustomSectionBlock[];
+
   views_count?: number;
   downloads_count?: number;
   created_at: string;
@@ -248,6 +289,12 @@ export interface Submission {
   abstract?: string;
   abstract_hindi?: string;
   category?: string;
+  paper_type?: string;
+  co_authors?: string;
+  affiliation?: string;
+  doi?: string;
+  keywords?: string;
+  license_type?: string;
   file_url?: string;
   file_name?: string;
   status: 'pending' | 'under_review' | 'accepted' | 'rejected' | 'revision_requested';

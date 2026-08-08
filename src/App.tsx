@@ -19,30 +19,60 @@ import { AuthorGuidelinesView } from './components/public/AuthorGuidelinesView';
 import { ManuscriptSubmissionView } from './components/public/ManuscriptSubmissionView';
 import { ContactView } from './components/public/ContactView';
 import { PawariCulturalSection } from './components/public/PawariCulturalSection';
+import { NotFoundView } from './components/common/NotFoundView';
 
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminLayout } from './components/admin/AdminLayout';
+import { updateMetaTags } from './lib/seo';
 
 const MainContent: React.FC = () => {
-  const { lang, activeView, activePdfUrl, activePdfTitle, closePdfViewer, settings } = useCms();
+  const { 
+    lang, 
+    activeView, 
+    selectedArticleId, 
+    articles, 
+    issues,
+    isNotFound, 
+    activePdfUrl, 
+    activePdfTitle, 
+    closePdfViewer, 
+    settings,
+    loadingData
+  } = useCms();
   const { currentUser, userProfile, loading } = useAuth();
 
-  // Apply theme settings dynamically & set page title
+  // Find currently selected article if viewing article_detail
+  const currentArticle = React.useMemo(() => {
+    if (activeView !== 'article_detail' || !selectedArticleId) return null;
+    return articles.find(a => a.id === selectedArticleId || a.slug === selectedArticleId) || null;
+  }, [activeView, selectedArticleId, articles]);
+
+  // Check if requested issue exists if viewing an issue path
+  const isInvalidIssue = React.useMemo(() => {
+    if (activeView !== 'archive') return false;
+    const pathname = window.location.pathname.toLowerCase();
+    const searchParams = new URLSearchParams(window.location.search);
+    const issueId = searchParams.get('issue') || (pathname.startsWith('/issue/') ? pathname.replace('/issue/', '').trim() : null);
+    if (!issueId) return false;
+    const exists = issues.some(i => 
+      i.id === issueId || 
+      String(i.issue_number) === issueId || 
+      `vol-${i.volume}-iss-${i.issue_number}` === issueId ||
+      `${i.volume}-${i.issue_number}` === issueId
+    );
+    return !exists && !loadingData;
+  }, [activeView, issues, loadingData]);
+
+  const isInvalidArticle = React.useMemo(() => {
+    if (activeView !== 'article_detail' || !selectedArticleId) return false;
+    return !currentArticle && !loadingData;
+  }, [activeView, selectedArticleId, currentArticle, loadingData]);
+
+  const pageIs404 = isNotFound || isInvalidArticle || isInvalidIssue;
+
+  // Apply theme settings dynamically & update meta tags
   React.useEffect(() => {
-    const baseTitle = lang === 'hi'
-      ? (settings.journal_title_hindi || 'पवारी शोध पत्रिका - Pawari Shodh Patrika')
-      : (settings.journal_title_english || 'Pawari Shodh Patrika');
-
-    let viewPrefix = '';
-    if (activeView === 'admin') viewPrefix = lang === 'hi' ? 'CMS एडमिन | ' : 'CMS Admin | ';
-    else if (activeView === 'books_blogs' || activeView === 'articles') viewPrefix = lang === 'hi' ? 'पुस्तकें, ब्लॉग एवं पवारी साहित्य | ' : 'Books & Literature | ';
-    else if (activeView === 'current_issue') viewPrefix = lang === 'hi' ? 'वर्तमान अंक | ' : 'Current Issue | ';
-    else if (activeView === 'archive') viewPrefix = lang === 'hi' ? 'पुराने अंक (Archive) | ' : 'Archive | ';
-    else if (activeView === 'editorial_board') viewPrefix = lang === 'hi' ? 'संपादक मंडल | ' : 'Editorial Board | ';
-    else if (activeView === 'author_guidelines') viewPrefix = lang === 'hi' ? 'लेखक दिशानिर्देश | ' : 'Author Guidelines | ';
-    else if (activeView === 'contact') viewPrefix = lang === 'hi' ? 'संपर्क | ' : 'Contact Us | ';
-
-    document.title = `${viewPrefix}${baseTitle}`;
+    updateMetaTags(activeView, settings, currentArticle, lang, pageIs404);
 
     const preset = settings.theme_preset || 'maroon_gold';
     document.documentElement.className = `theme-${preset}`;
@@ -55,7 +85,7 @@ const MainContent: React.FC = () => {
       document.documentElement.style.removeProperty('--color-brand-secondary');
       document.documentElement.style.removeProperty('--color-brand-accent');
     }
-  }, [lang, activeView, settings.journal_title_hindi, settings.journal_title_english, settings.theme_preset, settings.primary_color, settings.secondary_color, settings.accent_color]);
+  }, [lang, activeView, selectedArticleId, currentArticle, settings, articles, pageIs404]);
 
   // If activeView is admin, render Admin portal
   if (activeView === 'admin') {
@@ -74,6 +104,10 @@ const MainContent: React.FC = () => {
 
   // Public views
   const renderPublicView = () => {
+    if (pageIs404) {
+      return <NotFoundView />;
+    }
+
     switch (activeView) {
       case 'home': return <HomeView />;
       case 'about': return <AboutView />;
@@ -85,7 +119,9 @@ const MainContent: React.FC = () => {
       case 'pawari_paheli': return <BooksBlogsView initialTab="paheli" />;
       case 'pawari_lokgeet': return <BooksBlogsView initialTab="lokgeet" />;
       case 'pawari_quiz': return <BooksBlogsView initialTab="quiz" />;
-      case 'article_detail': return <ArticleDetailView />;
+      case 'article_detail': 
+        if (!currentArticle) return <NotFoundView />;
+        return <ArticleDetailView />;
       case 'editorial_board': return <EditorialBoardView />;
       case 'author_guidelines': return <AuthorGuidelinesView />;
       case 'submit_manuscript': return <ManuscriptSubmissionView />;

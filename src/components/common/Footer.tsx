@@ -1,5 +1,6 @@
 import React from 'react';
 import { useCms, PublicPageView } from '../../lib/CmsContext';
+import { getUrlForView } from '../../lib/router';
 import { BookOpen, Mail, Phone, MapPin, ExternalLink } from 'lucide-react';
 
 export const Footer: React.FC = () => {
@@ -48,34 +49,34 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <button onClick={() => handleNav('home')} className="hover:text-amber-300 transition">
+                <a href={getUrlForView('home')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('home'); } }} className="hover:text-amber-300 transition block">
                   {lang === 'hi' ? 'मुख्य पृष्ठ' : 'Home'}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => handleNav('about')} className="hover:text-amber-300 transition">
+                <a href={getUrlForView('about')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('about'); } }} className="hover:text-amber-300 transition block">
                   {lang === 'hi' ? 'पत्रिका परिचय' : 'About Journal'}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => handleNav('current_issue')} className="hover:text-amber-300 transition">
+                <a href={getUrlForView('current_issue')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('current_issue'); } }} className="hover:text-amber-300 transition block">
                   {lang === 'hi' ? 'वर्तमान अंक' : 'Current Issue'}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => handleNav('archive')} className="hover:text-amber-300 transition">
+                <a href={getUrlForView('archive')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('archive'); } }} className="hover:text-amber-300 transition block">
                   {lang === 'hi' ? 'पुराने अंक (संग्रह)' : 'Archived Issues'}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => handleNav('articles')} className="hover:text-amber-300 transition">
+                <a href={getUrlForView('articles')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('articles'); } }} className="hover:text-amber-300 transition block">
                   {lang === 'hi' ? 'शोध पत्र सूची' : 'Articles Index'}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => handleNav('author_guidelines')} className="hover:text-amber-300 transition">
+                <a href={getUrlForView('author_guidelines')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('author_guidelines'); } }} className="hover:text-amber-300 transition block">
                   {lang === 'hi' ? 'लेखक निर्देश' : 'Author Guidelines'}
-                </button>
+                </a>
               </li>
             </ul>
           </div>
@@ -87,35 +88,35 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <button onClick={() => handleNav('editorial_board')} className="hover:text-amber-300 transition">
+                <a href={getUrlForView('editorial_board')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('editorial_board'); } }} className="hover:text-amber-300 transition block">
                   {lang === 'hi' ? 'संपादकीय मंडल' : 'Editorial Board'}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => handleNav('about')} className="hover:text-amber-300 transition">
+                <a href={getUrlForView('about')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('about'); } }} className="hover:text-amber-300 transition block">
                   {lang === 'hi' ? 'पीर समीक्षा नीति' : 'Peer Review Policy'}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => handleNav('about')} className="hover:text-amber-300 transition">
+                <a href={getUrlForView('about')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('about'); } }} className="hover:text-amber-300 transition block">
                   {lang === 'hi' ? 'खुला पहुंच नीति (Open Access)' : 'Open Access Policy'}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => handleNav('author_guidelines')} className="hover:text-amber-300 transition">
+                <a href={getUrlForView('author_guidelines')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('author_guidelines'); } }} className="hover:text-amber-300 transition block">
                   {lang === 'hi' ? 'प्लेगेरिज्म नीति' : 'Plagiarism Policy'}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => handleNav('contact')} className="hover:text-amber-300 transition">
+                <a href={getUrlForView('contact')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('contact'); } }} className="hover:text-amber-300 transition block">
                   {lang === 'hi' ? 'संपर्क एवं पूछताछ' : 'Contact Editorial Office'}
-                </button>
+                </a>
               </li>
               <li>
-                <button onClick={() => handleNav('admin')} className="text-amber-400 font-medium hover:underline flex items-center space-x-1">
+                <a href={getUrlForView('admin')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('admin'); } }} className="text-amber-400 font-medium hover:underline flex items-center space-x-1">
                   <ExternalLink className="w-3 h-3" />
                   <span>{lang === 'hi' ? 'एडमिन पोर्टल लॉगिन' : 'Admin CMS Portal'}</span>
-                </button>
+                </a>
               </li>
             </ul>
           </div>
