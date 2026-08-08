@@ -1,4 +1,5 @@
 import { JournalSettings, PageContent, Article, Issue, EditorialMember, Announcement, UserProfile } from '../types';
+import { generateFormattedPdfDataUrl } from '../lib/pdfUtils';
 
 export const DEFAULT_SETTINGS: JournalSettings = {
   journal_title_hindi: 'पवारी शोध पत्रिका',
@@ -225,7 +226,12 @@ export const SAMPLE_ISSUES: Issue[] = [
 ];
 
 // Sample public PDF data URL so the viewer renders instantly out of the box
-const SAMPLE_PDF_BLOB = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+const SAMPLE_PDF_BLOB = generateFormattedPdfDataUrl(
+  'PAWARI SHODH PATRIKA - RESEARCH MANUSCRIPT',
+  'Rajesh Barange Pawar, Pranay Chopde, Rajesh Bobde, Vaibhav Pathe',
+  'Volume 1, Issue 1 (2025) | ISSN: Applied For',
+  'Peer-reviewed research manuscript published in Pawari Shodh Patrika.'
+);
 
 export const SAMPLE_ARTICLES: Article[] = [
   {

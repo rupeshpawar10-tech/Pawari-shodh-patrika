@@ -143,7 +143,10 @@ const MainContent: React.FC = () => {
       {activePdfUrl && (
         <PdfViewerModal
           url={activePdfUrl}
-          title={activePdfTitle || 'PDF Document'}
+          title={activePdfTitle || (currentArticle ? (lang === 'hi' ? currentArticle.title_hindi : currentArticle.title_english) : 'PDF Document')}
+          authors={currentArticle ? currentArticle.authors.map(a => a.name).join(', ') : undefined}
+          journalInfo={currentArticle ? `Volume ${currentArticle.volume}, Issue ${currentArticle.issue} (${currentArticle.year})` : undefined}
+          abstractText={currentArticle ? (lang === 'hi' ? currentArticle.abstract_hindi : currentArticle.abstract_english) : undefined}
           onClose={closePdfViewer}
         />
       )}

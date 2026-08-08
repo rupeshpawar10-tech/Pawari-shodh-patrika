@@ -866,11 +866,14 @@ export const ArticleDetailView: React.FC = () => {
         )}
 
         {/* TAB 3: EMBEDDED PDF READER */}
-        {activeTab === 'pdf' && article.pdf_url && !window.matchMedia('print').matches && (
+        {activeTab === 'pdf' && !window.matchMedia('print').matches && (
           <div className="space-y-4 animate-in fade-in duration-150">
             <PdfCanvasViewer 
               url={article.pdf_url || ''} 
               title={lang === 'hi' ? article.title_hindi : article.title_english} 
+              authors={article.authors.map(a => a.name).join(', ')}
+              journalInfo={`Volume ${article.volume}, Issue ${article.issue} (${article.year})`}
+              abstractText={lang === 'hi' ? article.abstract_hindi : article.abstract_english}
               onDownload={handleDownload}
               className="h-[680px]" 
             />
