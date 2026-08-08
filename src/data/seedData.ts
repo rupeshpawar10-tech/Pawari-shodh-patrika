@@ -3,8 +3,8 @@ import { JournalSettings, PageContent, Article, Issue, EditorialMember, Announce
 export const DEFAULT_SETTINGS: JournalSettings = {
   journal_title_hindi: 'पवारी शोध पत्रिका',
   journal_title_english: 'Pawari Shodh Patrika',
-  subtitle_hindi: 'भाषा, साहित्य, संस्कृति एवं समाजशास्त्र की अंतर्राष्ट्रीय बहुविषयी शोध पत्रिका',
-  subtitle_english: 'An International Multidisciplinary Peer-Reviewed Research Journal of Language, Literature, Culture & Social Sciences',
+  subtitle_hindi: 'पवारी भाषा, साहित्य एवं मध्यप्रदेश की लोकभाषाओं, संस्कृतियों व क्षेत्रीय अध्ययन की शोध पत्रिका',
+  subtitle_english: 'A Peer-Reviewed Journal of Pawari Language, Literature & Regional Dialects, Folk Culture and Social History of Central India',
   logo_url: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=200&auto=format&fit=crop&q=80',
   issn_online: 'Applied For',
   issn_print: 'Applied For',
@@ -83,25 +83,27 @@ export const DEFAULT_PAGES: Record<string, PageContent> = {
     title_english: 'About Pawari Shodh Patrika - Aims & Scope',
     content_hindi: `
 ### शोध पत्रिका का परिचय
-**पवारी शोध पत्रिका (Pawari Shodh Patrika)** एक अंतर्राष्ट्रीय, द्विभाषी एवं अर्द्धवार्षिक (Half-Yearly) पीर-रिव्यूड (Peer-Reviewed) बहुविषयी शोध पत्रिका है। इस पत्रिका का मुख्य उद्देश्य मध्य भारत की समृद्ध लोकसंस्कृति, पवारी बोली/भाषा, साहित्य, इतिहास, समाजशास्त्र, लोककला तथा मानविकी विषयों में गुणवत्तापूर्ण एवं मौलिक शोध को प्रोत्साहित करना है।
+**पवारी शोध पत्रिका (Pawari Shodh Patrika)** माँ ताप्ती शोध संस्थान, मुलताई द्वारा प्रकाशित एक द्विभाषी (हिंदी एवं अंग्रेजी) एवं अर्द्धवार्षिक पीर-रिव्यूड (Peer-Reviewed) अकादमिक शोध पत्रिका है। यह पत्रिका पवारी (भोयरी/पंवारी) भाषा, साहित्य, इतिहास और संस्कृति के अध्ययन को प्रमुख केंद्र मानते हुए मध्यप्रदेश एवं समीपवर्ती अंचलों की विभिन्न बोलियों (मालवी, निमाड़ी, बुन्देली, बघेली, राजस्थानी), जनजातीय भाषिक परंपराओं (गोंडी, कोरकू, नहाली, भीली, भिलाली, बरेली), लोकसाहित्य, क्षेत्रीय समाजशास्त्र और मौखिक विरासत पर केंद्रित मौलिक अनुसंधान को समर्पित है।
 
-### प्रमुख उद्देश्य एवं क्षेत्र (Aims & Scope)
-1. **पवारी भाषा एवं साहित्य का संरक्षण:** पवारी बोली के ध्वनिविज्ञान, व्याकरण, शब्दकोश एवं मौखिक परंपराओं का वैज्ञानिक अध्ययन।
-2. **सतपुड़ा-वैनगंगा अंचल का लोकसाहित्य:** बालाघाट, गोंदिया, छिंदवाड़ा, सिवनी तथा भंडारा क्षेत्र की सांस्कृतिक धरोहर पर शोध प्रस्तुत करना।
-3. **बहुविषयी मानविकी शोध:** समाजशास्त्र, इतिहास, भाषाविज्ञान, शिक्षाशास्त्र, लोककला तथा तुलनात्मक साहित्य।
-4. **पीर-रिव्यू प्रक्रिया:** सभी प्रविष्टियों का डबल-ब्लाइंड पीर-रिव्यू (Double-Blind Peer Review) किया जाता है ताकि उच्च अकादमिक मानकों को सुनिश्चित किया जा सके।
-5. **ओपन एक्सेस नीति (Open Access Policy):** यह पत्रिका पूर्णतः खुला पहुंच प्रदान करती है जिससे ज्ञान का प्रसार वैश्विक स्तर पर निष्पक्ष रूप से हो सके।
+### प्रमुख उद्देश्य एवं विषय दायरा (Aims & Scope)
+1. **पवारी भाषा एवं साहित्य:** पवारी (भोयरी/पंवारी) भाषा के ध्वनिविज्ञान, व्याकरण, शब्दकोश, लोकगीत, लोककथाओं और मौखिक इतिहास का वैज्ञानिक विश्लेषण।
+2. **क्षेत्रीय बोलियाँ एवं लोकभाषाएँ:** राजस्थानी, मालवी, निमाड़ी, बुन्देली, बघेली एवं मध्यप्रदेश की अन्य उपभाषाओं व स्थानीय रूपों का अध्ययन।
+3. **जनजातीय भाषिक परंपराएँ:** गोंडी, कोरकू, नहाली (निहाली), भीली, भिलाली, बरेली तथा अन्य अल्पप्रचलित व संकटग्रस्त भाषिक रूपों का प्रलेखन।
+4. **लोकसाहित्य एवं वाचिक विरासत:** लोकगीत, लोककथाएँ, गाथाएँ, कहावतें, लोकनाट्य और जनस्मृतियों का संकलन व संरक्षण।
+5. **इतिहास, समाजशास्त्र व लोकज्ञान:** क्षेत्रीय इतिहास, पुरालेख, ताम्रपत्र, वंश/गोत्र अध्ययन, लोक-पारिस्थितिकी (Ethno-Ecology) व पारंपरिक ज्ञान प्रणालियाँ।
+6. **तुलनात्मक एवं डिजिटल अध्ययन:** तुलनात्मक भाषाविज्ञान, अनुवाद, पाठ-संपादन, शब्दकोश निर्माण तथा डिजिटल अभिलेखीकरण।
     `,
     content_english: `
 ### About the Journal
-**Pawari Shodh Patrika** is an international, peer-reviewed, multidisciplinary research journal dedicated to advancing scholarly inquiry into the Pawari language, culture, folk literature, social sciences, history, and humanities of Central India.
+**Pawari Shodh Patrika** is a bilingual (Hindi & English), double-blind peer-reviewed academic journal published by Maa Tapti Research Institute, Multai. Centered on the Pawari (Bhoyari/Panwari) language, literature, history, and culture, the journal provides a scholarly platform for research on the regional dialects (Malvi, Nimadi, Bundeli, Bagheli, Rajasthani), tribal language traditions (Gondi, Korku, Nahali, Bhili, Bhilali, Bareli), folklore, oral history, and social heritage across Madhya Pradesh and neighboring regions.
 
 ### Aims & Scope
-1. **Linguistics & Dialectology:** Scientific exploration of Pawari vocabulary, phonetics, grammar, and oral traditions.
-2. **Regional Cultural Heritage:** Preserving the folk songs, rituals, and indigenous knowledge systems of Satpura and Wainganga basin (Balaghat, Gondia, Seoni, Chhindwara, Bhandara).
-3. **Multidisciplinary Humanities:** Research spanning Sociology, History, Anthropology, Comparative Literature, and Folk Arts.
-4. **Rigorous Peer Review:** Following standard double-blind peer review to maintain high academic integrity.
-5. **Open Access:** Providing immediate, barrier-free access to all published research articles to foster international knowledge sharing.
+1. **Pawari Language & Literature:** Scientific study of Pawari grammar, phonetics, lexicon, folk literature, and oral traditions.
+2. **Regional Dialects & Folk Languages:** In-depth studies on Rajasthani, Malvi, Nimadi, Bundeli, Bagheli, and regional speech forms of Central India.
+3. **Tribal & Indigenous Languages:** Documentation of Gondi, Korku, Nahali (Nihali), Bhili, Bhilali, Bareli, and endangered language varieties.
+4. **Folklore & Oral Heritage:** Collection and critical analysis of folk songs, folk tales, proverbs, ritual chants, and folk theater.
+5. **History, Sociology & Ethno-Knowledge:** Regional history, epigraphy, clan lineages, traditional agricultural knowledge, and ethno-ecological systems.
+6. **Comparative Linguistics & Digital Archiving:** Comparative literature, translation studies, lexicography, and digital archiving.
     `,
     banner_url: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=1200&auto=format&fit=crop&q=80',
     updated_at: '2026-01-15',

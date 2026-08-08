@@ -236,11 +236,11 @@ export const AboutView: React.FC = () => {
 
               <div className="text-sm sm:text-base leading-relaxed space-y-4 text-justify font-serif text-slate-900">
                 <p>
-                  मध्य भारत की सतपुड़ा पर्वतमाला और वैनगंगा नदी घाटी का भौगोलिक क्षेत्र सांस्कृतिक एवं भाषाई दृष्टि से अत्यंत समृद्ध और विविधतापूर्ण है। इस अंचल में निवास करने वाले पवारी (पवार/पोवार) समुदाय द्वारा बोली जाने वाली <strong>पवारी भाषा</strong> इंडो-आर्यन भाषा परिवार की एक अत्यंत विशिष्ट एवं प्राचीन बोली है। ऐतिहासिक रूप से मालवा, राजस्थान एवं महाराष्ट्र के सीमावर्ती क्षेत्रों से प्रवाहित होकर इस अंचल में स्थायी हुई यह बोली अपने ध्वनिविज्ञान, व्याकरणिक संरचना, मुहावरों और समृद्ध मौखिक लोक परंपराओं के लिए जानी जाती है।
+                  मध्य भारत की सतपुड़ा पर्वतमाला, वैनगंगा तथा नर्मदा नदी घाटी का भौगोलिक अंचल भाषाई, ऐतिहासिक एवं सांस्कृतिक दृष्टि से अत्यंत विविधतापूर्ण है। इस अंचल में बोली जाने वाली <strong>पवारी (भोयरी/पंवारी) भाषा</strong> इंडो-आर्यन भाषा परिवार का एक विशिष्ट एवं समृद्ध रूप है, जो ऐतिहासिक रूप से मालवा, राजस्थान एवं मध्य भारत के परिदृश्य से जुड़ी रही है।
                 </p>
 
                 <p>
-                  आधुनिकता और वैश्विक सांस्कृतिक एकरूपता के इस दौर में क्षेत्रीय भाषाओं और लोक-स्मृतियों को वैज्ञानिक रूप से लिपिबद्ध करना अनिवार्य हो गया है। इसी महती आवश्यकता की पूर्ति हेतु <strong>पवारी शोध पत्रिका (Pawari Shodh Patrika)</strong> की स्थापना की गई है। यह पत्रिका न केवल पवारी बोली के अध्ययन का अंतर्राष्ट्रीय मंच है, बल्कि यह मानविकी, समाजशास्त्र, इतिहास और लोककला के बहुविषयी शोधार्थियों को भी एक गुणवत्तापूर्ण प्रकाशन मंच प्रदान करती है।
+                  <strong>पवारी शोध पत्रिका (Pawari Shodh Patrika)</strong> पवारी भाषा, साहित्य, इतिहास और संस्कृति के अध्ययन को केंद्र में रखने के साथ-साथ मध्यप्रदेश एवं समीपवर्ती अंचलों की विभिन्न बोलियों, लोकभाषाओं (मालवी, निमाड़ी, बुन्देली, बघेली, राजस्थानी), जनजातीय भाषिक परंपराओं (गोंडी, कोरकू, नहाली/निहाली, भीली, भिलाली, बरेली) तथा क्षेत्रीय समाजशास्त्र पर शोध प्रोत्साहन हेतु स्थापित एक द्विभाषी (हिंदी व अंग्रेजी) पीर-रिव्यूड (Peer-Reviewed) अकादमिक मंच है।
                 </p>
               </div>
             </section>
@@ -249,7 +249,7 @@ export const AboutView: React.FC = () => {
             <section className="space-y-4">
               <h2 className="text-xl sm:text-2xl font-serif font-bold text-red-950 border-b-2 border-red-950/20 pb-2 flex items-center space-x-2">
                 <span className="bg-red-950 text-amber-100 text-xs px-2.5 py-1 rounded font-mono">2.0</span>
-                <span>{lang === 'hi' ? 'पत्रिका के प्रमुख उद्देश्य (Aims & Objectives)' : '2.0 Aims & Scope'}</span>
+                <span>{lang === 'hi' ? 'पत्रिका के प्रमुख उद्देश्य एवं दायरा (Aims & Objectives)' : '2.0 Aims & Scope'}</span>
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
@@ -257,40 +257,40 @@ export const AboutView: React.FC = () => {
                 <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2">
                   <div className="flex items-center space-x-2 text-red-950 font-bold font-serif text-base">
                     <span className="w-6 h-6 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center text-xs font-mono font-bold">2.1</span>
-                    <h3>{lang === 'hi' ? 'भाषाई संरक्षण एवं अध्ययन' : 'Linguistic Preservation'}</h3>
+                    <h3>{lang === 'hi' ? 'पवारी भाषा एवं लोकसाहित्य संरक्षण' : 'Pawari Linguistics & Folk Literature'}</h3>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify">
-                    पवारी बोली के ध्वनिविज्ञान (Phonetics), व्याकरण, रूपविज्ञान (Morphology) एवं शब्दकोश का वैज्ञानिक विश्लेषण करना तथा विलुप्तप्राय शब्दों का संग्रह करना।
+                    पवारी (भोयरी/पंवारी) भाषा के ध्वनिविज्ञान, व्याकरण, शब्दकोश, लोकगीत, लोककथाओं और मौखिक इतिहास का वैज्ञानिक विश्लेषण व प्रलेखन करना।
                   </p>
                 </div>
 
                 <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2">
                   <div className="flex items-center space-x-2 text-red-950 font-bold font-serif text-base">
                     <span className="w-6 h-6 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center text-xs font-mono font-bold">2.2</span>
-                    <h3>{lang === 'hi' ? 'लोकसाहित्य का दस्तावेजीकरण' : 'Folk Literature Archiving'}</h3>
+                    <h3>{lang === 'hi' ? 'क्षेत्रीय एवं जनजातीय भाषिक अध्ययन' : 'Regional & Tribal Linguistics'}</h3>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify">
-                    सतपुड़ा-वैनगंगा अंचल के लोकगीत, लोककथाओं, मुहावरों, लोकोक्तियों एवं मौखिक इतिहास को लिपिबद्ध कर डिजिटल रूप में भावी पीढ़ियों हेतु सुरक्षित करना।
+                    मध्यप्रदेश की बोलियों (मालवी, निमाड़ी, बुन्देली, बघेली, राजस्थानी) तथा जनजातीय भाषाओं (गोंडी, कोरकू, नहाली, भीली, भिलाली) का सुव्यवस्थित अध्ययन।
                   </p>
                 </div>
 
                 <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2">
                   <div className="flex items-center space-x-2 text-red-950 font-bold font-serif text-base">
                     <span className="w-6 h-6 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center text-xs font-mono font-bold">2.3</span>
-                    <h3>{lang === 'hi' ? 'बहुविषयी शोध को प्रोत्साहन' : 'Multidisciplinary Inquiry'}</h3>
+                    <h3>{lang === 'hi' ? 'इतिहास, समाजशास्त्र एवं लोकज्ञान' : 'History, Sociology & Folk Knowledge'}</h3>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify">
-                    इतिहास, समाजशास्त्र, मानवशास्त्र, पर्यावरण अध्ययन तथा लोककला विषयों पर उच्च स्तरीय शोध पत्रों का प्रकाशन करना।
+                    क्षेत्रीय इतिहास, वंश व गोत्र अध्ययन, पुरालेख, लोक-पारिस्थितिकी (Ethno-Ecology), कृषि-संस्कृति तथा परंपरावादी लोकज्ञान प्रणालियों का अनुसंधान।
                   </p>
                 </div>
 
                 <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2">
                   <div className="flex items-center space-x-2 text-red-950 font-bold font-serif text-base">
                     <span className="w-6 h-6 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center text-xs font-mono font-bold">2.4</span>
-                    <h3>{lang === 'hi' ? 'वैश्विक अकादमिक मानकों का पालन' : 'Global Standards Compliance'}</h3>
+                    <h3>{lang === 'hi' ? 'तुलनात्मक अध्ययन व पाठ-संपादन' : 'Comparative Studies & Lexicography'}</h3>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify">
-                    डबल-ब्लाइंड पीर रिव्यू (Double-Blind Peer Review), प्लेगरिज्म जांच (Plagiarism Check) तथा निष्पक्ष ओपन एक्सेस नीति का सख्ती से पालन करना।
+                    तुलनात्मक भाषाविज्ञान, अनुवाद अध्ययन, शब्दकोश निर्माण, पाठ-संपादन, अप्रकाशित अभिलेखीय स्रोतों का अध्ययन एवं पुस्तक समीक्षाएँ।
                   </p>
                 </div>
 
@@ -316,27 +316,39 @@ export const AboutView: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
                     <tr className="hover:bg-amber-50/40">
-                      <td className="p-3 font-mono font-bold text-red-950">PSP-LING</td>
-                      <td className="p-3 font-bold text-slate-900">भाषाविज्ञान एवं ध्वनिविज्ञान</td>
-                      <td className="p-3">पवारी बोली का व्याकरण, शब्दकोश निर्माण, ध्वनि-संरचना एवं लिप्यंतरण।</td>
+                      <td className="p-3 font-mono font-bold text-red-950">PSP-PAW</td>
+                      <td className="p-3 font-bold text-slate-900">पवारी भाषा एवं साहित्य</td>
+                      <td className="p-3">पवारी (भोयरी/पंवारी) भाषा का व्याकरण, शब्दकोश, लोकसाहित्य, इतिहास व सांस्कृतिक अध्ययन।</td>
                       <td className="p-3 font-mono text-slate-600">3-4 सप्ताह</td>
+                    </tr>
+                    <tr className="hover:bg-amber-50/40">
+                      <td className="p-3 font-mono font-bold text-red-950">PSP-REG</td>
+                      <td className="p-3 font-bold text-slate-900">मध्यप्रदेश की बोलियाँ व लोकभाषाएँ</td>
+                      <td className="p-3">राजस्थानी, मालवी, निमाड़ी, बुन्देली, बघेली एवं अंचल की अन्य उपभाषाओं का साहित्यिक व भाषाई अध्ययन।</td>
+                      <td className="p-3 font-mono text-slate-600">3-4 सप्ताह</td>
+                    </tr>
+                    <tr className="hover:bg-amber-50/40">
+                      <td className="p-3 font-mono font-bold text-red-950">PSP-TRB</td>
+                      <td className="p-3 font-bold text-slate-900">जनजातीय भाषा व संस्कृति</td>
+                      <td className="p-3">गोंडी, कोरकू, नहाली (निहाली), भीली, भिलाली, बरेली तथा अन्य अल्पप्रचलित भाषिक रूपों का अध्ययन।</td>
+                      <td className="p-3 font-mono text-slate-600">4-5 सप्ताह</td>
                     </tr>
                     <tr className="hover:bg-amber-50/40">
                       <td className="p-3 font-mono font-bold text-red-950">PSP-FOLK</td>
                       <td className="p-3 font-bold text-slate-900">लोकसाहित्य एवं मौखिक परंपराएँ</td>
-                      <td className="p-3">लोकगीत, गाथाएँ, अनुष्ठानिक गीत, कहावतें एवं मौखिक इतिहास का दस्तावेजीकरण।</td>
+                      <td className="p-3">लोकगीत, गाथाएँ, अनुष्ठानिक गायन, कहावतें, लोकनाट्य, वाचिक इतिहास एवं लोकज्ञान प्रणालियाँ।</td>
                       <td className="p-3 font-mono text-slate-600">3-4 सप्ताह</td>
                     </tr>
                     <tr className="hover:bg-amber-50/40">
                       <td className="p-3 font-mono font-bold text-red-950">PSP-SOC</td>
-                      <td className="p-3 font-bold text-slate-900">इतिहास, समाजशास्त्र एवं मानवशास्त्र</td>
-                      <td className="p-3">सतपुड़ा-वैनगंगा अंचल का जनजातीय एवं क्षेत्रीय सामाजिक इतिहास, संस्कृति व लोकजीवन।</td>
+                      <td className="p-3 font-bold text-slate-900">इतिहास, समाजशास्त्र व मानवशास्त्र</td>
+                      <td className="p-3">क्षेत्रीय इतिहास, वंश व गोत्र अध्ययन, नृवंशविज्ञान, ग्रामीण समाजशास्त्र एवं पुरालेखी साक्ष्य।</td>
                       <td className="p-3 font-mono text-slate-600">4-5 सप्ताह</td>
                     </tr>
                     <tr className="hover:bg-amber-50/40">
-                      <td className="p-3 font-mono font-bold text-red-950">PSP-HUM</td>
-                      <td className="p-3 font-bold text-slate-900">बहुविषयी मानविकी (Multidisciplinary)</td>
-                      <td className="p-3">तुलनात्मक साहित्य, लोककला, हस्तशिल्प, पर्यावरण ज्ञान एवं शिक्षाशास्त्र।</td>
+                      <td className="p-3 font-mono font-bold text-red-950">PSP-LING</td>
+                      <td className="p-3 font-bold text-slate-900">तुलनात्मक भाषाविज्ञान व प्रलेखन</td>
+                      <td className="p-3">तुलनात्मक भाषाविज्ञान, अनुवाद अध्ययन, पाठ-संपादन, शब्दकोश निर्माण व डिजिटल अभिलेखीकरण।</td>
                       <td className="p-3 font-mono text-slate-600">4 सप्ताह</td>
                     </tr>
                   </tbody>

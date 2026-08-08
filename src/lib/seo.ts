@@ -192,8 +192,8 @@ export function updateMetaTags(
   }
 
   // Public View Titles & Descriptions
-  let pageTitle = `${journalTitle} (पवारी शोध पत्रिका) — International Refereed Journal`;
-  let description = 'Pawari Shodh Patrika (पवारी शोध पत्रिका) is an International Peer-Reviewed Refereed Multidisciplinary Journal dedicated to Pawari language, culture, literature, humanities, and interdisciplinary research.';
+  let pageTitle = `${journalTitle} (पवारी शोध पत्रिका) — Peer-Reviewed Research Journal`;
+  let description = 'Pawari Shodh Patrika is a bilingual peer-reviewed research journal centered on Pawari language, literature, history, and regional dialects, folk traditions, tribal linguistics, and social heritage of Madhya Pradesh and neighboring regions.';
   let path = getUrlForView(view as any);
 
   switch (view) {

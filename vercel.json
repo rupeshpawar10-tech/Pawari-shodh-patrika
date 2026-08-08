@@ -16,6 +16,10 @@
   ],
   "rewrites": [
     {
+      "source": "/googlec4979dd8f0a110d6.html",
+      "destination": "/googlec4979dd8f0a110d6.html"
+    },
+    {
       "source": "/sitemap.xml",
       "destination": "/sitemap.xml"
     },
