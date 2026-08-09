@@ -37,7 +37,10 @@ import {
   FileUp,
   Image as ImageIcon,
   AlertCircle,
-  PenTool
+  PenTool,
+  Link2,
+  Globe,
+  Copy
 } from 'lucide-react';
 
 interface BooksBlogsViewProps {
@@ -45,7 +48,22 @@ interface BooksBlogsViewProps {
 }
 
 export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'all' }) => {
-  const { lang, articles, books: cmsBooks, blogs: cmsBlogs, saveBook, saveBlog, submitPublicContribution, uploadFileToStorage, logActivity, setActiveView } = useCms();
+  const { 
+    lang, 
+    articles, 
+    books: cmsBooks, 
+    blogs: cmsBlogs, 
+    saveBook, 
+    saveBlog, 
+    submitPublicContribution, 
+    uploadFileToStorage, 
+    logActivity, 
+    setActiveView,
+    selectedBookId,
+    setSelectedBookId,
+    selectedBlogId,
+    setSelectedBlogId
+  } = useCms();
 
   const rawBooks = (cmsBooks && cmsBooks.length > 0) ? cmsBooks : SAMPLE_BOOKS;
   const rawBlogs = (cmsBlogs && cmsBlogs.length > 0) ? cmsBlogs : SAMPLE_BLOGS;
@@ -68,6 +86,65 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
   const [selectedBook, setSelectedBook] = useState<BookItem | null>(null);
   const [selectedBlog, setSelectedBlog] = useState<BlogItem | null>(null);
   const [likedBlogs, setLikedBlogs] = useState<Record<string, number>>({});
+  const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+
+  // Auto open from context/URL
+  React.useEffect(() => {
+    if (selectedBookId) {
+      const found = booksList.find(b => b.id === selectedBookId);
+      if (found) {
+        setSelectedBook(found);
+        setActiveTab('books');
+      }
+    }
+  }, [selectedBookId, booksList]);
+
+  React.useEffect(() => {
+    if (selectedBlogId) {
+      const found = blogsList.find(b => b.id === selectedBlogId);
+      if (found) {
+        setSelectedBlog(found);
+        setActiveTab('blogs');
+      }
+    }
+  }, [selectedBlogId, blogsList]);
+
+  const handleCopyDirectLink = (e: React.MouseEvent, type: 'book' | 'blog', id: string) => {
+    e.stopPropagation();
+    const directUrl = `${window.location.origin}/${type}/${id}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(directUrl).then(() => {
+        setCopiedLinkId(`${type}-${id}`);
+        setTimeout(() => setCopiedLinkId(null), 2500);
+      }).catch(() => {
+        prompt(lang === 'hi' ? 'डायरेक्ट पेज लिंक कॉपी करें:' : 'Copy direct page link:', directUrl);
+      });
+    } else {
+      prompt(lang === 'hi' ? 'डायरेक्ट पेज लिंक कॉपी करें:' : 'Copy direct page link:', directUrl);
+    }
+  };
+
+  const handleOpenAttachedItem = (item: { type: string; url?: string; targetId?: string }) => {
+    if (item.type === 'book' && item.targetId) {
+      const targetBook = booksList.find(b => b.id === item.targetId);
+      if (targetBook) {
+        setSelectedBook(targetBook);
+        if (setSelectedBookId) setSelectedBookId(targetBook.id);
+        return;
+      }
+    }
+    if (item.type === 'blog' && item.targetId) {
+      const targetBlog = blogsList.find(b => b.id === item.targetId);
+      if (targetBlog) {
+        setSelectedBlog(targetBlog);
+        if (setSelectedBlogId) setSelectedBlogId(targetBlog.id);
+        return;
+      }
+    }
+    if (item.url) {
+      window.open(item.url, '_blank');
+    }
+  };
 
   // Publication Submission Modal State
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
@@ -562,21 +639,35 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
                 </div>
 
                 {/* Footer Action */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-amber-800 font-bold font-mono">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs gap-2">
+                  <span className="text-amber-800 font-bold font-mono truncate max-w-[120px] sm:max-w-[160px]">
                     {book.publisher}
                   </span>
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedBook(book);
-                    }}
-                    className="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-lg transition flex items-center space-x-1"
-                  >
-                    <span>{lang === 'hi' ? 'विवरण एवं अनुक्रमणिका' : 'Details & Chapters'}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => handleCopyDirectLink(e, 'book', book.id)}
+                      className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 font-bold text-xs rounded-lg transition flex items-center space-x-1 cursor-pointer"
+                      title={lang === 'hi' ? 'डायरेक्ट पेज लिंक कॉपी करें' : 'Copy Direct Page Link'}
+                    >
+                      <Link2 className="w-3.5 h-3.5 text-amber-700" />
+                      <span>{copiedLinkId === `book-${book.id}` ? (lang === 'hi' ? 'कॉपी हुआ ✓' : 'Copied ✓') : (lang === 'hi' ? 'नया पेज लिंक ↗' : 'Page Link ↗')}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedBook(book);
+                        if (setSelectedBookId) setSelectedBookId(book.id);
+                      }}
+                      className="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-lg transition flex items-center space-x-1 cursor-pointer shadow-xs"
+                    >
+                      <span>{lang === 'hi' ? 'विवरण एवं अनुक्रमणिका' : 'Details'}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
               </div>
@@ -666,8 +757,18 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
 
                   <div className="flex items-center space-x-2">
                     <button
+                      type="button"
+                      onClick={(e) => handleCopyDirectLink(e, 'blog', blog.id)}
+                      className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 font-bold rounded-lg transition flex items-center space-x-1 cursor-pointer"
+                      title={lang === 'hi' ? 'डायरेक्ट पेज लिंक कॉपी करें' : 'Copy Direct Page Link'}
+                    >
+                      <Link2 className="w-3.5 h-3.5 text-amber-700" />
+                      <span>{copiedLinkId === `blog-${blog.id}` ? (lang === 'hi' ? 'कॉपी हुआ ✓' : 'Copied ✓') : (lang === 'hi' ? 'नया पेज लिंक ↗' : 'Page Link ↗')}</span>
+                    </button>
+
+                    <button
                       onClick={(e) => handleLikeBlog(e, blog.id, blog.likes_count)}
-                      className="flex items-center space-x-1 px-2.5 py-1 bg-white border border-slate-200 rounded-lg hover:bg-rose-50 hover:text-rose-600 transition"
+                      className="flex items-center space-x-1 px-2.5 py-1 bg-white border border-slate-200 rounded-lg hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
                       title="Like Post"
                     >
                       <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
@@ -678,8 +779,9 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedBlog(blog);
+                        if (setSelectedBlogId) setSelectedBlogId(blog.id);
                       }}
-                      className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-red-950 font-bold rounded-lg transition flex items-center space-x-1"
+                      className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-red-950 font-bold rounded-lg transition flex items-center space-x-1 cursor-pointer"
                     >
                       <span>{lang === 'hi' ? 'पूरा लेख पढ़ें' : 'Read Article'}</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -857,6 +959,82 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
               </div>
             )}
 
+            {/* Direct Page Link & Share Box */}
+            <div className="bg-amber-50/90 border border-amber-300 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center space-x-2 text-red-950 font-bold">
+                <Link2 className="w-4 h-4 text-amber-600 shrink-0" />
+                <div>
+                  <span>{lang === 'hi' ? 'डायरेक्ट पेज लिंक (Deep Link):' : 'Direct Page Link:'}</span>
+                  <span className="font-mono text-[11px] text-slate-600 block sm:inline sm:ml-2">
+                    {window.location.origin}/book/{selectedBook.id}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => handleCopyDirectLink(e, 'book', selectedBook.id)}
+                className="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-amber-200 text-xs font-bold rounded-xl transition flex items-center space-x-1 shadow-xs cursor-pointer"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copiedLinkId === `book-${selectedBook.id}` ? (lang === 'hi' ? 'कॉपी हो गया ✓' : 'Copied ✓') : (lang === 'hi' ? 'पेज लिंक कॉपी करें' : 'Copy Page Link')}</span>
+              </button>
+            </div>
+
+            {/* Attached Books, Blogs & Links Section */}
+            <div className="space-y-3 bg-gradient-to-br from-amber-50/60 via-white to-amber-50/40 p-4 rounded-2xl border border-amber-300/70">
+              <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                <h4 className="font-serif font-bold text-red-950 text-sm flex items-center space-x-2">
+                  <Link2 className="w-4 h-4 text-amber-600" />
+                  <span>{lang === 'hi' ? 'संलग्न पुस्तकें, ब्लॉग्स व संदर्भ लिंक्स' : 'Attached Books, Blogs & Links'}</span>
+                </h4>
+                <span className="text-[10px] font-mono bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-bold">
+                  {selectedBook.attached_items?.length || 0} Attached
+                </span>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                {(selectedBook.attached_items && selectedBook.attached_items.length > 0) ? (
+                  selectedBook.attached_items.map((att, idx) => (
+                    <div 
+                      key={att.id || idx}
+                      className="bg-white p-3 rounded-xl border border-amber-200 hover:border-amber-400 transition shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase shrink-0 ${
+                            att.type === 'book' ? 'bg-red-100 text-red-900' :
+                            att.type === 'blog' ? 'bg-amber-100 text-amber-950' :
+                            'bg-blue-100 text-blue-900'
+                          }`}>
+                            {att.type === 'book' ? '📚 पुस्तक' : att.type === 'blog' ? '✍️ ब्लॉग' : '🔗 लिंक'}
+                          </span>
+                          <h5 className="text-xs font-bold text-slate-900 truncate">{att.title}</h5>
+                        </div>
+                        {att.description && (
+                          <p className="text-[11px] text-slate-600 line-clamp-1">{att.description}</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAttachedItem(att)}
+                          className="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-amber-200 text-xs font-bold rounded-lg transition flex items-center space-x-1 shadow-xs cursor-pointer"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                          <span>{lang === 'hi' ? 'नया पेज लिंक ↗' : 'New Page Link ↗'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-slate-500 italic p-2 text-center">
+                    {lang === 'hi' ? 'इस ग्रन्थ के साथ कोई अतिरिक्त लिंक/ब्लॉग संलग्न नहीं है।' : 'No attached items for this book.'}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Actions */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
               {selectedBook.sample_pdf_url ? (
@@ -990,6 +1168,82 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
                   #{tag}
                 </span>
               ))}
+            </div>
+
+            {/* Direct Page Link & Share Box */}
+            <div className="bg-amber-50/90 border border-amber-300 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center space-x-2 text-red-950 font-bold">
+                <Link2 className="w-4 h-4 text-amber-600 shrink-0" />
+                <div>
+                  <span>{lang === 'hi' ? 'डायरेक्ट पेज लिंक (Deep Link):' : 'Direct Page Link:'}</span>
+                  <span className="font-mono text-[11px] text-slate-600 block sm:inline sm:ml-2">
+                    {window.location.origin}/blog/{selectedBlog.id}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => handleCopyDirectLink(e, 'blog', selectedBlog.id)}
+                className="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-amber-200 text-xs font-bold rounded-xl transition flex items-center space-x-1 shadow-xs cursor-pointer"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copiedLinkId === `blog-${selectedBlog.id}` ? (lang === 'hi' ? 'कॉपी हो गया ✓' : 'Copied ✓') : (lang === 'hi' ? 'पेज लिंक कॉपी करें' : 'Copy Page Link')}</span>
+              </button>
+            </div>
+
+            {/* Attached Books, Blogs & Links Section */}
+            <div className="space-y-3 bg-gradient-to-br from-amber-50/60 via-white to-amber-50/40 p-4 rounded-2xl border border-amber-300/70">
+              <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                <h4 className="font-serif font-bold text-red-950 text-sm flex items-center space-x-2">
+                  <Link2 className="w-4 h-4 text-amber-600" />
+                  <span>{lang === 'hi' ? 'संलग्न पुस्तकें, शोध ग्रंथ व संदर्भ लिंक्स' : 'Attached Books, Research & Links'}</span>
+                </h4>
+                <span className="text-[10px] font-mono bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-bold">
+                  {selectedBlog.attached_items?.length || 0} Attached
+                </span>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                {(selectedBlog.attached_items && selectedBlog.attached_items.length > 0) ? (
+                  selectedBlog.attached_items.map((att, idx) => (
+                    <div 
+                      key={att.id || idx}
+                      className="bg-white p-3 rounded-xl border border-amber-200 hover:border-amber-400 transition shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase shrink-0 ${
+                            att.type === 'book' ? 'bg-red-100 text-red-900' :
+                            att.type === 'blog' ? 'bg-amber-100 text-amber-950' :
+                            'bg-blue-100 text-blue-900'
+                          }`}>
+                            {att.type === 'book' ? '📚 पुस्तक' : att.type === 'blog' ? '✍️ ब्लॉग' : '🔗 लिंक'}
+                          </span>
+                          <h5 className="text-xs font-bold text-slate-900 truncate">{att.title}</h5>
+                        </div>
+                        {att.description && (
+                          <p className="text-[11px] text-slate-600 line-clamp-1">{att.description}</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAttachedItem(att)}
+                          className="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-amber-200 text-xs font-bold rounded-lg transition flex items-center space-x-1 shadow-xs cursor-pointer"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                          <span>{lang === 'hi' ? 'नया पेज लिंक ↗' : 'New Page Link ↗'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-slate-500 italic p-2 text-center">
+                    {lang === 'hi' ? 'इस आलेख के साथ कोई अतिरिक्त लिंक/पुस्तक संलग्न नहीं है।' : 'No attached items for this blog.'}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Action Bar */}

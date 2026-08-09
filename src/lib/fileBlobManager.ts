@@ -1,12 +1,10 @@
 import { db } from './firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import React, { useState, useEffect } from 'react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 /**
  * FileBlobManager
  * Persistent Blob-based URL Management System mapping persistent IDs (e.g. file_123)
  * to local Blob data via IndexedDB and Firestore permanent metadata store.
- * Includes reference counting and garbage collection to prevent browser memory leaks.
  */
 
 const DB_NAME = 'PatrikaFileStore';
@@ -90,64 +88,7 @@ export function base64ToBlob(base64Data: string, contentType = 'application/pdf'
 
 class FileBlobRegistry {
   private urlMap = new Map<string, string>(); // fileId -> blobUrl
-  private refCounts = new Map<string, number>(); // blobUrl -> active reference count
-  private createdUrls = new Set<string>(); // All URL.createObjectURL instances created by registry
   private pendingPromises = new Map<string, Promise<string>>();
-
-  constructor() {
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', () => {
-        this.revokeAll();
-      });
-    }
-  }
-
-  /**
-   * Acquire a stable Blob URL with reference counting.
-   */
-  async acquireBlobUrl(rawInput: string): Promise<string> {
-    if (!rawInput) return '';
-
-    const url = await this.getBlobUrl(rawInput);
-    if (url && url.startsWith('blob:')) {
-      const count = (this.refCounts.get(url) || 0) + 1;
-      this.refCounts.set(url, count);
-    }
-    return url;
-  }
-
-  /**
-   * Release a Blob URL reference. When refCount reaches 0, revokeObjectURL is called to prevent memory leaks.
-   */
-  releaseBlobUrl(blobUrl: string): void {
-    if (!blobUrl || !blobUrl.startsWith('blob:')) return;
-
-    if (this.createdUrls.has(blobUrl)) {
-      const current = this.refCounts.get(blobUrl) || 1;
-      const updated = current - 1;
-
-      if (updated <= 0) {
-        this.refCounts.delete(blobUrl);
-        this.createdUrls.delete(blobUrl);
-
-        // Remove from urlMap if present
-        for (const [key, value] of this.urlMap.entries()) {
-          if (value === blobUrl) {
-            this.urlMap.delete(key);
-            break;
-          }
-        }
-
-        try {
-          URL.revokeObjectURL(blobUrl);
-        } catch (e) {
-          console.warn('[FileBlobManager] Error revoking Blob URL:', e);
-        }
-      } else {
-        this.refCounts.set(blobUrl, updated);
-      }
-    }
-  }
 
   /**
    * Get or generate a stable local blob: URL for a given persistent file ID, path, or raw Data URL.
@@ -199,7 +140,6 @@ class FileBlobRegistry {
       const blob = base64ToBlob(rawInput);
       if (blob) {
         const url = URL.createObjectURL(blob);
-        this.createdUrls.add(url);
         saveFileToIndexedDB(fileId, blob).catch(() => {});
         return url;
       }
@@ -209,7 +149,6 @@ class FileBlobRegistry {
     const localBlob = await getFileFromIndexedDB(fileId);
     if (localBlob) {
       const url = URL.createObjectURL(localBlob);
-      this.createdUrls.add(url);
       return url;
     }
 
@@ -220,9 +159,7 @@ class FileBlobRegistry {
         const blob = base64ToBlob(cached);
         if (blob) {
           saveFileToIndexedDB(fileId, blob).catch(() => {});
-          const url = URL.createObjectURL(blob);
-          this.createdUrls.add(url);
-          return url;
+          return URL.createObjectURL(blob);
         }
       }
     } catch (e) {}
@@ -239,9 +176,7 @@ class FileBlobRegistry {
           const blob = base64ToBlob(base64Data, mimeType);
           if (blob) {
             saveFileToIndexedDB(fileId, blob).catch(() => {});
-            const url = URL.createObjectURL(blob);
-            this.createdUrls.add(url);
-            return url;
+            return URL.createObjectURL(blob);
           }
         }
       }
@@ -255,9 +190,7 @@ class FileBlobRegistry {
             const blob = base64ToBlob(data.url);
             if (blob) {
               saveFileToIndexedDB(fileId, blob).catch(() => {});
-              const url = URL.createObjectURL(blob);
-              this.createdUrls.add(url);
-              return url;
+              return URL.createObjectURL(blob);
             }
           } else {
             return data.url;
@@ -272,12 +205,10 @@ class FileBlobRegistry {
   }
 
   /**
-   * Register a Blob or File directly into registry and IndexedDB with managed tracking
+   * Register a Blob or File directly into registry and IndexedDB
    */
   registerBlob(fileId: string, blob: Blob): string {
     const blobUrl = URL.createObjectURL(blob);
-    this.createdUrls.add(blobUrl);
-    this.refCounts.set(blobUrl, 1);
     this.urlMap.set(fileId, blobUrl);
     saveFileToIndexedDB(fileId, blob).catch(() => {});
     return blobUrl;
@@ -291,67 +222,6 @@ class FileBlobRegistry {
     const fileId = fileIdOrPath.includes('/') ? fileIdOrPath.split('/').pop()! : fileIdOrPath;
     return this.urlMap.get(fileId) || null;
   }
-
-  /**
-   * Revoke all managed Blob URLs on page exit or store reset
-   */
-  revokeAll(): void {
-    for (const url of this.createdUrls) {
-      try {
-        URL.revokeObjectURL(url);
-      } catch (e) {}
-    }
-    this.createdUrls.clear();
-    this.refCounts.clear();
-    this.urlMap.clear();
-  }
 }
 
 export const fileBlobManager = new FileBlobRegistry();
-
-/**
- * Custom React Hook for secure, leak-proof Blob URL lifecycle management in components.
- */
-export function useManagedBlobUrl(rawInput: string | undefined | null) {
-  const [resolvedUrl, setResolvedUrl] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    let isMounted = true;
-    let acquiredUrl = '';
-
-    if (!rawInput) {
-      setResolvedUrl('');
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-
-    fileBlobManager.acquireBlobUrl(rawInput).then((url) => {
-      if (!isMounted) {
-        fileBlobManager.releaseBlobUrl(url);
-        return;
-      }
-      acquiredUrl = url;
-      setResolvedUrl(url);
-      setLoading(false);
-    }).catch((err) => {
-      console.warn('[useManagedBlobUrl] Error acquiring Blob URL:', err);
-      if (isMounted) {
-        setResolvedUrl(rawInput);
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      if (acquiredUrl) {
-        fileBlobManager.releaseBlobUrl(acquiredUrl);
-      }
-    };
-  }, [rawInput]);
-
-  return { resolvedUrl, loading };
-}
-

@@ -2,7 +2,9 @@ import React, { useState, useRef } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { downloadManuscriptTemplate, downloadCopyrightForm } from '../../lib/pdfUtils';
 import { FileUploadZone } from '../common/FileUploadZone';
-import { UploadCloud, FileType, CheckCircle2, AlertCircle, Send, File as FileIcon, X, ShieldAlert, FileDown, FileCheck } from 'lucide-react';
+import { WordPasteImporter } from '../common/WordPasteImporter';
+import { ParsedWordArticle } from '../../lib/wordParser';
+import { UploadCloud, FileType, CheckCircle2, AlertCircle, Send, File as FileIcon, X, ShieldAlert, FileDown, FileCheck, Sparkles } from 'lucide-react';
 
 export const ManuscriptSubmissionView: React.FC = () => {
   const { lang, setActiveView, addSubmission, settings, uploadFileToStorage } = useCms();
@@ -20,6 +22,25 @@ export const ManuscriptSubmissionView: React.FC = () => {
     licenseType: 'CC-BY Open Access',
     abstract: '',
   });
+
+  const [showSmartImporter, setShowSmartImporter] = useState(false);
+
+  const handleApplyWordParsed = (parsed: ParsedWordArticle) => {
+    const primaryAuthor = parsed.authors[0] || { name: '', affiliation: '', email: '' };
+    const coAuthorsStr = parsed.authors.slice(1).map(a => a.name).join(', ');
+
+    setFormData(prev => ({
+      ...prev,
+      title: parsed.title_hindi || parsed.title_english || prev.title,
+      authorName: primaryAuthor.name || prev.authorName,
+      email: primaryAuthor.email || prev.email,
+      coAuthors: coAuthorsStr || prev.coAuthors,
+      affiliation: primaryAuthor.affiliation || prev.affiliation,
+      abstract: parsed.abstract_hindi || parsed.abstract_english || prev.abstract,
+      keywords: parsed.keywords.length > 0 ? parsed.keywords.join(', ') : prev.keywords,
+    }));
+    setShowSmartImporter(false);
+  };
   
   const [file, setFile] = useState<File | null>(null);
   const [fileUrlInput, setFileUrlInput] = useState('');
@@ -192,84 +213,15 @@ export const ManuscriptSubmissionView: React.FC = () => {
 
       <div className="bg-white border border-amber-900/10 rounded-2xl shadow-xs overflow-hidden">
         
-        {/* Guidelines Reminder Banner */}
-        <div className="bg-amber-50 border-b border-amber-200/50 p-4 sm:p-5 space-y-3">
-          <div className="flex items-start space-x-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-amber-900 flex-1">
-              <span className="font-bold">
-                {lang === 'hi' ? 'महत्वपूर्ण निर्देश: ' : 'Important Note: '}
-              </span>
-              {lang === 'hi' 
-                ? 'सबमिट करने से पहले सुनिश्चित करें कि आपकी फ़ाइल Word (.doc, .docx) या PDF प्रारूप में है और आपने पत्रिका के मानक टेम्पलेट का उपयोग किया है।' 
-                : 'Before submitting, ensure your file is formatted in Word (.doc, .docx) or PDF as per the journal manuscript template.'}
-              <button 
-                onClick={() => setActiveView('author_guidelines')}
-                className="ml-2 text-red-700 hover:underline font-bold"
-              >
-                {lang === 'hi' ? 'संपूर्ण नियम पढ़ें' : 'Read Full Guidelines'}
-              </button>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap gap-2.5 pt-1 pl-8">
-            <button
-              type="button"
-              onClick={() => downloadManuscriptTemplate(settings.manuscript_template_url)}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-100/60 rounded-lg text-xs font-bold text-amber-950 transition shadow-2xs"
-            >
-              <FileDown className="w-3.5 h-3.5 text-amber-700" />
-              <span>{lang === 'hi' ? 'पांडुलिपि टेम्पलेट (Word)' : 'Manuscript Template (.docx)'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => downloadCopyrightForm(settings.copyright_form_url)}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-emerald-300 hover:bg-emerald-100/60 rounded-lg text-xs font-bold text-emerald-950 transition shadow-2xs"
-            >
-              <FileCheck className="w-3.5 h-3.5 text-emerald-700" />
-              <span>{lang === 'hi' ? 'कॉपीराइट एवं स्वघोषणा पत्र' : 'Copyright Form (.doc/.pdf)'}</span>
-            </button>
-          </div>
-        </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-8">
           
-          {/* Work Type Selection */}
-          <div className="space-y-2">
-            <label className="block text-sm font-bold text-slate-800">
-              {lang === 'hi' ? '1. कार्य / शोध पत्र का प्रकार (Paper Work Type)' : '1. Paper Work Type'} <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-              {[
-                { id: 'Journal Article', labelHi: 'शोध आलेख', labelEn: 'Journal Article' },
-                { id: 'Conference Paper', labelHi: 'सम्मेलन पत्र', labelEn: 'Conference Paper' },
-                { id: 'Book Chapter', labelHi: 'पुस्तक अध्याय', labelEn: 'Book Chapter' },
-                { id: 'Dissertation/Thesis', labelHi: 'शोध प्रबंध', labelEn: 'Thesis / Dissertation' },
-                { id: 'Working Paper', labelHi: 'प्री-प्रिंट', labelEn: 'Working Paper / Preprint' }
-              ].map(item => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, paperType: item.id })}
-                  className={`p-3 rounded-xl border text-left text-xs font-bold transition flex flex-col justify-between ${
-                    formData.paperType === item.id
-                      ? 'bg-amber-900 border-amber-800 text-amber-100 shadow-sm'
-                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-amber-400'
-                  }`}
-                >
-                  <span className="text-sm font-serif">{lang === 'hi' ? item.labelHi : item.labelEn}</span>
-                  <span className="text-[10px] opacity-75 mt-1">{item.id}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Author Details */}
-          <div className="space-y-4 pt-2 border-t border-slate-100">
+          <div className="space-y-4">
             <h3 className="text-base font-serif font-bold text-slate-900 flex items-center space-x-2">
-              <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center">2</span>
+              <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center">1</span>
               <span>{lang === 'hi' ? 'लेखक एवं सह-लेखक विवरण (Authors & Affiliation)' : 'Authors & Affiliation'}</span>
             </h3>
 

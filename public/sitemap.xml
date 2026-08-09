@@ -19,12 +19,30 @@
     <priority>0.9</priority>
   </url>
 
-  <!-- Journal Archives -->
+  <!-- Journal Archives & Specific Issues -->
   <url>
     <loc>https://pawari-shodh-patrika.vercel.app/archives</loc>
     <lastmod>2026-08-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://pawari-shodh-patrika.vercel.app/issue/vol-1-iss-1</loc>
+    <lastmod>2026-08-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://pawari-shodh-patrika.vercel.app/issue/vol-1-iss-2</loc>
+    <lastmod>2026-08-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://pawari-shodh-patrika.vercel.app/issue/vol-2-iss-1</loc>
+    <lastmod>2026-08-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
   </url>
 
   <!-- Editorial Board -->
@@ -102,6 +120,12 @@
   </url>
 
   <!-- Individual Peer-Reviewed Research Articles -->
+  <url>
+    <loc>https://pawari-shodh-patrika.vercel.app/article/kshatriya-pawar-bhoyar-pawar-clans-surnames-apabhramsha</loc>
+    <lastmod>2026-08-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.95</priority>
+  </url>
   <url>
     <loc>https://pawari-shodh-patrika.vercel.app/article/origin-evolution-phonetic-characteristics-pawari-dialect</loc>
     <lastmod>2026-08-08</lastmod>

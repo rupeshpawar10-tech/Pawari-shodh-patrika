@@ -122,7 +122,8 @@ export type PublicPageView =
   | 'author_guidelines' 
   | 'submit_manuscript'
   | 'contact' 
-  | 'admin';
+  | 'admin'
+  | 'author_article_editor';
 
 export type AdminTab = 
   | 'dashboard' 
@@ -149,9 +150,15 @@ interface CmsContextType {
   lang: 'hi' | 'en';
   setLang: (lang: 'hi' | 'en') => void;
   activeView: PublicPageView;
-  setActiveView: (view: PublicPageView, articleIdOrSlug?: string | null, issueId?: string | null) => void;
+  setActiveView: (view: PublicPageView, articleIdOrSlug?: string | null, issueId?: string | null, bookId?: string | null, blogId?: string | null) => void;
   selectedArticleId: string | null;
   setSelectedArticleId: (id: string | null) => void;
+  selectedBookId: string | null;
+  setSelectedBookId: (id: string | null) => void;
+  selectedBlogId: string | null;
+  setSelectedBlogId: (id: string | null) => void;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
   isNotFound: boolean;
   setIsNotFound: (val: boolean) => void;
   activeAdminTab: AdminTab;
@@ -388,16 +395,37 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [lang, setLang] = useState<'hi' | 'en'>('hi');
   const [activeView, setActiveViewRaw] = useState<PublicPageView>(initialRoute.view);
   const [selectedArticleId, setSelectedArticleIdRaw] = useState<string | null>(initialRoute.articleIdOrSlug);
+  const [selectedBookId, setSelectedBookIdRaw] = useState<string | null>(initialRoute.bookId || null);
+  const [selectedBlogId, setSelectedBlogIdRaw] = useState<string | null>(initialRoute.blogId || null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [isNotFound, setIsNotFound] = useState<boolean>(initialRoute.isNotFound);
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('dashboard');
 
-  const setActiveView = (view: PublicPageView, articleIdOrSlug?: string | null, issueId?: string | null) => {
+  const setActiveView = (
+    view: PublicPageView, 
+    articleIdOrSlug?: string | null, 
+    issueId?: string | null,
+    bookId?: string | null,
+    blogId?: string | null
+  ) => {
     setIsNotFound(false);
     setActiveViewRaw(view);
     if (articleIdOrSlug !== undefined) {
       setSelectedArticleIdRaw(articleIdOrSlug);
     }
-    navigateTo(view, articleIdOrSlug !== undefined ? articleIdOrSlug : selectedArticleId, issueId);
+    if (bookId !== undefined) {
+      setSelectedBookIdRaw(bookId);
+    }
+    if (blogId !== undefined) {
+      setSelectedBlogIdRaw(blogId);
+    }
+    navigateTo(
+      view, 
+      articleIdOrSlug !== undefined ? articleIdOrSlug : selectedArticleId, 
+      issueId,
+      bookId !== undefined ? bookId : selectedBookId,
+      blogId !== undefined ? blogId : selectedBlogId
+    );
   };
 
   const setSelectedArticleId = (id: string | null) => {
@@ -407,11 +435,27 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const setSelectedBookId = (id: string | null) => {
+    setSelectedBookIdRaw(id);
+    if (id) {
+      navigateTo('books_blogs', null, null, id, null);
+    }
+  };
+
+  const setSelectedBlogId = (id: string | null) => {
+    setSelectedBlogIdRaw(id);
+    if (id) {
+      navigateTo('books_blogs', null, null, null, id);
+    }
+  };
+
   useEffect(() => {
     const handlePopState = () => {
       const currentRoute = parseRouteFromUrl();
       setActiveViewRaw(currentRoute.view);
       setSelectedArticleIdRaw(currentRoute.articleIdOrSlug);
+      if (currentRoute.bookId !== undefined) setSelectedBookIdRaw(currentRoute.bookId);
+      if (currentRoute.blogId !== undefined) setSelectedBlogIdRaw(currentRoute.blogId);
       setIsNotFound(currentRoute.isNotFound);
     };
     window.addEventListener('popstate', handlePopState);
@@ -628,9 +672,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           } catch (e) {}
         }
 
-        // Ensure all sample articles exist in loadedArticles
-        SAMPLE_ARTICLES.forEach((sampleArt) => {
-          if (!loadedArticles.some(a => a.id === sampleArt.id || a.slug === sampleArt.slug)) {
+        // Ensure all default SAMPLE_ARTICLES are present in loadedArticles
+        SAMPLE_ARTICLES.forEach(sampleArt => {
+          if (!loadedArticles.some(a => a.id === sampleArt.id)) {
             loadedArticles.push(sampleArt);
           }
         });
@@ -648,21 +692,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } catch (e) {
         const cached = localStorage.getItem('local_articles_cache');
-        let fallbackArticles: Article[] = SAMPLE_ARTICLES;
         if (cached && isMounted) {
           try {
             const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              SAMPLE_ARTICLES.forEach((sampleArt) => {
-                if (!parsed.some((a: Article) => a.id === sampleArt.id || a.slug === sampleArt.slug)) {
-                  parsed.push(sampleArt);
-                }
-              });
-              fallbackArticles = parsed;
-            }
+            if (Array.isArray(parsed) && parsed.length > 0) setArticles(parsed);
           } catch (err) {}
         }
-        if (isMounted) setArticles(fallbackArticles);
       }
 
       // 3. Issues
@@ -1825,6 +1860,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveView,
         selectedArticleId,
         setSelectedArticleId,
+        selectedBookId,
+        setSelectedBookId,
+        selectedBlogId,
+        setSelectedBlogId,
+        searchQuery,
+        setSearchQuery,
         isNotFound,
         setIsNotFound,
         activeAdminTab,

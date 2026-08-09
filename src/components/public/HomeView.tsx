@@ -45,11 +45,19 @@ export const HomeView: React.FC = () => {
     setSelectedArticleId,
     openPdfViewer,
     incrementArticleViews,
-    incrementArticleDownloads
+    incrementArticleDownloads,
+    searchQuery: globalSearchQuery,
+    setSearchQuery: setGlobalSearchQuery
   } = useCms();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(globalSearchQuery || '');
   const [citationModalArticle, setCitationModalArticle] = useState<any | null>(null);
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setGlobalSearchQuery(searchQuery);
+    setActiveView('articles');
+  };
   const [shareModalArticle, setShareModalArticle] = useState<any | null>(null);
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
 
@@ -153,29 +161,24 @@ export const HomeView: React.FC = () => {
             </div>
 
             {/* Search Bar */}
-            <div className="pt-2 max-w-2xl mx-auto">
+            <form onSubmit={handleSearchSubmit} className="pt-2 max-w-2xl mx-auto">
               <div className="relative flex items-center">
                 <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3.5 text-slate-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setActiveView('articles');
-                    }
-                  }}
                   placeholder={lang === 'hi' ? 'शोध पत्र शीर्षक, लेखक या विषय से खोजें...' : 'Search research article by title, author, or keyword...'}
                   className="w-full pl-10 pr-24 py-3 bg-white text-slate-900 placeholder-slate-400 text-xs sm:text-sm rounded-xl border-2 border-amber-400 shadow-md focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-medium"
                 />
                 <button
-                  onClick={() => setActiveView('articles')}
-                  className="absolute right-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition shadow-xs flex items-center space-x-1"
+                  type="submit"
+                  className="absolute right-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition shadow-xs flex items-center space-x-1 cursor-pointer"
                 >
                   <span>{lang === 'hi' ? 'खोजें' : 'Search'}</span>
                 </button>
               </div>
-            </div>
+            </form>
 
             {/* Action Buttons */}
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3">

@@ -165,9 +165,18 @@ export const ArticleDetailView: React.FC = () => {
     window.print();
   };
 
-  // Helper to render text paragraphs with comfortable spacing
+  // Helper to render text paragraphs with comfortable spacing & rich Word HTML support
   const renderFormattedParagraphs = (text?: string) => {
     if (!text) return null;
+    const hasHtml = /<[a-z][\s\S]*>/i.test(text);
+    if (hasHtml) {
+      return (
+        <div 
+          className="rich-word-content text-slate-800 leading-relaxed font-sans text-justify space-y-3"
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
+      );
+    }
     return text.split('\n\n').map((para, i) => (
       <p key={i} className="mb-4 leading-relaxed font-sans text-slate-800 text-justify">
         {para.split('\n').map((line, j) => (
@@ -367,7 +376,7 @@ export const ArticleDetailView: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 print:hidden border-t border-slate-100">
           
           <div className="flex flex-wrap items-center gap-2">
-            {article.pdf_url && (
+            {article.pdf_url ? (
               <>
                 <button
                   onClick={() => openPdfViewer(article.pdf_url || '', lang === 'hi' ? article.title_hindi : article.title_english)}
@@ -380,7 +389,7 @@ export const ArticleDetailView: React.FC = () => {
                 <a
                   href={article.pdf_url}
                   download={`${article.title_english || 'article'}.pdf`}
-                  onClick={(e) => {
+                  onClick={() => {
                     if (article.id) incrementArticleDownloads(article.id);
                   }}
                   target="_blank"
@@ -391,6 +400,15 @@ export const ArticleDetailView: React.FC = () => {
                   <span>{lang === 'hi' ? 'PDF डाउनलोड' : 'Download PDF'}</span>
                 </a>
               </>
+            ) : (
+              <button
+                onClick={handlePrint}
+                className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-red-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-2"
+                title="Generate PDF via Print/Save as PDF"
+              >
+                <Download className="w-4 h-4" />
+                <span>{lang === 'hi' ? 'PDF डाउनलोड (Save as PDF)' : 'Download PDF (Print/Save)'}</span>
+              </button>
             )}
 
             <button
@@ -563,161 +581,179 @@ export const ArticleDetailView: React.FC = () => {
             {/* FULL ARTICLE BODY TEXT SECTIONS */}
             <div className={`space-y-8 font-sans ${fontSizeClasses[fontSize]}`}>
               
-              {/* Section 1: Introduction */}
-              {article.full_text_introduction && (
-                <section id="sec-intro" className="space-y-3 pt-4 border-t border-slate-200">
-                  <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
-                    {lang === 'hi' ? '१. प्रस्तावना (Introduction)' : '1. Introduction'}
-                  </h2>
-                  <div className="text-slate-800 leading-relaxed">
-                    {renderFormattedParagraphs(article.full_text_introduction)}
-                  </div>
-                </section>
-              )}
+              {/* Helper to render a custom block */}
+              {(() => {
+                const renderBlockContent = (block: CustomSectionBlock) => (
+                  <div key={block.id} className="space-y-3 my-4">
+                    {block.type === 'heading_h2' && (
+                      <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
+                        {block.title}
+                      </h2>
+                    )}
 
-              {/* Section 2: Literature Review */}
-              {article.full_text_literature_review && (
-                <section id="sec-literature" className="space-y-3 pt-4 border-t border-slate-200">
-                  <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
-                    {lang === 'hi' ? '२. साहित्य अवलोकन (Literature Review)' : '2. Literature Review'}
-                  </h2>
-                  <div className="text-slate-800 leading-relaxed">
-                    {renderFormattedParagraphs(article.full_text_literature_review)}
-                  </div>
-                </section>
-              )}
+                    {block.type === 'subheading_h3' && (
+                      <h3 className="text-lg font-serif font-bold text-slate-800 pt-2 border-b border-slate-200 pb-1">
+                        {block.title}
+                      </h3>
+                    )}
 
-              {/* Section 3: Methodology */}
-              {article.full_text_methodology && (
-                <section id="sec-method" className="space-y-3 pt-4 border-t border-slate-200">
-                  <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
-                    {lang === 'hi' ? '३. अनुसंधान कार्यप्रणाली (Methodology)' : '3. Methodology'}
-                  </h2>
-                  <div className="text-slate-800 leading-relaxed">
-                    {renderFormattedParagraphs(article.full_text_methodology)}
-                  </div>
-                </section>
-              )}
+                    {block.type === 'quote' && (
+                      <blockquote className="my-4 p-5 bg-amber-50/70 border-l-4 border-amber-600 rounded-r-xl italic font-serif text-slate-900 space-y-1">
+                        {block.title && <p className="font-bold not-italic text-red-950 text-sm mb-1">{block.title}</p>}
+                        <p>"{block.content}"</p>
+                      </blockquote>
+                    )}
 
-              {/* Section 4: Results and Discussion */}
-              {article.full_text_results_discussion && (
-                <section id="sec-results" className="space-y-3 pt-4 border-t border-slate-200">
-                  <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
-                    {lang === 'hi' ? '४. परिणाम एवं विश्लेषण (Results and Discussion)' : '4. Results and Discussion'}
-                  </h2>
-                  <div className="text-slate-800 leading-relaxed">
-                    {renderFormattedParagraphs(article.full_text_results_discussion)}
-                  </div>
-                </section>
-              )}
-
-              {/* Custom Sections / Blocks if added */}
-              {article.custom_sections && article.custom_sections.map((block) => (
-                <section key={block.id} className="space-y-3 pt-4 border-t border-slate-200">
-                  
-                  {block.type === 'heading_h2' && (
-                    <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
-                      {block.title}
-                    </h2>
-                  )}
-
-                  {block.type === 'subheading_h3' && (
-                    <h3 className="text-lg font-serif font-bold text-slate-800 pt-2">
-                      {block.title}
-                    </h3>
-                  )}
-
-                  {block.type === 'quote' && (
-                    <blockquote className="my-4 p-5 bg-amber-50/70 border-l-4 border-amber-600 rounded-r-xl italic font-serif text-slate-900 space-y-1">
-                      {block.title && <p className="font-bold not-italic text-red-950 text-sm mb-1">{block.title}</p>}
-                      <p>"{block.content}"</p>
-                    </blockquote>
-                  )}
-
-                  {block.type === 'figure' && block.placement !== 'at_end' && (
-                    <figure className="my-8 p-4 sm:p-6 bg-amber-50/20 rounded-2xl border border-amber-900/15 shadow-2xs space-y-3 text-center print:break-inside-avoid print:my-4">
-                      {block.image_url ? (
-                        <div className="relative group max-w-3xl mx-auto overflow-hidden rounded-xl border border-slate-200 bg-white">
-                          <img 
-                            src={block.image_url} 
-                            alt={block.is_decorative ? '' : (block.alt_text || block.caption || block.title || 'Academic Figure Image')} 
-                            className="max-h-[500px] w-auto mx-auto object-contain cursor-zoom-in transition duration-200 group-hover:opacity-95" 
-                            onClick={() => { setSelectedFigure(block); setLightboxZoom(1); }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => { setSelectedFigure(block); setLightboxZoom(1); }}
-                            className="absolute bottom-2.5 right-2.5 bg-black/75 hover:bg-black text-amber-300 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center space-x-1 cursor-pointer transition print:hidden shadow-md"
-                          >
-                            <ZoomIn className="w-3.5 h-3.5" />
-                            <span>{lang === 'hi' ? 'बड़ा देखें (Zoom)' : 'Click to Zoom'}</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="p-8 text-slate-400 border border-dashed rounded-xl bg-slate-50">
-                          <p className="font-serif font-bold text-slate-600">Image File Pending</p>
-                        </div>
-                      )}
-                      
-                      <figcaption className="text-xs sm:text-sm font-serif font-bold text-slate-800 space-y-1">
-                        <div className="text-red-950 font-extrabold text-sm sm:text-base">
-                          {block.title || 'Figure'}: {block.caption || block.content}
-                        </div>
-                        {block.source_credit && (
-                          <p className="text-[11px] font-mono font-normal text-slate-600 italic pt-1">
-                            <span className="font-bold not-italic">{lang === 'hi' ? 'स्रोत / साभार:' : 'Source / Credit:'}</span> {block.source_credit}
-                          </p>
+                    {block.type === 'figure' && block.placement !== 'at_end' && (
+                      <figure className="my-6 p-4 sm:p-5 bg-amber-50/20 rounded-2xl border border-amber-900/15 shadow-2xs space-y-3 text-center print:break-inside-avoid">
+                        {block.image_url ? (
+                          <div className="relative group max-w-3xl mx-auto overflow-hidden rounded-xl border border-slate-200 bg-white">
+                            <img 
+                              src={block.image_url} 
+                              alt={block.is_decorative ? '' : (block.alt_text || block.caption || block.title || 'Academic Figure Image')} 
+                              className="max-h-[500px] w-auto mx-auto object-contain cursor-zoom-in transition duration-200 group-hover:opacity-95" 
+                              onClick={() => { setSelectedFigure(block); setLightboxZoom(1); }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedFigure(block); setLightboxZoom(1); }}
+                              className="absolute bottom-2.5 right-2.5 bg-black/75 hover:bg-black text-amber-300 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center space-x-1 cursor-pointer transition print:hidden shadow-md"
+                            >
+                              <ZoomIn className="w-3.5 h-3.5" />
+                              <span>{lang === 'hi' ? 'बड़ा देखें (Zoom)' : 'Click to Zoom'}</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="p-8 text-slate-400 border border-dashed rounded-xl bg-slate-50">
+                            <p className="font-serif font-bold text-slate-600">Image File Pending</p>
+                          </div>
                         )}
-                      </figcaption>
-                    </figure>
-                  )}
+                        
+                        <figcaption className="text-xs sm:text-sm font-serif font-bold text-slate-800 space-y-1">
+                          <div className="text-red-950 font-extrabold text-sm sm:text-base">
+                            {block.title || 'Figure'}: {block.caption || block.content}
+                          </div>
+                          {block.source_credit && (
+                            <p className="text-[11px] font-mono font-normal text-slate-600 italic pt-1">
+                              <span className="font-bold not-italic">{lang === 'hi' ? 'स्रोत / साभार:' : 'Source / Credit:'}</span> {block.source_credit}
+                            </p>
+                          )}
+                        </figcaption>
+                      </figure>
+                    )}
 
-                  {block.type === 'table' && block.table_data && (
-                    <div className="my-6 space-y-2">
-                      {block.title && <h3 className="font-serif font-bold text-slate-900 text-sm">{block.title}</h3>}
-                      <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                        <table className="w-full text-xs sm:text-sm text-left border-collapse">
-                          <thead className="bg-red-950 text-amber-100 font-serif font-bold">
-                            <tr>
-                              {block.table_data.headers.map((h, i) => (
-                                <th key={i} className="p-3 border-b border-amber-900/30">{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200">
-                            {block.table_data.rows.map((row, rIdx) => (
-                              <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                                {row.map((cell, cIdx) => (
-                                  <td key={cIdx} className="p-3">{cell}</td>
+                    {block.type === 'table' && block.table_data && (
+                      <div className="my-6 space-y-2">
+                        {block.title && <h3 className="font-serif font-bold text-slate-900 text-sm">{block.title}</h3>}
+                        <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                          <table className="w-full text-xs sm:text-sm text-left border-collapse">
+                            <thead className="bg-red-950 text-amber-100 font-serif font-bold">
+                              <tr>
+                                {block.table_data.headers.map((h, i) => (
+                                  <th key={i} className="p-3 border-b border-amber-900/30">{h}</th>
                                 ))}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                              {block.table_data.rows.map((row, rIdx) => (
+                                <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                  {row.map((cell, cIdx) => (
+                                    <td key={cIdx} className="p-3">{cell}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {block.caption && <p className="text-xs italic text-slate-500">{block.caption}</p>}
                       </div>
-                      {block.caption && <p className="text-xs italic text-slate-500">{block.caption}</p>}
-                    </div>
-                  )}
+                    )}
 
-                  {block.type !== 'quote' && block.type !== 'figure' && block.type !== 'table' && (
-                    <div className="text-slate-800 leading-relaxed">
-                      {renderFormattedParagraphs(block.content)}
-                    </div>
-                  )}
-                </section>
-              ))}
-
-              {/* Section 5: Conclusion */}
-              {article.full_text_conclusion && (
-                <section id="sec-conclusion" className="space-y-3 pt-4 border-t border-slate-200">
-                  <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
-                    {lang === 'hi' ? '५. निष्कर्ष (Conclusion)' : '5. Conclusion'}
-                  </h2>
-                  <div className="text-slate-800 leading-relaxed">
-                    {renderFormattedParagraphs(article.full_text_conclusion)}
+                    {block.type !== 'quote' && block.type !== 'figure' && block.type !== 'table' && (
+                      <div className="text-slate-800 leading-relaxed">
+                        {renderFormattedParagraphs(block.content)}
+                      </div>
+                    )}
                   </div>
-                </section>
-              )}
+                );
+
+                return (
+                  <>
+                    {/* Section 1: Introduction */}
+                    {article.full_text_introduction && (
+                      <section id="sec-intro" className="space-y-3 pt-4 border-t border-slate-200">
+                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
+                          {lang === 'hi' ? '१. प्रस्तावना (Introduction)' : '1. Introduction'}
+                        </h2>
+                        <div className="text-slate-800 leading-relaxed">
+                          {renderFormattedParagraphs(article.full_text_introduction)}
+                        </div>
+                        {/* Custom blocks attached to Intro */}
+                        {article.custom_sections?.filter(b => b.parent_section === 'intro').map(renderBlockContent)}
+                      </section>
+                    )}
+
+                    {/* Section 2: Literature Review */}
+                    {article.full_text_literature_review && (
+                      <section id="sec-literature" className="space-y-3 pt-4 border-t border-slate-200">
+                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
+                          {lang === 'hi' ? '२. साहित्य अवलोकन (Literature Review)' : '2. Literature Review'}
+                        </h2>
+                        <div className="text-slate-800 leading-relaxed">
+                          {renderFormattedParagraphs(article.full_text_literature_review)}
+                        </div>
+                        {/* Custom blocks attached to Literature */}
+                        {article.custom_sections?.filter(b => b.parent_section === 'literature').map(renderBlockContent)}
+                      </section>
+                    )}
+
+                    {/* Section 3: Methodology */}
+                    {article.full_text_methodology && (
+                      <section id="sec-method" className="space-y-3 pt-4 border-t border-slate-200">
+                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
+                          {lang === 'hi' ? '३. अनुसंधान कार्यप्रणाली (Methodology)' : '3. Methodology'}
+                        </h2>
+                        <div className="text-slate-800 leading-relaxed">
+                          {renderFormattedParagraphs(article.full_text_methodology)}
+                        </div>
+                        {/* Custom blocks attached to Methodology */}
+                        {article.custom_sections?.filter(b => b.parent_section === 'methodology').map(renderBlockContent)}
+                      </section>
+                    )}
+
+                    {/* Section 4: Results and Discussion */}
+                    {article.full_text_results_discussion && (
+                      <section id="sec-results" className="space-y-3 pt-4 border-t border-slate-200">
+                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
+                          {lang === 'hi' ? '४. परिणाम एवं विश्लेषण (Results and Discussion)' : '4. Results and Discussion'}
+                        </h2>
+                        <div className="text-slate-800 leading-relaxed">
+                          {renderFormattedParagraphs(article.full_text_results_discussion)}
+                        </div>
+                        {/* Custom blocks attached to Results */}
+                        {article.custom_sections?.filter(b => b.parent_section === 'results').map(renderBlockContent)}
+                      </section>
+                    )}
+
+                    {/* Section 5: Conclusion */}
+                    {article.full_text_conclusion && (
+                      <section id="sec-conclusion" className="space-y-3 pt-4 border-t border-slate-200">
+                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 border-b-2 border-red-950 pb-2">
+                          {lang === 'hi' ? '५. निष्कर्ष (Conclusion)' : '5. Conclusion'}
+                        </h2>
+                        <div className="text-slate-800 leading-relaxed">
+                          {renderFormattedParagraphs(article.full_text_conclusion)}
+                        </div>
+                        {/* Custom blocks attached to Conclusion */}
+                        {article.custom_sections?.filter(b => b.parent_section === 'conclusion').map(renderBlockContent)}
+                      </section>
+                    )}
+
+                    {/* General / Unattached Custom Sections */}
+                    {article.custom_sections?.filter(b => !b.parent_section || b.parent_section === 'custom').map(renderBlockContent)}
+                  </>
+                );
+              })()}
 
               {/* Acknowledgement, Conflict of Interest, Funding */}
               {(article.full_text_acknowledgement || article.full_text_conflict_of_interest || article.full_text_funding) && (
@@ -866,14 +902,11 @@ export const ArticleDetailView: React.FC = () => {
         )}
 
         {/* TAB 3: EMBEDDED PDF READER */}
-        {activeTab === 'pdf' && !window.matchMedia('print').matches && (
+        {activeTab === 'pdf' && article.pdf_url && !window.matchMedia('print').matches && (
           <div className="space-y-4 animate-in fade-in duration-150">
             <PdfCanvasViewer 
               url={article.pdf_url || ''} 
               title={lang === 'hi' ? article.title_hindi : article.title_english} 
-              authors={article.authors.map(a => a.name).join(', ')}
-              journalInfo={`Volume ${article.volume}, Issue ${article.issue} (${article.year})`}
-              abstractText={lang === 'hi' ? article.abstract_hindi : article.abstract_english}
               onDownload={handleDownload}
               className="h-[680px]" 
             />

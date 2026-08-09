@@ -8,135 +8,9 @@ import { fileBlobManager, base64ToBlob } from './fileBlobManager';
  */
 
 // Resolves a raw URL / file ID / path to a valid local Blob URL or HTTP URL
-export async function resolvePdfSource(rawUrl: string, articleMetadata?: { title?: string; authors?: string; volume?: number; issue?: number; year?: number; abstract?: string }): Promise<string> {
-  if (!rawUrl || rawUrl.includes('w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf')) {
-    return generateFormattedPdfDataUrl(
-      articleMetadata?.title || 'PAWARI SHODH PATRIKA - RESEARCH PAPER',
-      articleMetadata?.authors || 'Maa Tapti Research Institute',
-      `Volume ${articleMetadata?.volume || 1}, Issue ${articleMetadata?.issue || 1} (${articleMetadata?.year || 2025})`,
-      articleMetadata?.abstract || 'Peer-Reviewed Research Article on Pawari Language, Culture and Regional History.'
-    );
-  }
+export async function resolvePdfSource(rawUrl: string): Promise<string> {
+  if (!rawUrl) return '';
   return await fileBlobManager.getBlobUrl(rawUrl);
-}
-
-/**
- * Generates a valid 100% compliant PDF 1.4 Data URL for Pawari Shodh Patrika articles/documents
- * so that PDF.js can parse, render on canvas, and allow page viewing & downloads offline/online.
- */
-export function generateFormattedPdfDataUrl(
-  title?: string,
-  authors?: string,
-  journalInfo?: string,
-  abstractText?: string,
-  keywords?: string[]
-): string {
-  const sanitize = (str?: string) =>
-    (str || '')
-      .replace(/[^\x20-\x7E]/g, ' ')
-      .replace(/\(/g, '\\(')
-      .replace(/\)/g, '\\)')
-      .trim();
-
-  const safeTitle = sanitize(title) || 'PAWARI SHODH PATRIKA - PEER REVIEWED RESEARCH ARTICLE';
-  const safeAuthors = sanitize(authors) || 'Maa Tapti Research Institute, Multai, Betul (MP)';
-  const safeInfo = sanitize(journalInfo) || 'Volume 1, Issue 1 | ISSN: Applied For | Open Access Journal';
-  const safeAbstract = sanitize(abstractText) || 'This peer-reviewed research paper explores regional dialects, folk literature, and cultural heritage of Central India.';
-  const safeKeywords = keywords && keywords.length > 0 ? sanitize(keywords.join(', ')) : 'Pawari, Language, Research, Central India';
-
-  const streamText = `BT
-/F1 16 Tf
-40 740 Td
-(PAWARI SHODH PATRIKA) Tj
-ET
-BT
-/F2 10 Tf
-40 722 Td
-(${safeInfo}) Tj
-ET
-BT
-/F1 13 Tf
-40 680 Td
-(${safeTitle.slice(0, 75)}) Tj
-ET
-${safeTitle.length > 75 ? `BT /F1 13 Tf 40 662 Td (${safeTitle.slice(75, 150)}) Tj ET` : ''}
-BT
-/F2 10 Tf
-40 635 Td
-(Authors: ${safeAuthors.slice(0, 80)}) Tj
-ET
-BT
-/F1 11 Tf
-40 595 Td
-(ABSTRACT & RESEARCH SUMMARY) Tj
-ET
-BT
-/F2 9.5 Tf
-40 575 Td
-(${safeAbstract.slice(0, 95)}) Tj
-ET
-${safeAbstract.length > 95 ? `BT /F2 9.5 Tf 40 560 Td (${safeAbstract.slice(95, 190)}) Tj ET` : ''}
-${safeAbstract.length > 190 ? `BT /F2 9.5 Tf 40 545 Td (${safeAbstract.slice(190, 280)}) Tj ET` : ''}
-BT
-/F1 10 Tf
-40 510 Td
-(KEYWORDS & INDEX TERMS) Tj
-ET
-BT
-/F2 9 Tf
-40 495 Td
-(${safeKeywords.slice(0, 90)}) Tj
-ET
-BT
-/F1 10 Tf
-40 450 Td
-(PUBLISHER & INDEXING) Tj
-ET
-BT
-/F2 9 Tf
-40 435 Td
-(Published by Maa Tapti Research Institute, Multai - 460661, District Betul, M.P., India.) Tj
-40 420 Td
-(Indexed in Google Scholar, Zenodo, ResearchGate | Double-Blind Peer Reviewed.) Tj
-ET`;
-
-  const streamLength = streamText.length;
-
-  const pdfString = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 4 0 R >>
-endobj
-4 0 obj
-<< /Length ${streamLength} >>
-stream
-${streamText}
-endstream
-endobj
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000370 00000 n 
-trailer
-<< /Size 5 /Root 1 0 R >>
-startxref
-${370 + streamLength + 50}
-%%EOF`;
-
-  try {
-    const base64 = typeof btoa === 'function' ? btoa(pdfString) : Buffer.from(pdfString).toString('base64');
-    return `data:application/pdf;base64,${base64}`;
-  } catch (e) {
-    return '';
-  }
 }
 
 // Converts a base64 Data URL or string to an ArrayBuffer for PDF.js
@@ -218,67 +92,12 @@ export async function downloadPdf(rawUrl: string, fileName = 'article.pdf') {
   document.body.removeChild(a);
 }
 
-// Opens PDF in a new tab safely without triggering Chrome's data/blob URL blocking
-export async function openPdfInNewTab(rawUrl: string, articleTitle = 'Pawari Shodh Patrika Article') {
+// Opens PDF in a new tab safely
+export async function openPdfInNewTab(rawUrl: string) {
   if (!rawUrl) return;
 
   const resolved = await resolvePdfSource(rawUrl);
-
-  // If it's a real external http/https URL, open directly
-  if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
-    window.open(resolved, '_blank', 'noopener,noreferrer');
-    return;
-  }
-
-  // Chrome blocks direct top-level window.open on data: or blob: PDF URLs ("This page has been blocked by Chrome").
-  // Opening an HTML Blob document wrapping the PDF / download action avoids Chrome security block.
-  const safeTitle = articleTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const htmlContent = `<!DOCTYPE html>
-<html lang="hi">
-<head>
-  <meta charset="utf-8">
-  <title>${safeTitle} - Pawari Shodh Patrika</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { margin: 0; padding: 0; background-color: #020617; color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
-    .header { background: #0f172a; border-bottom: 1px solid #1e293b; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
-    .badge { background: rgba(217, 119, 6, 0.2); color: #f59e0b; border: 1px solid rgba(217, 119, 6, 0.3); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block; margin-right: 12px; }
-    .title { font-size: 15px; font-weight: 600; color: #f1f5f9; display: inline-block; margin: 0; }
-    .btn { background: #d97706; color: white; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: background 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-    .btn:hover { background: #b45309; }
-    .main { flex: 1; padding: 32px 20px; display: flex; justify-content: center; align-items: center; }
-    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; max-width: 680px; width: 100%; padding: 40px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-    .paper-icon { font-size: 48px; margin-bottom: 16px; }
-    h2 { font-size: 22px; font-weight: 700; color: #f8fafc; margin: 0 0 12px 0; line-height: 1.3; }
-    p { color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0 0 28px 0; }
-    .btn-large { font-size: 15px; padding: 12px 28px; background: #d97706; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div>
-      <span class="badge">Pawari Shodh Patrika</span>
-      <h1 class="title">${safeTitle}</h1>
-    </div>
-    <a href="${resolved}" download="Pawari_Shodh_Patrika_Manuscript.pdf" class="btn">Download PDF</a>
-  </div>
-  <div class="main">
-    <div class="card">
-      <div class="paper-icon">📜</div>
-      <h2>${safeTitle}</h2>
-      <p>Peer-Reviewed Research Article & Academic Publication</p>
-      <a href="${resolved}" download="Pawari_Shodh_Patrika_Manuscript.pdf" class="btn btn-large">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download Research Paper PDF
-      </a>
-    </div>
-  </div>
-</body>
-</html>`;
-
-  const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
-  const htmlUrl = URL.createObjectURL(htmlBlob);
-  window.open(htmlUrl, '_blank');
+  window.open(resolved, '_blank');
 }
 
 /**

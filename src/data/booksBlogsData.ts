@@ -1,3 +1,12 @@
+export interface AttachedItem {
+  id?: string;
+  title: string;
+  type: 'book' | 'blog' | 'article' | 'pdf' | 'external';
+  url?: string;
+  targetId?: string;
+  description?: string;
+}
+
 export interface BookItem {
   id: string;
   title_hindi: string;
@@ -16,6 +25,9 @@ export interface BookItem {
   table_of_contents_hindi?: string[];
   sample_pdf_url?: string;
   is_featured?: boolean;
+  attached_items?: AttachedItem[];
+  attached_books?: string[];
+  attached_blogs?: string[];
 }
 
 export interface BlogItem {
@@ -36,6 +48,9 @@ export interface BlogItem {
   content_english: string;
   tags: string[];
   likes_count?: number;
+  attached_items?: AttachedItem[];
+  attached_books?: string[];
+  attached_blogs?: string[];
 }
 
 export const SAMPLE_BOOKS: BookItem[] = [
@@ -60,6 +75,29 @@ export const SAMPLE_BOOKS: BookItem[] = [
       'अध्याय 3: पवारी लोकगीत: प्रकार एवं सामाजिक चेतना',
       'अध्याय 4: पवारी लोककथाएं एवं मौखिक परंपराएं',
       'अध्याय 5: पवारी शब्दावली एवं अन्य बोलियों से संबंध'
+    ],
+    attached_items: [
+      {
+        id: 'att-b1-1',
+        title: 'संलग्न ब्लॉग: पवारी बोली का उद्भव और ऐतिहासिक प्रसार आलेख',
+        type: 'blog',
+        targetId: 'blog-1',
+        description: 'डॉ. कैलाश पवार द्वारा रचित पवारी बोली की ऐतिहासिक पृष्ठभूमि पर विशेष वैचारिक लेख।'
+      },
+      {
+        id: 'att-b1-2',
+        title: 'संलग्न ग्रन्थ: पवारी-हिंदी-अंग्रेजी बृहत् त्रिभाषीय शब्दकोश',
+        type: 'book',
+        targetId: 'book-3',
+        description: '15,000 से अधिक पवारी प्रविष्टियों वाला अधिकृत शब्दकोश ग्रन्थ।'
+      },
+      {
+        id: 'att-b1-3',
+        title: 'माँ ताप्ती शोध संस्थान ई-पुस्तकालय पोर्टल',
+        type: 'external',
+        url: 'https://pawari-shodh-patrika.vercel.app/books-literature',
+        description: 'संस्थान के अधिकृत डिजिटल पुस्तकालय का नया पेज डायरेक्ट लिंक।'
+      }
     ]
   },
   {
@@ -82,6 +120,22 @@ export const SAMPLE_BOOKS: BookItem[] = [
       'अध्याय 2: मुलताई अंचल के प्रमुख लोक पर्व एवं मेले',
       'अध्याय 3: लोकवाद्य, लोकनृत्य एवं नाट्य परंपराएं',
       'अध्याय 4: जनजातीय संस्कृति एवं पवारी लोक समन्वय'
+    ],
+    attached_items: [
+      {
+        id: 'att-b2-1',
+        title: 'संलग्न ब्लॉग: ताप्ती नदी तट की लोक परंपराएं एवं भुजरिया पर्व',
+        type: 'blog',
+        targetId: 'blog-2',
+        description: 'डॉ. अनिता मालवीय द्वारा मुलताई अंचल की लोक चेतना पर विस्तृत आलेख।'
+      },
+      {
+        id: 'att-b2-2',
+        title: 'संलग्न ग्रन्थ: पवारी लोकगाथाएं और मौखिक परंपरा',
+        type: 'book',
+        targetId: 'book-4',
+        description: 'रामनाथ पवार द्वारा संकलित पवारी बीरगाथाएं एवं भक्ति लोकगीत।'
+      }
     ]
   },
   {
@@ -104,6 +158,22 @@ export const SAMPLE_BOOKS: BookItem[] = [
       'भाग 2: शब्दकोश (पवारी से हिंदी एवं अंग्रेजी)',
       'भाग 3: पवारी मुहावरे एवं कहावतें',
       'भाग 4: पारिभाषिक लोक-शब्दावली'
+    ],
+    attached_items: [
+      {
+        id: 'att-b3-1',
+        title: 'संलग्न मॉड्यूल: ऑनलाइन डिजिटल पवारी शब्दकोश (Shabdkosh)',
+        type: 'external',
+        url: 'https://pawari-shodh-patrika.vercel.app/shabdkosh',
+        description: 'खोज योग्य पवारी ऑनलाइन डिजिटल शब्दकोश पेज का डायरेक्ट लिंक।'
+      },
+      {
+        id: 'att-b3-2',
+        title: 'संलग्न ग्रन्थ: पवारी बोली एवं लोकसाहित्य का प्रामाणिक इतिहास',
+        type: 'book',
+        targetId: 'book-1',
+        description: 'भाषाशास्त्रीय अध्ययन हेतु संदर्भ ग्रन्थ।'
+      }
     ]
   },
   {
@@ -125,6 +195,22 @@ export const SAMPLE_BOOKS: BookItem[] = [
       'अध्याय 1: लोकगाथा का स्वरूप और वर्गीकरण',
       'अध्याय 2: पवारी आल्हा एवं बीरगाथाएं',
       'अध्याय 3: भक्ति एवं सामाजिक लोकगाथाएं'
+    ],
+    attached_items: [
+      {
+        id: 'att-b4-1',
+        title: 'संलग्न ब्लॉग: डिजिटल युग में मौखिक लोकसाहित्य का संरक्षण',
+        type: 'blog',
+        targetId: 'blog-3',
+        description: 'प्रो. रामेश्वर शर्मा द्वारा मौखिक लोकगाथाओं के आर्काइविंग पर विशेष लेख।'
+      },
+      {
+        id: 'att-b4-2',
+        title: 'संलग्न मॉड्यूल: पवारी लोकगीत संग्रह (Lokgeet Section)',
+        type: 'external',
+        url: 'https://pawari-shodh-patrika.vercel.app/lokgeet',
+        description: 'ऑडियो व पवारी बोल के साथ लोकगीतों का संग्रह।'
+      }
     ]
   }
 ];
@@ -160,7 +246,30 @@ export const SAMPLE_BLOGS: BlogItem[] = [
 Pawari dialect represents the cultural identity of a vast belt in Central India. Historically, as Parmar/Pawar communities migrated from Malwa towards South-East MP and Vidarbha, Pawari naturally integrated features of Malvi, Bundeli, and Marathi.
     `,
     tags: ['पवारी बोली', 'भाषाविज्ञान', 'मालवी-मराठी संगम', 'बैतूल-छिंदवाड़ा'],
-    likes_count: 42
+    likes_count: 42,
+    attached_items: [
+      {
+        id: 'att-bl1-1',
+        title: 'संलग्न मूल ग्रन्थ: पवारी बोली एवं लोकसाहित्य का प्रामाणिक इतिहास',
+        type: 'book',
+        targetId: 'book-1',
+        description: 'डॉ. कैलाश पवार द्वारा लिखित 384 पृष्ठों का प्रामाणिक शोध ग्रन्थ।'
+      },
+      {
+        id: 'att-bl1-2',
+        title: 'संलग्न ग्रन्थ: पवारी-हिंदी-अंग्रेजी बृहत् शब्दकोश',
+        type: 'book',
+        targetId: 'book-3',
+        description: '15,000 पवारी शब्दों का प्रामाणिक कोष ग्रन्थ।'
+      },
+      {
+        id: 'att-bl1-3',
+        title: 'माँ ताप्ती शोध पत्रिका - अंक संग्रह लिंक',
+        type: 'external',
+        url: 'https://pawari-shodh-patrika.vercel.app/archives',
+        description: 'पत्रिका के समस्त प्रकाशित पीयर-रिव्यूड अंकों का डायरेक्ट लिंक।'
+      }
+    ]
   },
   {
     id: 'blog-2',
@@ -187,7 +296,23 @@ Pawari dialect represents the cultural identity of a vast belt in Central India.
 River Tapti originates at Multai. In the Pawari society of this region, Tapti holds the revered status of Mother. During Bhadrapada festivals, Wheat sprouts (Bhujariya) are immersed with devotional Pawari folk songs.
     `,
     tags: ['ताप्ती नदी', 'मुलताई', 'लोक उत्सव', 'भुजरिया', 'पवारी संस्कृति'],
-    likes_count: 38
+    likes_count: 38,
+    attached_items: [
+      {
+        id: 'att-bl2-1',
+        title: 'संलग्न ग्रन्थ: मध्य भारत की लोकसंस्कृति और ताप्ती अंचल',
+        type: 'book',
+        targetId: 'book-2',
+        description: 'डॉ. अनिता मालवीय द्वारा ताप्ती घाटी संस्कृति पर रचित शोध ग्रन्थ।'
+      },
+      {
+        id: 'att-bl2-2',
+        title: 'संलग्न लोकगीत संग्रह: ताप्ती माँ की पवारी स्तुति गीत',
+        type: 'external',
+        url: 'https://pawari-shodh-patrika.vercel.app/lokgeet',
+        description: 'पवारी लोकगीत एवं ऑडियो पोर्टल लिंक।'
+      }
+    ]
   },
   {
     id: 'blog-3',
@@ -215,7 +340,16 @@ River Tapti originates at Multai. In the Pawari society of this region, Tapti ho
 Creating open-access audio archives and publishing annotated folk manuscripts ensures that regional dialects like Pawari reach researchers worldwide.
     `,
     tags: ['डिजिटल मानविकी', 'लोक साहित्य', 'संरक्षण', 'ऑडियो रिकॉर्डिंग'],
-    likes_count: 51
+    likes_count: 51,
+    attached_items: [
+      {
+        id: 'att-bl3-1',
+        title: 'संलग्न ग्रन्थ: पवारी लोकगाथाएं और मौखिक परंपरा',
+        type: 'book',
+        targetId: 'book-4',
+        description: 'रामनाथ पवार "सरस" द्वारा संकलित प्राचीन पवारी लोकगाथाएं।'
+      }
+    ]
   },
   {
     id: 'blog-4',
@@ -239,6 +373,16 @@ Creating open-access audio archives and publishing annotated folk manuscripts en
 Suresh Deshmukh’s work provides an indispensable guide for understanding Pawari and Satpura folk rituals. Highly recommended for researchers of mythology and anthropology.
     `,
     tags: ['पुस्तक समीक्षा', 'सतपुड़ा लोकदेवता', 'अनुष्ठान', 'संस्कृति'],
-    likes_count: 29
+    likes_count: 29,
+    attached_items: [
+      {
+        id: 'att-bl4-1',
+        title: 'संलग्न ग्रन्थ: मध्य भारत की लोकसंस्कृति और ताप्ती अंचल',
+        type: 'book',
+        targetId: 'book-2',
+        description: 'ताप्ती एवं सतपुड़ा अंचल की संस्कृति पर विशेष ग्रन्थ।'
+      }
+    ]
   }
 ];
+

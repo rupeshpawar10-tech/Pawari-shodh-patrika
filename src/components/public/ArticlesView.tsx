@@ -31,14 +31,25 @@ export const ArticlesView: React.FC = () => {
     setActiveView, 
     openPdfViewer,
     incrementArticleViews,
-    incrementArticleDownloads
+    incrementArticleDownloads,
+    searchQuery: globalSearchQuery,
+    setSearchQuery: setGlobalSearchQuery
   } = useCms();
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(globalSearchQuery || '');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
   const [selectedIssueFilter, setSelectedIssueFilter] = useState<string>('all'); // 'all' or `${volume}_${issue_number}`
-  const [activeTab, setActiveTab] = useState<'by_issue' | 'search_all'>('by_issue');
+  const [activeTab, setActiveTab] = useState<'by_issue' | 'search_all'>(globalSearchQuery ? 'search_all' : 'by_issue');
+
+  React.useEffect(() => {
+    if (globalSearchQuery !== undefined && globalSearchQuery !== search) {
+      setSearch(globalSearchQuery);
+      if (globalSearchQuery.trim()) {
+        setActiveTab('search_all');
+      }
+    }
+  }, [globalSearchQuery]);
   const [shareModalArticle, setShareModalArticle] = useState<any | null>(null);
 
   const publishedArticles = articles.filter(a => a.status === 'published');
@@ -99,6 +110,7 @@ export const ArticlesView: React.FC = () => {
 
   const resetFilters = () => {
     setSearch('');
+    setGlobalSearchQuery('');
     setSelectedCategory('all');
     setSelectedLanguage('all');
     setSelectedIssueFilter('all');
@@ -162,14 +174,20 @@ export const ArticlesView: React.FC = () => {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setGlobalSearchQuery(e.target.value);
+              }}
               placeholder={lang === 'hi' ? 'शोध पत्र शीर्षक, लेखक, कीवर्ड या DOI से खोजें...' : 'Search by title, author, keyword or DOI...'}
               className="w-full pl-10 pr-10 py-2.5 bg-slate-50 text-slate-900 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
             />
             {search && (
               <button 
-                onClick={() => setSearch('')} 
-                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                onClick={() => {
+                  setSearch('');
+                  setGlobalSearchQuery('');
+                }} 
+                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
