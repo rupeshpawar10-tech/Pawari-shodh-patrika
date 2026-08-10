@@ -58,9 +58,17 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
   // Lokgeet specific state & URL navigation
   const [lokgeetCategory, setLokgeetCategory] = useState('all');
+  const [lokgeetSort, setLokgeetSort] = useState<'default' | 'title' | 'category'>('default');
+  const [lokgeetPage, setLokgeetPage] = useState<number>(1);
+  const LOKGEET_PER_PAGE = 6;
   const [selectedLokgeet, setSelectedLokgeet] = useState<PawariLokgeetItem | null>(null);
   const [copiedLokgeetId, setCopiedLokgeetId] = useState<string | null>(null);
   const [copiedLyricsId, setCopiedLyricsId] = useState<string | null>(null);
+
+  // Reset page when search or category or sort changes
+  React.useEffect(() => {
+    setLokgeetPage(1);
+  }, [searchTerm, lokgeetCategory, lokgeetSort]);
 
   const HINDI_LETTERS = [
     'all',
@@ -285,7 +293,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
   // Lokgeet Filtering
   const filteredLokgeet = approvedLokgeet.filter(item => {
-    const q = searchTerm.toLowerCase();
+    const q = searchTerm.toLowerCase().trim();
     const matchesSearch = 
       !q ||
       item.title_pawari.toLowerCase().includes(q) ||
@@ -296,6 +304,26 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     const matchesCategory = lokgeetCategory === 'all' || item.category === lokgeetCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const sortedLokgeet = React.useMemo(() => {
+    return [...filteredLokgeet].sort((a, b) => {
+      if (lokgeetSort === 'title') {
+        return a.title_pawari.localeCompare(b.title_pawari, 'hi');
+      }
+      if (lokgeetSort === 'category') {
+        return (a.category || '').localeCompare(b.category || '', 'hi');
+      }
+      return 0;
+    });
+  }, [filteredLokgeet, lokgeetSort]);
+
+  const totalLokgeetPages = Math.ceil(sortedLokgeet.length / LOKGEET_PER_PAGE) || 1;
+  const paginatedLokgeet = React.useMemo(() => {
+    return sortedLokgeet.slice(
+      (lokgeetPage - 1) * LOKGEET_PER_PAGE,
+      lokgeetPage * LOKGEET_PER_PAGE
+    );
+  }, [sortedLokgeet, lokgeetPage, LOKGEET_PER_PAGE]);
 
   const togglePaheliAnswer = (id: string) => {
     setRevealedPaheli(prev => ({ ...prev, [id]: !prev[id] }));
@@ -495,36 +523,66 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   return (
     <div className="space-y-8">
       {/* Top Hero Banner */}
-      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-red-950 via-amber-950 to-red-900 border border-amber-500/30 p-8 text-amber-100 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      {activeTab === 'lokgeet' ? (
+        <div className="bg-slate-900/90 text-amber-100 rounded-2xl p-5 sm:p-6 border border-amber-900/30 relative overflow-hidden shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1 max-w-3xl">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                <Music className="w-3.5 h-3.5 text-amber-400" />
+                <span>मौखिक लोकसाहित्य अभिलेखागार</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-amber-100 font-serif tracking-tight">
+                पवारी लोकगीत संग्रह
+              </h1>
+              <p className="text-xs sm:text-sm text-amber-200/80 leading-relaxed font-sans">
+                बैतूल, छिंदवाड़ा एवं ताप्ती अंचल के पारम्परिक पवारी विवाह, भक्ति, पूजा व ऋतु लोकगीतों का प्रामाणिक डिजिटल संग्रह।
+              </p>
+            </div>
 
-        <div className="relative z-10 max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold mb-4">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>पवारी भोयरी लोक संस्कृति एवं साहित्य डिजिटल कोश</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl font-black text-amber-200 font-serif leading-tight mb-3">
-            पवारी भोयरी शब्दकोश, पहेली, लोकगीत एवं क्विज़
-          </h1>
-          <p className="text-amber-100/80 text-base leading-relaxed mb-6">
-            बैतूल, छिंदवाड़ा एवं ताप्ती अंचल की समृद्ध पवारी बोली के शब्दों, पारंपरिक बुझौवलों (पहेलियों), विवाह व भक्ति लोकगीतों का अनुशीलन करें। अपनी संस्कृति ज्ञान की परीक्षा दें एवं आकर्षक ई-प्रमाण-पत्र प्राप्त करें।
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => {
-                setContribType('shabdkosh');
+                setContribType('lokgeet');
                 setIsContribModalOpen(true);
               }}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-bold text-sm shadow-lg shadow-amber-900/40 transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-amber-950 hover:bg-amber-900 border border-amber-700/60 text-amber-200 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs shrink-0 self-start md:self-center"
             >
-              <PlusCircle className="w-4 h-4" />
-              <span>पाठक योगदान: नया शब्द / पहेली / लोकगीत जोड़ें</span>
+              <PlusCircle className="w-4 h-4 text-amber-400" />
+              <span>लोकगीत योगदान करें</span>
             </button>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-red-950 via-amber-950 to-red-900 border border-amber-500/30 p-8 text-amber-100 shadow-2xl">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 max-w-4xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold mb-4">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>पवारी भोयरी लोक संस्कृति एवं साहित्य डिजिटल कोश</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-black text-amber-200 font-serif leading-tight mb-3">
+              पवारी भोयरी शब्दकोश, पहेली, लोकगीत एवं क्विज़
+            </h1>
+            <p className="text-amber-100/80 text-base leading-relaxed mb-6">
+              बैतूल, छिंदवाड़ा एवं ताप्ती अंचल की समृद्ध पवारी बोली के शब्दों, पारंपरिक बुझौवलों (पहेलियों), विवाह व भक्ति लोकगीतों का अनुशीलन करें। अपनी संस्कृति ज्ञान की परीक्षा दें एवं आकर्षक ई-प्रमाण-पत्र प्राप्त करें।
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => {
+                  setContribType('shabdkosh');
+                  setIsContribModalOpen(true);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-bold text-sm shadow-lg shadow-amber-900/40 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>पाठक योगदान: नया शब्द / पहेली / लोकगीत जोड़ें</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="flex flex-wrap gap-3 bg-slate-900/80 p-2 rounded-2xl border border-amber-900/40 shadow-lg">
@@ -578,7 +636,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       </div>
 
       {/* SEARCH BAR FOR LISTINGS */}
-      {activeTab !== 'quiz' && (
+      {activeTab !== 'quiz' && activeTab !== 'lokgeet' && (
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-900/60 p-4 rounded-2xl border border-amber-900/30">
           <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
             <div className="relative w-full sm:w-80">
@@ -1090,126 +1148,162 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
           ) : (
             /* LOKGEET LIST VIEW */
             <div className="space-y-6">
-              {/* Search & Category Filter Bar */}
-              <div className="bg-slate-900/90 border border-amber-900/30 p-4 rounded-2xl space-y-3">
-                <div className="flex flex-col sm:flex-row gap-3">
+              {/* Search, Filter Chips, Sort & Count Bar */}
+              <div className="bg-slate-900/90 border border-amber-900/30 p-4 sm:p-5 rounded-2xl space-y-4 shadow-xs">
+                {/* Search & Sort Row */}
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
                   <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-amber-500 absolute left-3.5 top-3" />
+                    <Search className="w-4 h-4 text-amber-500/80 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       placeholder="पवारी लोकगीत शीर्षक, श्रेणी या बोल खोजें..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm focus:outline-none focus:border-amber-500"
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-amber-900/40 rounded-xl text-amber-100 placeholder-amber-400/40 text-xs sm:text-sm focus:outline-none focus:border-amber-500 transition-colors"
                     />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400/60 hover:text-amber-200 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
-                  {lokgeetCategories.length > 0 && (
+                  {/* Sort Dropdown */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-amber-400/70 hidden md:inline">क्रमबद्ध:</span>
                     <select
-                      value={lokgeetCategory}
-                      onChange={(e) => setLokgeetCategory(e.target.value)}
-                      className="px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-200 text-xs font-medium focus:outline-none focus:border-amber-500 cursor-pointer"
+                      value={lokgeetSort}
+                      onChange={(e) => setLokgeetSort(e.target.value as any)}
+                      className="w-full sm:w-auto px-3.5 py-2.5 bg-slate-950 border border-amber-900/40 rounded-xl text-amber-200 text-xs font-semibold focus:outline-none focus:border-amber-500 cursor-pointer"
                     >
-                      <option value="all">सभी श्रेणियाँ ({approvedLokgeet.length})</option>
-                      {lokgeetCategories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
+                      <option value="default">नवीनतम (Default)</option>
+                      <option value="title">शीर्षक अनुसार (अ-ज़)</option>
+                      <option value="category">श्रेणी अनुसार</option>
                     </select>
-                  )}
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center text-xs text-amber-400/80 px-1 pt-1 border-t border-amber-900/20">
-                  <span>कुल उपलब्ध लोकगीत: <strong className="text-amber-300">{filteredLokgeet.length}</strong></span>
-                  <span className="hidden sm:inline text-amber-400/60 text-[11px]">किसी भी शीर्षक पर क्लिक करके पूरा लोकगीत पढ़ें एवं लिंक कॉपी करें</span>
+                {/* Category Filter Chips */}
+                {lokgeetCategories.length > 0 && (
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+                    <span className="text-amber-400/60 font-semibold text-[11px] shrink-0 mr-1 hidden sm:inline">
+                      श्रेणी:
+                    </span>
+                    <button
+                      onClick={() => setLokgeetCategory('all')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                        lokgeetCategory === 'all'
+                          ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                          : 'bg-slate-950 text-amber-300 hover:bg-amber-950/60 border border-amber-900/40'
+                      }`}
+                    >
+                      सभी श्रेणियाँ ({approvedLokgeet.length})
+                    </button>
+
+                    {lokgeetCategories.map((cat) => {
+                      const count = approvedLokgeet.filter(l => l.category === cat).length;
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => setLokgeetCategory(cat)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                            lokgeetCategory === cat
+                              ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                              : 'bg-slate-950 text-amber-300 hover:bg-amber-950/60 border border-amber-900/40'
+                          }`}
+                        >
+                          {cat} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Total Count Bar */}
+                <div className="flex flex-wrap items-center justify-between text-xs text-amber-400/80 pt-2 border-t border-amber-900/20 gap-2">
+                  <span>
+                    कुल उपलब्ध लोकगीत: <strong className="text-amber-300 font-serif">{sortedLokgeet.length}</strong>
+                    {sortedLokgeet.length > LOKGEET_PER_PAGE && (
+                      <span className="ml-2 text-amber-400/60">
+                        (पृष्ठ {lokgeetPage} / {totalLokgeetPages})
+                      </span>
+                    )}
+                  </span>
+                  <span className="hidden sm:inline text-amber-400/60 text-[11px]">
+                    पूरा लोकगीत व भावार्थ पढ़ने हेतु "पूरा देखें" या शीर्षक पर क्लिक करें
+                  </span>
                 </div>
               </div>
 
-              {/* Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredLokgeet.map((item) => {
+              {/* Compact Archive Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {paginatedLokgeet.map((item) => {
                   const directUrl = `/lokgeet/${item.slug || item.id}`;
-                  const lyricsPreview = item.lyrics_pawari.slice(0, 140) + (item.lyrics_pawari.length > 140 ? '...' : '');
+                  const lyricsClean = item.lyrics_pawari.replace(/\n+/g, ' ').trim();
+                  const shortSnippet = lyricsClean.slice(0, 110) + (lyricsClean.length > 110 ? '...' : '');
 
                   return (
                     <div 
                       key={item.id}
-                      className="bg-slate-900/80 border border-amber-900/30 hover:border-amber-500/60 rounded-2xl overflow-hidden shadow-lg transition-all p-6 flex flex-col justify-between group hover:bg-slate-900"
+                      onClick={(e) => handleOpenLokgeet(item, e)}
+                      className="bg-slate-900/80 border border-amber-900/30 hover:border-amber-600/60 rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group hover:bg-slate-900 shadow-xs hover:shadow-md cursor-pointer space-y-3"
                     >
-                      <div>
-                        {item.image_url && (
-                          <div 
+                      <div className="space-y-2.5">
+                        {/* Header Row: Category Tag */}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-amber-950/80 text-amber-300 border border-amber-700/40">
+                            🎵 {item.category}
+                          </span>
+                          <span className="text-[11px] text-amber-400/50 font-serif">
+                            पवारी लोकसाहित्य
+                          </span>
+                        </div>
+
+                        {/* Title */}
+                        <div>
+                          <a
+                            href={directUrl}
                             onClick={(e) => handleOpenLokgeet(item, e)}
-                            className="h-40 rounded-xl overflow-hidden mb-4 relative bg-slate-950 border border-amber-900/30 cursor-pointer group-hover:border-amber-500/50 transition-colors"
+                            className="block text-left cursor-pointer focus:outline-none"
                           >
-                            <SafeImage 
-                              src={item.image_url} 
-                              alt={item.title_pawari} 
-                              loading="lazy"
-                              decoding="async"
-                              width={500}
-                              height={160}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
-                            <span className="absolute bottom-3 left-3 px-3 py-1 rounded-full text-xs font-bold bg-amber-950/90 text-amber-300 border border-amber-700/50">
-                              {item.category}
-                            </span>
-                          </div>
-                        )}
+                            <h3 className="text-lg font-bold text-amber-100 group-hover:text-amber-300 font-serif leading-snug transition-colors">
+                              {item.title_pawari}
+                            </h3>
+                          </a>
+                          {item.title_hindi && (
+                            <p className="text-xs text-amber-400/70 font-medium mt-0.5">
+                              ({item.title_hindi})
+                            </p>
+                          )}
+                        </div>
 
-                        {!item.image_url && (
-                          <div className="mb-3 flex justify-between items-center">
-                            <span className="px-3 py-0.5 rounded-full text-[11px] font-bold bg-amber-950 text-amber-300 border border-amber-800/50">
-                              {item.category}
-                            </span>
-                          </div>
-                        )}
+                        {/* Short Snippet Preview (Not full lyrics) */}
+                        <div className="bg-slate-950/70 p-3 rounded-xl border border-amber-900/20 text-xs font-serif text-amber-200/90 leading-relaxed italic line-clamp-2">
+                          "{shortSnippet}"
+                        </div>
 
-                        {/* Title - Main Clickable Link */}
-                        <a
-                          href={directUrl}
-                          onClick={(e) => handleOpenLokgeet(item, e)}
-                          className="block group/title text-left mb-1 cursor-pointer focus:outline-none"
-                        >
-                          <h3 className="text-xl font-bold text-amber-200 group-hover/title:text-amber-400 font-serif transition-colors leading-snug">
-                            {item.title_pawari}
-                          </h3>
-                        </a>
-
-                        {item.title_hindi && (
-                          <p className="text-xs text-amber-400/80 font-medium mb-2">
-                            ({item.title_hindi})
-                          </p>
-                        )}
-
-                        {item.singer_or_collector && (
-                          <p className="text-xs text-amber-300/80 mb-3 italic flex items-center gap-1.5">
-                            <User className="w-3.5 h-3.5 text-amber-400" />
-                            <span>{item.singer_or_collector}</span>
-                          </p>
-                        )}
-
-                        {/* Lyrics Snippet Preview */}
-                        <div 
-                          onClick={(e) => handleOpenLokgeet(item, e)}
-                          className="bg-slate-950/80 p-4 rounded-xl border border-amber-900/30 mb-3 cursor-pointer hover:border-amber-700/50 transition-colors"
-                        >
-                          <pre className="text-xs font-serif text-amber-100/90 whitespace-pre-wrap leading-relaxed italic font-normal line-clamp-4">
-                            {lyricsPreview}
-                          </pre>
+                        {/* Source / Collector */}
+                        <div className="flex items-center gap-1.5 text-[11px] text-amber-400/70 italic">
+                          <User className="w-3.5 h-3.5 text-amber-500/80 shrink-0" />
+                          <span className="truncate">
+                            संग्रहकर्ता: {item.singer_or_collector || item.contributor_name || 'माँ ताप्ती शोध संस्थान'}
+                          </span>
                         </div>
                       </div>
 
                       {/* Card Footer Actions */}
-                      <div className="pt-3 border-t border-amber-900/20 mt-2 flex items-center justify-between gap-2">
+                      <div className="pt-3 border-t border-amber-900/20 flex items-center justify-between gap-2">
                         <button
                           onClick={(e) => handleOpenLokgeet(item, e)}
-                          className="px-3.5 py-1.5 bg-amber-950/90 hover:bg-amber-900 text-amber-200 hover:text-white rounded-xl text-xs font-bold border border-amber-700/50 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                          className="px-3.5 py-1.5 bg-amber-950 hover:bg-amber-900 text-amber-200 hover:text-white rounded-xl text-xs font-bold border border-amber-700/50 flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
                         >
-                          <span>पूरा गीत पढ़ें / विवरण ➔</span>
+                          <span>पूरा देखें ➔</span>
                         </button>
 
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={(e) => handleCopyLokgeetLink(item, e)}
                             title="डायरेक्ट URL लिंक कॉपी करें"
@@ -1235,12 +1329,77 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                   );
                 })}
 
-                {filteredLokgeet.length === 0 && (
-                  <div className="col-span-full py-16 text-center bg-slate-900/40 border border-amber-900/20 rounded-2xl">
-                    <Music className="w-12 h-12 text-amber-600/30 mx-auto mb-3" />
-                    <p className="text-amber-200/70 font-medium">कोई पहेली या लोकगीत नहीं मिला।</p>
+                {sortedLokgeet.length === 0 && (
+                  <div className="col-span-full py-16 text-center bg-slate-900/40 border border-amber-900/20 rounded-2xl space-y-2">
+                    <Music className="w-12 h-12 text-amber-600/30 mx-auto" />
+                    <p className="text-amber-200/70 font-medium">कोई पवारी लोकगीत नहीं मिला।</p>
+                    <p className="text-xs text-amber-400/50">कृपया अन्य खोज शब्द या श्रेणी चुनकर प्रयास करें।</p>
                   </div>
                 )}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalLokgeetPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-amber-900/30 text-xs">
+                  <span className="text-amber-400/70">
+                    प्रदर्शित: <strong className="text-amber-200 font-serif">{((lokgeetPage - 1) * LOKGEET_PER_PAGE) + 1}</strong> से <strong className="text-amber-200 font-serif">{Math.min(lokgeetPage * LOKGEET_PER_PAGE, sortedLokgeet.length)}</strong> (कुल {sortedLokgeet.length})
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      disabled={lokgeetPage === 1}
+                      onClick={() => setLokgeetPage(p => Math.max(p - 1, 1))}
+                      className="px-3 py-1.5 rounded-lg bg-slate-950 border border-amber-900/40 text-amber-300 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-950/60 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5 text-amber-400" />
+                      <span>पिछला</span>
+                    </button>
+
+                    {Array.from({ length: totalLokgeetPages }, (_, i) => i + 1).map((pg) => (
+                      <button
+                        key={pg}
+                        onClick={() => setLokgeetPage(pg)}
+                        className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          lokgeetPage === pg
+                            ? 'bg-amber-500 text-slate-950 shadow-xs'
+                            : 'bg-slate-950 text-amber-300 hover:bg-amber-950/60 border border-amber-900/40'
+                        }`}
+                      >
+                        {pg}
+                      </button>
+                    ))}
+
+                    <button
+                      disabled={lokgeetPage === totalLokgeetPages}
+                      onClick={() => setLokgeetPage(p => Math.min(p + 1, totalLokgeetPages))}
+                      className="px-3 py-1.5 rounded-lg bg-slate-950 border border-amber-900/40 text-amber-300 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-950/60 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>अगला</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom Callout Box for Contributions */}
+              <div className="bg-slate-900/60 border border-amber-900/30 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-amber-100 mt-6 shadow-xs">
+                <div className="space-y-1 text-center sm:text-left">
+                  <h4 className="font-serif font-bold text-amber-200 text-sm sm:text-base">
+                    क्या आपके पास पारम्परिक पवारी लोकगीत उपलब्ध हैं?
+                  </h4>
+                  <p className="text-xs text-amber-200/70">
+                    माँ ताप्ती शोध संस्थान में अपने अंचल के विवाह, पूजा या भगत गीत साझा करके लोकसाहित्य संरक्षण में योगदान दें।
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setContribType('lokgeet');
+                    setIsContribModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-amber-950 hover:bg-amber-900 border border-amber-700/60 text-amber-200 text-xs font-bold rounded-xl transition-all shrink-0 cursor-pointer shadow-xs"
+                >
+                  लोकगीत जमा करें ➔
+                </button>
               </div>
             </div>
           )}
