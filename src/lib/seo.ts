@@ -8,7 +8,13 @@ export function updateMetaTags(
   settings: JournalSettings,
   article?: Article | null,
   lang: 'hi' | 'en' = 'hi',
-  isNotFound = false
+  isNotFound = false,
+  itemDetails?: {
+    title?: string;
+    description?: string;
+    image?: string;
+    canonicalPath?: string;
+  } | null
 ) {
   if (typeof document === 'undefined') return;
 
@@ -270,16 +276,24 @@ export function updateMetaTags(
       description = lang === 'hi' ? 'पवारी भाषा, लोक-साहित्य और संस्कृति के प्रमुख लेखक, कवि और शोधकर्ताओं का परिचय।' : 'Profiles and bibliography of prominent Pawari language writers, poets, and researchers.';
       break;
     case 'pawari_shabdkosh':
-      pageTitle = `Pawari Shabdkosh (पवारी शब्दावली) | ${journalTitle}`;
-      description = 'Explore the comprehensive Pawari dialect dictionary and vocabulary database.';
+      pageTitle = itemDetails?.title ? `${itemDetails.title} | Pawari Shabdkosh | ${journalTitle}` : `Pawari Shabdkosh (पवारी शब्दावली) | ${journalTitle}`;
+      description = itemDetails?.description || 'Explore the comprehensive Pawari dialect dictionary and vocabulary database.';
       break;
     case 'pawari_paheli':
-      pageTitle = `Pawari Riddles (पवारी पहेलियाँ) | ${journalTitle}`;
-      description = 'Collection of traditional Pawari folk riddles, culture, and linguistic puzzles.';
+      pageTitle = itemDetails?.title ? `${itemDetails.title} | Pawari Paheli | ${journalTitle}` : `Pawari Riddles (पवारी पहेलियाँ) | ${journalTitle}`;
+      description = itemDetails?.description || 'Collection of traditional Pawari folk riddles, culture, and linguistic puzzles.';
       break;
     case 'pawari_lokgeet':
-      pageTitle = `Pawari Folk Songs (पवारी लोकगीत) | ${journalTitle}`;
-      description = 'Archive of traditional Pawari folk songs, oral literature, and cultural music lyrics.';
+      pageTitle = itemDetails?.title ? `${itemDetails.title} | Pawari Lokgeet | ${journalTitle}` : `Pawari Folk Songs (पवारी लोकगीत) | ${journalTitle}`;
+      description = itemDetails?.description || 'Archive of traditional Pawari folk songs, oral literature, and cultural music lyrics.';
+      break;
+    case 'books_blogs':
+      if (itemDetails?.title) {
+        pageTitle = `${itemDetails.title} | ${journalTitle}`;
+        description = itemDetails.description || description;
+      } else {
+        pageTitle = lang === 'hi' ? `ग्रंथ, ई-बुक्स, शोध लेख एवं समीक्षाएँ | ${journalTitle}` : `Books, Monographs, Scholarly Blogs & Reviews | ${journalTitle}`;
+      }
       break;
     case 'pawari_quiz':
       pageTitle = `Pawari Heritage Quiz | ${journalTitle}`;
@@ -290,7 +304,7 @@ export function updateMetaTags(
       break;
   }
 
-  const pageUrl = getCanonicalUrl(path);
+  const pageUrl = itemDetails?.canonicalPath ? getCanonicalUrl(itemDetails.canonicalPath) : getCanonicalUrl(path);
 
   document.title = pageTitle;
   addMeta('description', description);

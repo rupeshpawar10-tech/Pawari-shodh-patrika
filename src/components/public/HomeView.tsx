@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { getUrlForView } from '../../lib/router';
-import { downloadPdf, downloadManuscriptTemplate, downloadCopyrightForm } from '../../lib/pdfUtils';
+import { downloadPdf } from '../../lib/pdfUtils';
 import { SafeImage } from '../common/SafeImage';
 import { SharePaperModal } from '../common/SharePaperModal';
 import { 
@@ -30,8 +30,10 @@ import {
   Check,
   Sparkles,
   Inbox,
-  Phone,
-  Bookmark
+  Clock,
+  Layers,
+  Award,
+  BookMarked
 } from 'lucide-react';
 
 export const HomeView: React.FC = () => {
@@ -52,25 +54,32 @@ export const HomeView: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState(globalSearchQuery || '');
   const [citationModalArticle, setCitationModalArticle] = useState<any | null>(null);
+  const [shareModalArticle, setShareModalArticle] = useState<any | null>(null);
+  const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setGlobalSearchQuery(searchQuery);
     setActiveView('articles');
   };
-  const [shareModalArticle, setShareModalArticle] = useState<any | null>(null);
-  const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
 
   // Identify current issue
   const currentIssue = issues.find(i => i.status === 'current') || issues[0];
   
-  // Articles in the current issue
-  const currentArticles = currentIssue 
+  // Articles in the current issue (published)
+  const currentIssueArticles = currentIssue 
     ? articles.filter(a => a.volume === currentIssue.volume && a.issue === currentIssue.issue_number && a.status === 'published')
-    : articles.slice(0, 5);
+    : articles.filter(a => a.status === 'published').slice(0, 3);
 
-  // Past issues for archive preview
-  const pastIssues = issues.filter(i => !currentIssue || i.id !== currentIssue.id);
+  // Top 3 featured papers for current issue block
+  const featuredArticles = currentIssueArticles.length >= 3 
+    ? currentIssueArticles.slice(0, 3) 
+    : articles.filter(a => a.status === 'published').slice(0, 3);
+
+  // Latest published articles for Section 5 (3-4 items)
+  const publishedArticles = articles
+    .filter(a => a.status === 'published')
+    .slice(0, 4);
 
   const handleArticleClick = (artId: string) => {
     setSelectedArticleId(artId);
@@ -92,14 +101,14 @@ export const HomeView: React.FC = () => {
   };
 
   const copyCitation = (art: any, format: 'apa' | 'mla' | 'bibtex' | 'ris') => {
-    const authors = art.authors.map((a: any) => a.name).join(', ');
+    const authors = art.authors ? art.authors.map((a: any) => a.name).join(', ') : 'Author';
     const year = art.year || '2026';
     const title = art.title_english || art.title_hindi;
     const journal = 'Pawari Shodh Patrika';
     const vol = art.volume || '1';
     const issue = art.issue || '1';
     const pages = art.page_numbers || '1-10';
-    const doi = art.doi || '10.5281/zenodo.123456';
+    const doi = art.doi || '10.5281/zenodo.18490543';
 
     let text = '';
     if (format === 'apa') {
@@ -117,16 +126,63 @@ export const HomeView: React.FC = () => {
     setTimeout(() => setCopiedFormat(null), 2500);
   };
 
+  // Featured editorial leadership (top 4)
+  const topEditors = (editorialMembers && editorialMembers.length > 0)
+    ? editorialMembers.slice(0, 4)
+    : [];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300 pb-12">
-      <div className="max-w-7xl mx-auto px-3 sm:px-8 space-y-10 pt-2 sm:pt-4">
-        
+      <div className="max-w-7xl mx-auto px-3 sm:px-8 space-y-8 pt-2 sm:pt-4">
+
         {/* ==========================================
-            SECTION 1: HERO SECTION
+            1. TOP ANNOUNCEMENT BAR (ताजा सूचना)
+            ========================================== */}
+        <section className="bg-red-950 text-amber-100 rounded-2xl border border-amber-500/30 p-3 sm:p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3 overflow-hidden">
+            <div className="bg-amber-500 text-red-950 font-serif font-bold text-xs px-2.5 py-1 rounded-lg flex items-center space-x-1 shrink-0">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{lang === 'hi' ? 'ताजा सूचना' : 'Announcement'}</span>
+            </div>
+            <p className="text-xs sm:text-sm text-amber-100 font-medium truncate leading-normal">
+              {lang === 'hi'
+                ? `${settings.call_for_papers?.heading_hindi || 'शोध पत्र सबमिशन हेतु आमंत्रण'} — आगामी अंक (अंतिम तिथि: ${settings.call_for_papers?.deadline_date || '31st May'})`
+                : `${settings.call_for_papers?.heading_english || 'Call for Papers for Upcoming Issue'} — (Deadline: ${settings.call_for_papers?.deadline_date || '31st May'})`}
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+            <a
+              href={getUrlForView('submit_manuscript')}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveView('submit_manuscript');
+              }}
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition shadow-xs flex items-center space-x-1"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{lang === 'hi' ? 'लेख सबमिट करें' : 'Submit Manuscript'}</span>
+            </a>
+            <a
+              href={getUrlForView('author_guidelines')}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveView('author_guidelines');
+              }}
+              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-amber-200 text-xs rounded-xl transition border border-amber-400/30"
+            >
+              <span>{lang === 'hi' ? 'दिशानिर्देश' : 'Guidelines'}</span>
+            </a>
+          </div>
+        </section>
+
+        {/* ==========================================
+            2. HERO SECTION
             ========================================== */}
         <section className="relative text-amber-50 rounded-2xl sm:rounded-3xl p-6 sm:p-10 lg:p-12 shadow-xl border border-amber-500/30 overflow-hidden bg-[var(--color-brand-primary,#420708)]">
           <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-          
+          <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-80 h-80 bg-red-900/30 rounded-full blur-2xl pointer-events-none"></div>
+
           <div className="relative z-10 max-w-4xl mx-auto text-center space-y-4 sm:space-y-6">
             
             {/* Publisher Badge */}
@@ -137,7 +193,7 @@ export const HomeView: React.FC = () => {
               </span>
             </div>
 
-            {/* Main Single H1 Heading */}
+            {/* Main Journal Title */}
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-amber-100 tracking-tight leading-tight">
               {lang === 'hi' ? settings.journal_title_hindi : settings.journal_title_english}
             </h1>
@@ -147,8 +203,8 @@ export const HomeView: React.FC = () => {
               {lang === 'hi' ? settings.subtitle_hindi : settings.subtitle_english}
             </p>
 
-            {/* Metadata Bar (Frequency & ISSN) */}
-            <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-amber-200 font-mono pt-1">
+            {/* Metadata Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-2.5 text-xs text-amber-200 font-mono pt-1">
               <span className="bg-white/10 px-3 py-1 rounded-md border border-amber-400/20">
                 {lang === 'hi' ? `आवृत्ति: ${settings.frequency_hindi}` : `Frequency: ${settings.frequency_english}`}
               </span>
@@ -180,7 +236,7 @@ export const HomeView: React.FC = () => {
               </div>
             </form>
 
-            {/* Action Buttons */}
+            {/* Action CTAs */}
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
               <a
                 href={getUrlForView('current_issue')}
@@ -188,22 +244,10 @@ export const HomeView: React.FC = () => {
                   e.preventDefault();
                   setActiveView('current_issue');
                 }}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition shadow-md flex items-center space-x-2"
+                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm rounded-xl transition shadow-md flex items-center space-x-2"
               >
                 <BookOpen className="w-4 h-4" />
-                <span>{lang === 'hi' ? 'वर्तमान अंक देखें' : 'View Current Issue'}</span>
-              </a>
-
-              <a
-                href={getUrlForView('archive')}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveView('archive');
-                }}
-                className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-amber-100 font-bold text-xs rounded-xl border border-amber-400/40 transition flex items-center space-x-2 backdrop-blur-xs"
-              >
-                <FileText className="w-4 h-4 text-amber-300" />
-                <span>{lang === 'hi' ? 'शोध आर्काइव' : 'Journal Archives'}</span>
+                <span>{lang === 'hi' ? 'वर्तमान अंक पढ़ें' : 'View Current Issue'}</span>
               </a>
 
               <a
@@ -212,78 +256,124 @@ export const HomeView: React.FC = () => {
                   e.preventDefault();
                   setActiveView('submit_manuscript');
                 }}
-                className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-amber-100 font-bold text-xs rounded-xl border border-amber-400/40 transition flex items-center space-x-2 backdrop-blur-xs"
+                className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-amber-100 font-bold text-xs sm:text-sm rounded-xl border border-amber-400/40 transition flex items-center space-x-2 backdrop-blur-xs"
               >
                 <Send className="w-4 h-4 text-amber-300" />
-                <span>{lang === 'hi' ? 'पांडुलिपि जमा करें' : 'Submit Manuscript'}</span>
+                <span>{lang === 'hi' ? 'लेख सबमिट करें' : 'Submit Manuscript'}</span>
+              </a>
+
+              <a
+                href={getUrlForView('articles')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveView('articles');
+                }}
+                className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-amber-100 font-bold text-xs sm:text-sm rounded-xl border border-amber-400/40 transition flex items-center space-x-2 backdrop-blur-xs"
+              >
+                <Layers className="w-4 h-4 text-amber-300" />
+                <span>{lang === 'hi' ? 'सभी अनुभाग देखें' : 'Explore Sections'}</span>
               </a>
             </div>
 
+            {/* Trust Line */}
+            <p className="pt-2 text-[11px] sm:text-xs text-amber-300/80 font-mono tracking-wide uppercase">
+              {lang === 'hi'
+                ? 'अंतर्राष्ट्रीय पीर-रिव्यूड शोध पत्रिका | डबल-ब्लाइंड समीक्षा | निःशुल्क ओपन एक्सेस | अर्द्धवार्षिक प्रकाशन'
+                : 'International Refereed Journal | Double-Blind Peer Reviewed | Open Access | Half Yearly'}
+            </p>
+
           </div>
         </section>
 
-
         {/* ==========================================
-            SECTION 2: ABOUT THE JOURNAL
+            3. TRUST STATS STRIP
             ========================================== */}
-        <section className="bg-white border border-amber-900/15 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
-          <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-            <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 flex items-center space-x-2">
-              <GraduationCap className="w-6 h-6 text-red-900" />
-              <span>{lang === 'hi' ? 'पत्रिका का परिचय' : 'About Pawari Shodh Patrika'}</span>
-            </h2>
-            <a
-              href={getUrlForView('about')}
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveView('about');
-              }}
-              className="text-xs font-bold text-red-900 hover:underline flex items-center space-x-1"
-            >
-              <span>{lang === 'hi' ? 'विस्तृत विवरण देखें' : 'Read Full Overview'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="bg-white border border-amber-900/15 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-amber-400/60 transition space-y-1">
+            <div className="flex items-center justify-between text-amber-800 mb-1">
+              <span className="text-xs font-mono font-bold text-amber-900 uppercase tracking-wider">
+                {lang === 'hi' ? 'प्रथम निर्णय' : 'First Decision'}
+              </span>
+              <Clock className="w-4 h-4 text-amber-700" />
+            </div>
+            <div className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
+              {lang === 'hi' ? '१२ दिन' : '12 Days'}
+            </div>
+            <p className="text-[11px] sm:text-xs text-slate-500 font-sans">
+              {lang === 'hi' ? 'त्वरित पीर-रिव्यू मूल्यांकन' : 'Fast-track peer review'}
+            </p>
           </div>
 
-          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">
-            {lang === 'hi' 
-              ? 'पवारी शोध पत्रिका (Pawari Shodh Patrika) माँ ताप्ती शोध संस्थान, मुलताई (बैतूल, म.प्र.) द्वारा प्रकाशित एक द्विभाषी एवं पीर-रिव्यूड (Peer-Reviewed) अकादमिक शोध पत्रिका है। यह पत्रिका पवारी (भोयरी/पंवारी) भाषा, साहित्य, इतिहास एवं संस्कृति को केंद्रीय पीठ मानकर मध्यप्रदेश तथा समीपवर्ती अंचलों की बोलियों, लोकभाषाओं, जनजातीय भाषिक परंपराओं एवं क्षेत्रीय अध्ययन पर केंद्रित मौलिक शोध पत्रों, समीक्षा लेखों, प्रामाणिक दस्तावेजों व पुस्तक समीक्षाओं का प्रकाशन करती है। इसमें हिंदी, अंग्रेजी तथा पवारी (देवनागरी लिपि) में शोध सामग्री स्वीकार की जाती है।'
-              : 'Pawari Shodh Patrika is a bilingual, double-blind peer-reviewed academic research journal published by Maa Tapti Research Institute, Multai (Betul, M.P.). Centered on Pawari language, literature, history, and culture, the journal welcomes research on regional dialects, folk traditions, tribal linguistics, and social heritage across Madhya Pradesh and neighboring regions in Hindi, English, and Pawari.'}
-          </p>
+          <div className="bg-white border border-amber-900/15 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-amber-400/60 transition space-y-1">
+            <div className="flex items-center justify-between text-amber-800 mb-1">
+              <span className="text-xs font-mono font-bold text-amber-900 uppercase tracking-wider">
+                {lang === 'hi' ? 'स्वीकृति दर' : 'Acceptance Rate'}
+              </span>
+              <ShieldCheck className="w-4 h-4 text-emerald-700" />
+            </div>
+            <div className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
+              28.4%
+            </div>
+            <p className="text-[11px] sm:text-xs text-slate-500 font-sans">
+              {lang === 'hi' ? 'कठोर समीक्षा चयन' : 'Rigorous peer selection'}
+            </p>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 text-xs">
-            <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200/80">
-              <strong className="block text-slate-900 font-serif text-sm font-bold">Scope & Subject Areas</strong>
-              <span className="text-slate-600 mt-0.5 block">Pawari Linguistics, Folk Literature, Regional History & Cultural Sociology.</span>
+          <div className="bg-white border border-amber-900/15 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-amber-400/60 transition space-y-1">
+            <div className="flex items-center justify-between text-amber-800 mb-1">
+              <span className="text-xs font-mono font-bold text-amber-900 uppercase tracking-wider">
+                {lang === 'hi' ? 'प्रकाशन आवृत्ति' : 'Frequency'}
+              </span>
+              <Calendar className="w-4 h-4 text-red-900" />
             </div>
-            <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200/80">
-              <strong className="block text-slate-900 font-serif text-sm font-bold">Accepted Languages</strong>
-              <span className="text-slate-600 mt-0.5 block">Hindi, English, and Pawari (Devanagari script).</span>
+            <div className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
+              {lang === 'hi' ? 'त्रैमासिक / द्वि-वार्षिक' : 'Quarterly'}
             </div>
-            <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200/80">
-              <strong className="block text-slate-900 font-serif text-sm font-bold">Target Audience</strong>
-              <span className="text-slate-600 mt-0.5 block">Academic Researchers, Linguists, Historians, Students & Cultural Scholars.</span>
+            <p className="text-[11px] sm:text-xs text-slate-500 font-sans">
+              {lang === 'hi' ? '४ अंक प्रति वर्ष' : '4 issues per annum'}
+            </p>
+          </div>
+
+          <div className="bg-white border border-amber-900/15 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-amber-400/60 transition space-y-1">
+            <div className="flex items-center justify-between text-amber-800 mb-1">
+              <span className="text-xs font-mono font-bold text-amber-900 uppercase tracking-wider">
+                {lang === 'hi' ? 'पहुंच मॉडल' : 'Access Model'}
+              </span>
+              <Globe className="w-4 h-4 text-blue-700" />
             </div>
+            <div className="text-xl sm:text-2xl font-serif font-bold text-slate-900">
+              Gold Open Access
+            </div>
+            <p className="text-[11px] sm:text-xs text-slate-500 font-sans">
+              {lang === 'hi' ? 'शून्य सब्सक्रिप्शन शुल्क' : 'Zero subscription fees'}
+            </p>
           </div>
         </section>
 
-
         {/* ==========================================
-            SECTION 3: CURRENT ISSUE
+            4. CURRENT ISSUE SECTION (Featured Block)
             ========================================== */}
         {currentIssue && (
           <section className="bg-white border border-amber-900/15 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
             
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
               <div>
-                <span className="text-[11px] font-mono uppercase font-bold text-red-900 bg-red-50 px-2.5 py-1 rounded-md border border-red-200">
-                  {lang === 'hi' ? 'नवीनतम शोध अंक' : 'Current Research Issue'}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase font-bold text-red-900 bg-red-50 px-2.5 py-1 rounded-md border border-red-200">
+                    {lang === 'hi' ? 'वर्तमान शोध अंक' : 'Current Research Issue'}
+                  </span>
+                  <span className="text-[10px] font-mono uppercase font-bold text-amber-900 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+                    Online ISSN: {settings.issn_online || 'Applied'}
+                  </span>
+                  <span className="text-[10px] font-mono uppercase font-bold text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                    Refereed & Open Access
+                  </span>
+                </div>
                 <h2 className="text-2xl font-serif font-bold text-slate-900 mt-2">
                   {lang === 'hi' ? currentIssue.title_hindi : currentIssue.title_english}
                 </h2>
                 <p className="text-xs font-mono text-slate-500 mt-0.5">
-                  Volume {currentIssue.volume}, Issue {currentIssue.issue_number} ({currentIssue.year})
+                  Volume {currentIssue.volume}, Issue {currentIssue.issue_number} ({currentIssue.month || currentIssue.year})
                 </p>
               </div>
 
@@ -293,20 +383,20 @@ export const HomeView: React.FC = () => {
                   e.preventDefault();
                   setActiveView('current_issue');
                 }}
-                className="self-start sm:self-center px-4 py-2 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-xs"
+                className="self-start sm:self-center px-4 py-2 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-xs shrink-0"
               >
-                <span>{lang === 'hi' ? 'अंक की पूर्ण विषय-सूची देखें' : 'View Full Issue TOC'}</span>
+                <span>{lang === 'hi' ? 'पूरा अंक देखें' : 'View Full Issue'}</span>
                 <ArrowRight className="w-4 h-4" />
               </a>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
               
-              {/* Cover Card */}
-              <div className="md:col-span-4 space-y-3 text-center">
-                <div className="w-36 sm:w-full mx-auto relative aspect-3/4 rounded-2xl overflow-hidden shadow-md border-2 border-amber-400/50 bg-red-950">
+              {/* Cover Card & Editorial Note */}
+              <div className="md:col-span-4 space-y-3">
+                <div className="w-44 sm:w-full mx-auto relative aspect-3/4 rounded-2xl overflow-hidden shadow-md border-2 border-amber-400/50 bg-red-950">
                   <SafeImage 
-                    src={currentIssue.cover_image_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80'} 
+                    src={currentIssue.cover_image_url} 
                     alt="Current Journal Issue Cover" 
                     loading="eager"
                     fetchPriority="high"
@@ -316,42 +406,48 @@ export const HomeView: React.FC = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-red-950/95 via-red-950/40 to-transparent flex flex-col justify-end p-4 text-amber-100 text-left">
                     <span className="text-[10px] font-mono uppercase bg-amber-500 text-red-950 px-2 py-0.5 rounded font-bold inline-block mb-1">
-                      Peer-Reviewed Issue
+                      Current Issue
                     </span>
                     <div className="text-sm font-serif font-bold">
                       Volume {currentIssue.volume}, Issue {currentIssue.issue_number}
                     </div>
                     <div className="text-xs text-amber-200/90 font-medium">
-                      Year: {currentIssue.year}
+                      {currentIssue.month || currentIssue.year}
                     </div>
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-600 italic">
-                  {lang === 'hi' ? currentIssue.description_hindi : currentIssue.description_english}
-                </p>
+                <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200/80 text-xs space-y-1">
+                  <strong className="text-slate-900 font-serif font-bold block">
+                    {lang === 'hi' ? 'संपादकीय टिप्पणी' : 'Editorial Note'}
+                  </strong>
+                  <p className="text-slate-700 leading-relaxed font-sans line-clamp-3">
+                    {lang === 'hi' ? currentIssue.editorial_note_hindi : currentIssue.editorial_note_english}
+                  </p>
+                </div>
               </div>
 
-              {/* Articles List */}
+              {/* Top 3 Featured Papers */}
               <div className="md:col-span-8 space-y-3">
                 <h3 className="text-xs font-serif font-bold text-slate-700 uppercase tracking-wider border-b pb-2 flex items-center justify-between">
-                  <span>{lang === 'hi' ? 'इस अंक में प्रकाशित शोध पत्र' : 'Published Articles in this Issue'}</span>
-                  <span className="text-slate-500 text-[11px] font-mono">{currentArticles.length} Articles</span>
+                  <span>{lang === 'hi' ? 'प्रमुख शोध पत्र (Featured Papers)' : 'Featured Research Papers'}</span>
+                  <span className="text-slate-500 text-[11px] font-mono">{featuredArticles.length} Selected Papers</span>
                 </h3>
 
                 <div className="space-y-3">
-                  {currentArticles.map((art) => (
+                  {featuredArticles.map((art) => (
                     <div 
                       key={art.id}
-                      className="bg-slate-50 hover:bg-amber-50/60 p-4 rounded-xl border border-slate-200 hover:border-amber-400/60 transition space-y-2 group"
+                      className="bg-slate-50 hover:bg-amber-50/60 p-4 rounded-2xl border border-slate-200 hover:border-amber-400/60 transition space-y-2 group shadow-2xs"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono">
                         <span className="bg-amber-100 text-amber-950 font-bold px-2 py-0.5 rounded">
                           {art.category || 'Research Article'}
                         </span>
-                        <span className="text-slate-500">
-                          pp. {art.page_numbers || '1-12'}
-                        </span>
+                        <div className="flex items-center space-x-2 text-slate-500">
+                          <span>pp. {art.page_numbers || '1-12'}</span>
+                          {art.doi && <span className="text-amber-900 font-semibold truncate max-w-[140px]">DOI: {art.doi}</span>}
+                        </div>
                       </div>
 
                       <h4 className="text-sm sm:text-base font-serif font-bold text-slate-900 group-hover:text-red-950 transition leading-snug">
@@ -370,7 +466,7 @@ export const HomeView: React.FC = () => {
                       </h4>
 
                       <p className="text-xs text-slate-700 font-medium">
-                        <strong>Authors:</strong> {art.authors.map(a => a.name).join(', ')}
+                        <strong>Authors:</strong> {art.authors ? art.authors.map(a => a.name).join(', ') : 'Authors N/A'}
                       </p>
 
                       <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
@@ -386,17 +482,27 @@ export const HomeView: React.FC = () => {
                           }}
                           className="font-bold text-red-900 hover:underline flex items-center space-x-1"
                         >
-                          <span>{lang === 'hi' ? 'पूर्ण शोध पत्र पढ़ें' : 'Read Full Article'}</span>
+                          <span>{lang === 'hi' ? 'पढ़ें' : 'Read Article'}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </a>
 
-                        <div className="flex items-center space-x-2">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                          <span className="text-slate-500 flex items-center space-x-1 font-mono">
+                            <Eye className="w-3 h-3 text-slate-400" />
+                            <span>{art.views_count || 0} views</span>
+                          </span>
+                          <span className="text-slate-300">•</span>
+                          <span className="text-slate-500 flex items-center space-x-1 font-mono">
+                            <Download className="w-3 h-3 text-slate-400" />
+                            <span>{art.downloads_count || 0} downloads</span>
+                          </span>
+
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setShareModalArticle(art);
                             }}
-                            className="px-2 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-900 text-[11px] font-semibold rounded border border-slate-200 transition flex items-center space-x-1"
+                            className="px-2 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-900 font-semibold rounded border border-slate-200 transition flex items-center space-x-1"
                           >
                             <Share2 className="w-3 h-3 text-emerald-700" />
                             <span>Share</span>
@@ -406,24 +512,17 @@ export const HomeView: React.FC = () => {
                               e.stopPropagation();
                               setCitationModalArticle(art);
                             }}
-                            className="px-2 py-1 bg-white hover:bg-amber-100 text-slate-800 text-[11px] font-semibold rounded border border-slate-200 transition flex items-center space-x-1"
+                            className="px-2 py-1 bg-white hover:bg-amber-100 text-slate-800 font-semibold rounded border border-slate-200 transition flex items-center space-x-1"
                           >
                             <Quote className="w-3 h-3 text-amber-700" />
                             <span>Cite</span>
                           </button>
                           <button
                             onClick={(e) => handlePdfView(e, art)}
-                            className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-800 text-[11px] font-semibold rounded border border-slate-200 transition flex items-center space-x-1"
+                            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-red-950 font-bold rounded transition flex items-center space-x-1"
                           >
-                            <Eye className="w-3 h-3 text-slate-600" />
+                            <Eye className="w-3 h-3" />
                             <span>PDF</span>
-                          </button>
-                          <button
-                            onClick={(e) => handlePdfDownload(e, art.id, art.pdf_url || '')}
-                            className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-red-950 text-[11px] font-bold rounded transition flex items-center space-x-1"
-                          >
-                            <Download className="w-3 h-3" />
-                            <span>Download</span>
                           </button>
                         </div>
                       </div>
@@ -439,356 +538,207 @@ export const HomeView: React.FC = () => {
           </section>
         )}
 
-
         {/* ==========================================
-            SECTION 4: ARCHIVES PREVIEW
+            5. PUBLISHED PAPERS SECTION (Latest 3-4 Papers)
             ========================================== */}
         <section className="bg-white border border-amber-900/15 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
           <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
             <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 flex items-center space-x-2">
-              <FileText className="w-6 h-6 text-amber-800" />
-              <span>{lang === 'hi' ? 'पूर्व शोध अंक संग्रह' : 'Journal Archives Preview'}</span>
+              <FileText className="w-6 h-6 text-red-900" />
+              <span>{lang === 'hi' ? 'नवीनतम प्रकाशित शोध पत्र' : 'Latest Research Papers'}</span>
             </h2>
             <a
-              href={getUrlForView('archive')}
+              href={getUrlForView('articles')}
               onClick={(e) => {
                 e.preventDefault();
-                setActiveView('archive');
+                setActiveView('articles');
               }}
               className="text-xs font-bold text-red-900 hover:underline flex items-center space-x-1"
             >
-              <span>{lang === 'hi' ? 'समस्त प्रकाशित अंक देखें' : 'Browse Complete Journal Archives'}</span>
+              <span>{lang === 'hi' ? 'सभी प्रकाशित शोध पत्र देखें' : 'View All Published Papers'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
 
-          {pastIssues.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {pastIssues.slice(0, 3).map((iss) => (
-                <div 
-                  key={iss.id}
-                  className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-2xl border border-slate-200 transition space-y-2 flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between text-xs font-mono text-slate-500">
-                      <span>Volume {iss.volume}, Issue {iss.issue_number}</span>
-                      <span className="font-bold text-amber-900">{iss.year}</span>
-                    </div>
-                    <h3 className="font-serif font-bold text-slate-900 text-base mt-1">
-                      {lang === 'hi' ? iss.title_hindi : iss.title_english}
-                    </h3>
-                    <p className="text-xs text-slate-600 line-clamp-2 mt-1">
-                      {lang === 'hi' ? iss.description_hindi : iss.description_english}
-                    </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {publishedArticles.map((art) => (
+              <div 
+                key={`pub-${art.id}`}
+                className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-2xl border border-slate-200 hover:border-amber-400/60 transition space-y-2 flex flex-col justify-between group"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono">
+                    <span className="bg-amber-100 text-amber-950 font-bold px-2 py-0.5 rounded">
+                      {art.category || 'Research Article'}
+                    </span>
+                    <span className="text-slate-500">
+                      Vol. {art.volume} Issue {art.issue} ({art.year})
+                    </span>
                   </div>
 
+                  <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base group-hover:text-red-950 transition leading-snug">
+                    <a 
+                      href={getUrlForView('article_detail', art.slug || art.id)}
+                      onClick={(e) => {
+                        if (!e.metaKey && !e.ctrlKey) {
+                          e.preventDefault();
+                          handleArticleClick(art.slug || art.id);
+                        }
+                      }}
+                      className="hover:underline"
+                    >
+                      {lang === 'hi' ? art.title_hindi : art.title_english}
+                    </a>
+                  </h3>
+
+                  <p className="text-xs text-slate-600 font-medium">
+                    {art.authors ? art.authors.map(a => a.name).join(', ') : 'Authors N/A'}
+                  </p>
+
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                    {lang === 'hi' ? art.abstract_hindi : art.abstract_english}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-2 text-xs">
                   <a
-                    href={getUrlForView('archive', null, `issue-${iss.volume}-${iss.issue_number}`)}
+                    href={getUrlForView('article_detail', art.slug || art.id)}
                     onClick={(e) => {
                       e.preventDefault();
-                      setActiveView('archive');
+                      handleArticleClick(art.slug || art.id);
                     }}
-                    className="pt-2 text-xs font-bold text-red-900 hover:underline flex items-center space-x-1"
+                    className="font-bold text-red-900 hover:underline flex items-center space-x-1"
                   >
-                    <span>{lang === 'hi' ? 'अंक देखें' : 'Explore Issue'}</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <span>{lang === 'hi' ? 'पढ़ें' : 'Read Article'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </a>
+
+                  <div className="flex items-center space-x-2 text-[11px] font-mono text-slate-500">
+                    <span className="flex items-center space-x-1">
+                      <Eye className="w-3 h-3 text-slate-400" />
+                      <span>{art.views_count || 0} views</span>
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center space-x-1">
+                      <Download className="w-3 h-3 text-slate-400" />
+                      <span>{art.downloads_count || 0} downloads</span>
+                    </span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-4 bg-slate-50 rounded-xl text-xs text-slate-600 italic">
-              All published volumes and issues are accessible via the main Journal Archives repository.
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
 
           <div className="pt-2 text-center">
             <a
-              href={getUrlForView('archive')}
+              href={getUrlForView('articles')}
               onClick={(e) => {
                 e.preventDefault();
-                setActiveView('archive');
+                setActiveView('articles');
               }}
               className="inline-flex items-center space-x-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-amber-100 font-bold text-xs rounded-xl transition"
             >
-              <span>{lang === 'hi' ? 'समस्त शोध अंक देखें' : 'Browse Complete Journal Archives'}</span>
+              <span>{lang === 'hi' ? 'सभी प्रकाशित शोध पत्र देखें' : 'View All Published Research Papers'}</span>
               <ArrowRight className="w-4 h-4" />
             </a>
           </div>
         </section>
 
-
         {/* ==========================================
-            SECTION 5: JOURNAL CREDIBILITY SECTION
+            6. ABOUT THE JOURNAL SECTION (Compact Summary)
             ========================================== */}
         <section className="bg-white border border-amber-900/15 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
-          <div className="border-b border-slate-100 pb-3">
+          <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
             <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 flex items-center space-x-2">
-              <ShieldCheck className="w-6 h-6 text-emerald-700" />
-              <span>{lang === 'hi' ? 'संपादकीय नीतियां एवं अकादमिक मानक' : 'Editorial Policies & Academic Governance'}</span>
+              <GraduationCap className="w-6 h-6 text-red-900" />
+              <span>{lang === 'hi' ? 'पत्रिका परिचय एवं उद्देश्य' : 'About Pawari Shodh Patrika'}</span>
             </h2>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Pawari Shodh Patrika maintains double-blind peer review and open access ethical standards.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-            
             <a
               href={getUrlForView('about')}
               onClick={(e) => {
                 e.preventDefault();
                 setActiveView('about');
               }}
-              className="p-4 bg-slate-50 hover:bg-amber-50/60 rounded-2xl border border-slate-200 transition group"
+              className="text-xs font-bold text-red-900 hover:underline flex items-center space-x-1"
             >
-              <div className="font-serif font-bold text-slate-900 text-sm group-hover:text-red-900">
-                {lang === 'hi' ? '1. पत्रिका के बारे में एवं लक्ष्य' : '1. Journal Aim & Scope'}
-              </div>
-              <p className="text-slate-600 mt-1">
-                Read our core mission, research focus, multi-disciplinary scope, and language policies.
-              </p>
+              <span>{lang === 'hi' ? 'और पढ़ें' : 'Read More'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </a>
+          </div>
 
+          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">
+            {lang === 'hi' 
+              ? 'पवारी शोध पत्रिका (Pawari Shodh Patrika) माँ ताप्ती शोध संस्थान, मुलताई (बैतूल, म.प्र.) द्वारा प्रकाशित एक द्विभाषी (हिंदी एवं अंग्रेजी) एवं अर्द्धवार्षिक पीर-रिव्यूड (Peer-Reviewed) अकादमिक शोध पत्रिका है। यह पवारी भाषा, साहित्य, संस्कृति और मध्य भारत के क्षेत्रीय इतिहास को वैश्विक अकादमिक मंच प्रदान करने हेतु समर्पित है।'
+              : 'Pawari Shodh Patrika is a bilingual (Hindi & English), double-blind peer-reviewed academic journal published half-yearly by Maa Tapti Research Institute, Multai. It provides a dedicated scholarly platform for original research on the Pawari dialect, literature, regional history, and Central Indian folk heritage.'}
+          </p>
+
+          <div className="pt-1 flex items-center justify-end">
             <a
-              href={getUrlForView('editorial_board')}
+              href={getUrlForView('about')}
               onClick={(e) => {
                 e.preventDefault();
-                setActiveView('editorial_board');
+                setActiveView('about');
               }}
-              className="p-4 bg-slate-50 hover:bg-amber-50/60 rounded-2xl border border-slate-200 transition group"
+              className="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs rounded-xl transition flex items-center space-x-1"
             >
-              <div className="font-serif font-bold text-slate-900 text-sm group-hover:text-red-900">
-                {lang === 'hi' ? '2. संपादकीय मंडल' : '2. Editorial Board Directory'}
-              </div>
-              <p className="text-slate-600 mt-1">
-                View our patron, chief editor, associate editors, and advisory board members.
-              </p>
+              <span>{lang === 'hi' ? 'विस्तृत विवरण एवं उद्देश्य पढ़ें' : 'Read Full Aims & Scope'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </a>
-
-            <a
-              href={getUrlForView('author_guidelines')}
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveView('author_guidelines');
-              }}
-              className="p-4 bg-slate-50 hover:bg-amber-50/60 rounded-2xl border border-slate-200 transition group"
-            >
-              <div className="font-serif font-bold text-slate-900 text-sm group-hover:text-red-900">
-                {lang === 'hi' ? '3. पीर-रिव्यू नीति' : '3. Double-Blind Peer Review Policy'}
-              </div>
-              <p className="text-slate-600 mt-1">
-                Learn about our two-tier referee evaluation, referee selection, and review timeline.
-              </p>
-            </a>
-
-            <a
-              href={getUrlForView('author_guidelines')}
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveView('author_guidelines');
-              }}
-              className="p-4 bg-slate-50 hover:bg-amber-50/60 rounded-2xl border border-slate-200 transition group"
-            >
-              <div className="font-serif font-bold text-slate-900 text-sm group-hover:text-red-900">
-                {lang === 'hi' ? '4. प्रकाशन नीति एवं नैतिकता' : '4. Publication Ethics (COPE Standards)'}
-              </div>
-              <p className="text-slate-600 mt-1">
-                Guidelines regarding originality, plagiarism limits, authorship, and conflict of interest.
-              </p>
-            </a>
-
-            <a
-              href={getUrlForView('author_guidelines')}
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveView('author_guidelines');
-              }}
-              className="p-4 bg-slate-50 hover:bg-amber-50/60 rounded-2xl border border-slate-200 transition group"
-            >
-              <div className="font-serif font-bold text-slate-900 text-sm group-hover:text-red-900">
-                {lang === 'hi' ? '5. लेखक दिशानिर्देश' : '5. Author Formatting Guidelines'}
-              </div>
-              <p className="text-slate-600 mt-1">
-                Download style templates, reference formats, citation guidelines, and copyright forms.
-              </p>
-            </a>
-
-            <a
-              href={getUrlForView('contact')}
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveView('contact');
-              }}
-              className="p-4 bg-slate-50 hover:bg-amber-50/60 rounded-2xl border border-slate-200 transition group"
-            >
-              <div className="font-serif font-bold text-slate-900 text-sm group-hover:text-red-900">
-                {lang === 'hi' ? '6. संपर्क एवं सचिवालय' : '6. Contact & Editorial Secretariat'}
-              </div>
-              <p className="text-slate-600 mt-1">
-                Official postal address, institutional affiliation, and editorial email contact.
-              </p>
-            </a>
-
           </div>
         </section>
 
-
         {/* ==========================================
-            SECTION 6: SCOPE / SUBJECT AREAS
-            ========================================== */}
-        <section className="bg-white border border-amber-900/15 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
-          <div className="border-b border-slate-100 pb-3 space-y-2">
-            <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 flex items-center space-x-2">
-              <BookOpen className="w-6 h-6 text-amber-800" />
-              <span>{lang === 'hi' ? 'शोध के विषय एवं दायरा' : 'Research Domains & Subject Scope'}</span>
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-sans">
-              {lang === 'hi' 
-                ? 'पवारी शोध पत्रिका पवारी भाषा, साहित्य, इतिहास और संस्कृति के गहन अध्ययन के साथ-साथ मध्यप्रदेश एवं समीपवर्ती अंचलों की बोलियों, लोकभाषाओं, जनजातीय भाषिक परंपराओं तथा क्षेत्रीय समाज-संस्कृति को समाहित करने वाला एक गंभीर अकादमिक मंच है। पत्रिका क्षेत्रीय बोलियों, मौखिक साहित्य और लोकजीवन के वैज्ञानिक प्रलेखन एवं तुलनात्मक अध्ययन को प्रोत्साहित करती है।'
-                : 'Pawari Shodh Patrika serves as an academic platform dedicated to the in-depth study of Pawari language, literature, history, and culture, alongside the regional dialects, folk languages, tribal linguistic traditions, and social heritage of Madhya Pradesh and neighboring areas.'}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
-            <div className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-xl border border-slate-200 transition space-y-1">
-              <strong className="text-slate-900 font-bold block text-sm font-serif">
-                {lang === 'hi' ? '1. पवारी एवं संबंधित भाषाई अध्ययन' : '1. Pawari Linguistics & Traditions'}
-              </strong>
-              <p className="text-slate-600 leading-relaxed">
-                {lang === 'hi' 
-                  ? 'पवारी (भोयरी/पंवारी) भाषा की ध्वनि-संरचना, व्याकरण, शब्दकोश, लोकसाहित्य, लिखित साहित्य और भाषिक परंपराएँ।'
-                  : 'Phonetics, grammar, lexicon, folk poetry, and literary traditions of the Pawari (Bhoyari/Panwari) language.'}
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-xl border border-slate-200 transition space-y-1">
-              <strong className="text-slate-900 font-bold block text-sm font-serif">
-                {lang === 'hi' ? '2. क्षेत्रीय लोकभाषाएँ एवं बोलियाँ' : '2. Regional Dialects & Languages'}
-              </strong>
-              <p className="text-slate-600 leading-relaxed">
-                {lang === 'hi' 
-                  ? 'राजस्थानी और संबंधित भाषिक-सांस्कृतिक अध्ययन, मालवी, निमाड़ी, बुन्देली, बघेली एवं अन्य उपभाषाएँ व स्थानिक रूप।'
-                  : 'Rajsthani linguistic studies, Malvi, Nimadi, Bundeli, Bagheli, and regional speech forms of Madhya Pradesh.'}
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-xl border border-slate-200 transition space-y-1">
-              <strong className="text-slate-900 font-bold block text-sm font-serif">
-                {lang === 'hi' ? '3. जनजातीय एवं अंचल की भाषिक परंपराएँ' : '3. Tribal & Indigenous Languages'}
-              </strong>
-              <p className="text-slate-600 leading-relaxed">
-                {lang === 'hi' 
-                  ? 'गोंडी, कोरकू, नहाली (निहाली), भीली, भिलाली, बरेली तथा अन्य अल्पप्रचलित व संकटग्रस्त भाषिक रूपों का अध्ययन।'
-                  : 'Gondi, Korku, Nahali (Nihali), Bhili, Bhilali, Bareli, and endangered indigenous language forms.'}
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-xl border border-slate-200 transition space-y-1">
-              <strong className="text-slate-900 font-bold block text-sm font-serif">
-                {lang === 'hi' ? '4. लोकसाहित्य एवं मौखिक परंपराएँ' : '4. Folk Literature & Oral Traditions'}
-              </strong>
-              <p className="text-slate-600 leading-relaxed">
-                {lang === 'hi' 
-                  ? 'लोककथाएँ, लोकगीत, गाथाएँ, अनुष्ठानिक गायन, कहावतें, लोकोक्तियाँ, लोकनाट्य और वाचिक परंपराओं का संकलन।'
-                  : 'Folk songs (Lokgeet), oral narratives, proverbs, ritual songs, folk theater, and oral history documentation.'}
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-xl border border-slate-200 transition space-y-1">
-              <strong className="text-slate-900 font-bold block text-sm font-serif">
-                {lang === 'hi' ? '5. इतिहास, पुरालेख एवं विरासत' : '5. Regional History & Epigraphy'}
-              </strong>
-              <p className="text-slate-600 leading-relaxed">
-                {lang === 'hi' 
-                  ? 'क्षेत्रीय इतिहास, पुरालेखी साक्ष्य, ताम्रपत्र, अभिलेखीकरण, ऐतिहासिक स्मृतियाँ और पुरातात्विक अध्ययन।'
-                  : 'Regional history, epigraphic records, archival manuscripts, historical memory, and heritage preservation.'}
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-xl border border-slate-200 transition space-y-1">
-              <strong className="text-slate-900 font-bold block text-sm font-serif">
-                {lang === 'hi' ? '6. समाज, समुदाय एवं समाजशास्त्र' : '6. Community & Social Anthropology'}
-              </strong>
-              <p className="text-slate-600 leading-relaxed">
-                {lang === 'hi' 
-                  ? 'क्षेत्रीय सामाजिक संरचनाएँ, समुदाय, वंश, गोत्र अध्ययन, जातीय-सांस्कृतिक इतिहास और ग्रामीण समाजशास्त्र।'
-                  : 'Social structures, clan and gotra lineage, community histories, ethno-sociology, and cultural anthropology.'}
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-xl border border-slate-200 transition space-y-1">
-              <strong className="text-slate-900 font-bold block text-sm font-serif">
-                {lang === 'hi' ? '7. लोकज्ञान एवं कृषि-पारिस्थितिकी' : '7. Indigenous Knowledge & Ethno-Ecology'}
-              </strong>
-              <p className="text-slate-600 leading-relaxed">
-                {lang === 'hi' 
-                  ? 'पारंपरिक ज्ञान प्रणालियाँ, कृषि-संस्कृति, उत्सव, रीति-रिवाज, पर्यावरण-ज्ञान (Ethno-Ecology) व लोककला।'
-                  : 'Traditional agricultural practices, seasonal rituals, ethno-ecological wisdom, festivals, and folk crafts.'}
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-xl border border-slate-200 transition space-y-1">
-              <strong className="text-slate-900 font-bold block text-sm font-serif">
-                {lang === 'hi' ? '8. तुलनात्मक अध्ययन एवं भाषा-प्रविधि' : '8. Comparative Linguistics & Archiving'}
-              </strong>
-              <p className="text-slate-600 leading-relaxed">
-                {lang === 'hi' 
-                  ? 'तुलनात्मक भाषाविज्ञान, अनुवाद अध्ययन, शब्दकोश निर्माण, पाठ-संपादन और डिजिटल अभिलेखीकरण।'
-                  : 'Comparative linguistics, translation studies, lexicography, textual editing, and digital archiving.'}
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-xl border border-slate-200 transition space-y-1">
-              <strong className="text-slate-900 font-bold block text-sm font-serif">
-                {lang === 'hi' ? '9. स्वीकृत शोध प्रारूप' : '9. Accepted Article Types'}
-              </strong>
-              <p className="text-slate-600 leading-relaxed">
-                {lang === 'hi' 
-                  ? 'मौलिक शोध पत्र, समीक्षा लेख, पुस्तक समीक्षाएँ, प्रामाणिक दस्तावेज अध्ययन एवं विशेषज्ञों के साक्षात्कार।'
-                  : 'Original research articles, review essays, book reviews, critical document studies, and scholarly interviews.'}
-              </p>
-            </div>
-          </div>
-        </section>
-
-
-        {/* ==========================================
-            SECTION 7: SUBMISSION / CALL FOR PAPERS
+            7. CALL FOR PAPERS SECTION (Highlighted Card)
             ========================================== */}
         {settings.call_for_papers?.is_active !== false && (
-          <section className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 text-red-950 rounded-3xl p-6 sm:p-8 shadow-md border border-amber-400 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="inline-flex items-center space-x-2 bg-red-950 text-amber-300 px-3 py-1 rounded-md text-xs font-mono font-bold">
-                <Inbox className="w-4 h-4 text-amber-400" />
+          <section className="bg-gradient-to-r from-red-950 via-red-900 to-red-950 text-amber-100 rounded-3xl p-6 sm:p-8 shadow-lg border-2 border-amber-400/50 space-y-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-amber-400/10 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-400/20 pb-3">
+              <div className="inline-flex items-center space-x-2 bg-amber-500 text-slate-950 px-3 py-1 rounded-md text-xs font-mono font-bold">
+                <Inbox className="w-4 h-4 text-slate-950" />
                 <span>
-                  {settings.call_for_papers?.title_badge_english || 'Call for Papers 2025'}
+                  {settings.call_for_papers?.title_badge_english || 'Call for Papers'}
                 </span>
               </div>
-              <span className="text-xs font-mono font-bold text-red-950">
-                Target: {settings.call_for_papers?.target_volume_issue || 'Vol. 1 Issue 1'}
+              <span className="text-xs font-mono font-bold text-amber-300">
+                Target Issue: {settings.call_for_papers?.target_volume_issue || 'Vol. 2 Issue 2 (2026)'}
               </span>
             </div>
 
-            <div className="space-y-1">
-              <h2 className="text-xl sm:text-2xl font-serif font-bold text-red-950">
+            <div className="space-y-2">
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-amber-100">
                 {lang === 'hi' 
                   ? (settings.call_for_papers?.heading_hindi || 'शोध पत्र सबमिशन हेतु आमंत्रण') 
                   : (settings.call_for_papers?.heading_english || 'Submit Research Manuscript for Upcoming Issue')}
               </h2>
-              <p className="text-xs sm:text-sm text-red-950/90 font-medium leading-relaxed">
+              <p className="text-xs sm:text-sm text-amber-200/90 font-medium leading-relaxed max-w-3xl">
                 {lang === 'hi' 
-                  ? (settings.call_for_papers?.description_hindi || 'शोधकर्ताओं एवं विद्वानों से पवारी भाषा, साहित्य एवं लोकसंस्कृति पर मौलिक शोध पत्रों का आमंत्रण।') 
+                  ? (settings.call_for_papers?.description_hindi || 'शोधकर्ताओं एवं विद्वानों से पवारी भाषा, साहित्य, संस्कृति, लोकगीत एवं क्षेत्रीय इतिहास पर मौलिक शोध पत्रों का आमंत्रण।') 
                   : (settings.call_for_papers?.description_english || 'Inviting original research papers, review articles, and field studies in Pawari language, culture, and Central Indian studies.')}
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-red-950/20 text-xs">
-              <div className="font-mono">
-                <span>Submission Deadline: </span>
-                <strong className="text-red-950 underline">{settings.call_for_papers?.deadline_date || '31st May'}</strong>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs font-mono">
+              <div className="p-2.5 bg-white/10 rounded-xl border border-amber-400/20">
+                <span className="text-[10px] text-amber-300 block uppercase">Deadline</span>
+                <strong className="text-amber-100 text-sm">{settings.call_for_papers?.deadline_date || '31st May'}</strong>
               </div>
+              <div className="p-2.5 bg-white/10 rounded-xl border border-amber-400/20">
+                <span className="text-[10px] text-amber-300 block uppercase">Review</span>
+                <strong className="text-amber-100 text-sm">Double-Blind Peer Review</strong>
+              </div>
+              <div className="p-2.5 bg-white/10 rounded-xl border border-amber-400/20">
+                <span className="text-[10px] text-amber-300 block uppercase">Processing Fee</span>
+                <strong className="text-amber-100 text-sm">{lang === 'hi' ? 'शून्य शुल्क' : 'Zero APC'}</strong>
+              </div>
+              <div className="p-2.5 bg-white/10 rounded-xl border border-amber-400/20">
+                <span className="text-[10px] text-amber-300 block uppercase">Languages</span>
+                <strong className="text-amber-100 text-sm">Hindi / English / Pawari</strong>
+              </div>
+            </div>
 
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-amber-400/20">
               <div className="flex flex-wrap gap-2">
                 <a
                   href={getUrlForView('submit_manuscript')}
@@ -796,10 +746,10 @@ export const HomeView: React.FC = () => {
                     e.preventDefault();
                     setActiveView('submit_manuscript');
                   }}
-                  className="px-5 py-2 bg-red-950 hover:bg-red-900 text-amber-100 font-bold rounded-xl transition shadow-xs flex items-center space-x-1.5"
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow-md flex items-center space-x-1.5 text-xs"
                 >
-                  <Send className="w-4 h-4 text-amber-400" />
-                  <span>{lang === 'hi' ? 'ऑनलाइन सबमिशन' : 'Submit Manuscript Online'}</span>
+                  <Send className="w-4 h-4" />
+                  <span>{lang === 'hi' ? 'लेख भेजें' : 'Submit Article'}</span>
                 </a>
 
                 <a
@@ -808,24 +758,128 @@ export const HomeView: React.FC = () => {
                     e.preventDefault();
                     setActiveView('author_guidelines');
                   }}
-                  className="px-4 py-2 bg-white/20 hover:bg-white/30 text-red-950 font-bold rounded-xl transition border border-red-950/30"
+                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-amber-100 font-bold rounded-xl transition border border-amber-400/30 text-xs"
                 >
-                  {lang === 'hi' ? 'दिशानिर्देश देखें' : 'Author Guidelines'}
+                  {lang === 'hi' ? 'लेखक निर्देश देखें' : 'Author Guidelines'}
                 </a>
               </div>
             </div>
           </section>
         )}
 
+        {/* ==========================================
+            8. INDEXING AND DATABASE SECTION (Badge Row/Grid)
+            ========================================== */}
+        <section className="bg-white border border-amber-900/15 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+          <div className="border-b border-slate-100 pb-3">
+            <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 flex items-center space-x-2">
+              <BookMarked className="w-6 h-6 text-amber-800" />
+              <span>{lang === 'hi' ? 'इंडेक्सिंग एवं अकादमिक डेटाबेस' : 'Indexing & Academic Databases'}</span>
+            </h2>
+            <p className="text-xs text-slate-600 mt-0.5">
+              Indexed in leading international academic repositories and research databases.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 text-center">
+            <div className="p-4 bg-slate-50 hover:bg-amber-50/60 rounded-2xl border border-slate-200 transition space-y-1">
+              <GraduationCap className="w-6 h-6 text-red-900 mx-auto" />
+              <strong className="block font-serif font-bold text-slate-900 text-xs">Google Scholar</strong>
+              <span className="text-[10px] text-slate-500 block">Indexed Publications</span>
+            </div>
+
+            <div className="p-4 bg-slate-50 hover:bg-amber-50/60 rounded-2xl border border-slate-200 transition space-y-1">
+              <Award className="w-6 h-6 text-blue-700 mx-auto" />
+              <strong className="block font-serif font-bold text-slate-900 text-xs">Zenodo DOI</strong>
+              <span className="text-[10px] text-slate-500 block">Citable Identifiers</span>
+            </div>
+
+            <div className="p-4 bg-slate-50 hover:bg-amber-50/60 rounded-2xl border border-slate-200 transition space-y-1">
+              <Globe className="w-6 h-6 text-emerald-700 mx-auto" />
+              <strong className="block font-serif font-bold text-slate-900 text-xs">ResearchGate</strong>
+              <span className="text-[10px] text-slate-500 block">Academic Network</span>
+            </div>
+
+            <div className="p-4 bg-slate-50 hover:bg-amber-50/60 rounded-2xl border border-slate-200 transition space-y-1">
+              <BookOpen className="w-6 h-6 text-amber-800 mx-auto" />
+              <strong className="block font-serif font-bold text-slate-900 text-xs">Academia.edu</strong>
+              <span className="text-[10px] text-slate-500 block">Scholarly Repository</span>
+            </div>
+
+            <div className="p-4 bg-slate-50 hover:bg-amber-50/60 rounded-2xl border border-slate-200 transition space-y-1 col-span-2 sm:col-span-1">
+              <ShieldCheck className="w-6 h-6 text-teal-700 mx-auto" />
+              <strong className="block font-serif font-bold text-slate-900 text-xs">Open Access</strong>
+              <span className="text-[10px] text-slate-500 block">100% Free Access</span>
+            </div>
+          </div>
+        </section>
 
         {/* ==========================================
-            SECTION 8: CONTACT / PUBLISHER BLOCK
+            9. EDITORIAL LEADERSHIP SECTION (Compact Cards)
+            ========================================== */}
+        {topEditors.length > 0 && (
+          <section className="bg-white border border-amber-900/15 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 flex items-center space-x-2">
+                <User className="w-6 h-6 text-red-900" />
+                <span>{lang === 'hi' ? 'संपादकीय नेतृत्व' : 'Editorial Leadership'}</span>
+              </h2>
+              <a
+                href={getUrlForView('editorial_board')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveView('editorial_board');
+                }}
+                className="text-xs font-bold text-red-900 hover:underline flex items-center space-x-1"
+              >
+                <span>{lang === 'hi' ? 'समस्त संपादकीय मंडल देखें' : 'View Full Board'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {topEditors.map((editor) => (
+                <div 
+                  key={editor.id}
+                  className="p-4 bg-slate-50 hover:bg-amber-50/50 rounded-2xl border border-slate-200 transition space-y-3 flex flex-col items-center text-center"
+                >
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-amber-400 shadow-xs bg-red-950 shrink-0">
+                    <SafeImage
+                      src={editor.photo_url}
+                      alt={editor.name_english || editor.name_hindi}
+                      className="w-full h-full object-cover"
+                      showFallbackIconOnFail={true}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono uppercase bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-bold">
+                      {editor.role}
+                    </span>
+                    <h3 className="font-serif font-bold text-slate-900 text-sm mt-1">
+                      {lang === 'hi' ? editor.name_hindi : editor.name_english}
+                    </h3>
+                    <p className="text-[11px] text-slate-600 line-clamp-2">
+                      {lang === 'hi' ? editor.designation_hindi : editor.designation_english}
+                    </p>
+                    <p className="text-[10px] text-slate-500 line-clamp-1">
+                      {lang === 'hi' ? editor.affiliation_hindi : editor.affiliation_english}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ==========================================
+            10. FOOTER-READY TRANSITION / PUBLISHER BLOCK
             ========================================== */}
         <section className="bg-white border border-amber-900/15 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
           <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
             <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 flex items-center space-x-2">
               <Building className="w-6 h-6 text-red-900" />
-              <span>{lang === 'hi' ? 'प्रकाशक एवं संस्थागत संपर्क' : 'Publisher & Editorial Secretariat'}</span>
+              <span>{lang === 'hi' ? 'प्रकाशक एवं संस्थागत संपर्क' : 'Publisher & Secretariat'}</span>
             </h2>
             <a
               href={getUrlForView('contact')}
@@ -872,21 +926,7 @@ export const HomeView: React.FC = () => {
           </div>
         </section>
 
-
-        {/* ==========================================
-            SECTION 9: FOOTER SUMMARY
-            ========================================== */}
-        <footer className="pt-6 border-t border-amber-900/10 text-center text-xs text-slate-600 space-y-2">
-          <p className="font-serif font-bold text-slate-800">
-            {lang === 'hi' ? settings.journal_title_hindi : settings.journal_title_english} — {lang === 'hi' ? settings.publisher_hindi : settings.publisher_english}
-          </p>
-          <p className="text-[11px] text-slate-500 font-mono">
-            {lang === 'hi' ? settings.footer_text_hindi : settings.footer_text_english}
-          </p>
-        </footer>
-
       </div>
-
 
       {/* Citation Modal */}
       {citationModalArticle && (
@@ -899,7 +939,7 @@ export const HomeView: React.FC = () => {
               </div>
               <button 
                 onClick={() => setCitationModalArticle(null)}
-                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 text-sm font-bold"
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -918,14 +958,14 @@ export const HomeView: React.FC = () => {
                   <span className="font-bold text-slate-700">APA (7th Edition)</span>
                   <button
                     onClick={() => copyCitation(citationModalArticle, 'apa')}
-                    className="text-[11px] font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition flex items-center space-x-1"
+                    className="text-[11px] font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition flex items-center space-x-1 cursor-pointer"
                   >
                     {copiedFormat === 'apa' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                     <span>{copiedFormat === 'apa' ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
                 <p className="text-slate-600 font-mono text-[11px] leading-relaxed">
-                  {citationModalArticle.authors.map((a: any) => a.name).join(', ')} ({citationModalArticle.year || '2026'}). {citationModalArticle.title_english || citationModalArticle.title_hindi}. Pawari Shodh Patrika, {citationModalArticle.volume}({citationModalArticle.issue}), {citationModalArticle.page_numbers || '1-10'}.
+                  {citationModalArticle.authors ? citationModalArticle.authors.map((a: any) => a.name).join(', ') : ''} ({citationModalArticle.year || '2026'}). {citationModalArticle.title_english || citationModalArticle.title_hindi}. Pawari Shodh Patrika, {citationModalArticle.volume}({citationModalArticle.issue}), {citationModalArticle.page_numbers || '1-10'}.
                 </p>
               </div>
 
@@ -934,28 +974,28 @@ export const HomeView: React.FC = () => {
                   <span className="font-bold text-slate-700">MLA (9th Edition)</span>
                   <button
                     onClick={() => copyCitation(citationModalArticle, 'mla')}
-                    className="text-[11px] font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition flex items-center space-x-1"
+                    className="text-[11px] font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition flex items-center space-x-1 cursor-pointer"
                   >
                     {copiedFormat === 'mla' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                     <span>{copiedFormat === 'mla' ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
                 <p className="text-slate-600 font-mono text-[11px] leading-relaxed">
-                  {citationModalArticle.authors.map((a: any) => a.name).join(', ')}. "{citationModalArticle.title_english || citationModalArticle.title_hindi}." Pawari Shodh Patrika, vol. {citationModalArticle.volume}, no. {citationModalArticle.issue}, {citationModalArticle.year || '2026'}, pp. {citationModalArticle.page_numbers || '1-10'}.
+                  {citationModalArticle.authors ? citationModalArticle.authors.map((a: any) => a.name).join(', ') : ''}. "{citationModalArticle.title_english || citationModalArticle.title_hindi}." Pawari Shodh Patrika, vol. {citationModalArticle.volume}, no. {citationModalArticle.issue}, {citationModalArticle.year || '2026'}, pp. {citationModalArticle.page_numbers || '1-10'}.
                 </p>
               </div>
 
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => copyCitation(citationModalArticle, 'bibtex')}
-                  className="flex-1 py-2 bg-slate-900 text-amber-100 font-bold text-xs rounded-xl hover:bg-slate-800 transition flex items-center justify-center space-x-1"
+                  className="flex-1 py-2 bg-slate-900 text-amber-100 font-bold text-xs rounded-xl hover:bg-slate-800 transition flex items-center justify-center space-x-1 cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>Copy BibTeX</span>
                 </button>
                 <button
                   onClick={() => copyCitation(citationModalArticle, 'ris')}
-                  className="flex-1 py-2 bg-slate-100 text-slate-800 font-bold text-xs rounded-xl border hover:bg-slate-200 transition flex items-center justify-center space-x-1"
+                  className="flex-1 py-2 bg-slate-100 text-slate-800 font-bold text-xs rounded-xl border hover:bg-slate-200 transition flex items-center justify-center space-x-1 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download RIS</span>

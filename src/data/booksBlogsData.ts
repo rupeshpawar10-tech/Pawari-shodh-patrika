@@ -27,6 +27,12 @@ export interface BookItem {
   table_of_contents_hindi?: string[];
   sample_pdf_url?: string;
   is_featured?: boolean;
+  slug?: string;
+  status?: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'published' | 'rejected' | string;
+  editorial_comments?: string;
+  contributor_name?: string;
+  contributor_email?: string;
+  submitted_at?: string;
   attached_items?: AttachedItem[];
   attached_books?: string[];
   attached_blogs?: string[];
@@ -50,6 +56,12 @@ export interface BlogItem {
   content_english: string;
   tags: string[];
   likes_count?: number;
+  slug?: string;
+  status?: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'published' | 'rejected' | string;
+  editorial_comments?: string;
+  contributor_name?: string;
+  contributor_email?: string;
+  submitted_at?: string;
   attached_items?: AttachedItem[];
   attached_books?: string[];
   attached_blogs?: string[];

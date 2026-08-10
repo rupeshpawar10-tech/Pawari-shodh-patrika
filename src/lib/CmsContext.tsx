@@ -43,6 +43,7 @@ import {
   SAMPLE_EDITORIAL_BOARD, 
   SAMPLE_ANNOUNCEMENTS 
 } from '../data/seedData';
+import { ensureUniqueSlug } from './slugUtils';
 import { fileBlobManager, saveFileToIndexedDB, base64ToBlob } from './fileBlobManager';
 import { parseRouteFromUrl, navigateTo } from './router';
 
@@ -176,6 +177,9 @@ interface CmsContextType {
   shabdkoshList: PawariShabdkoshItem[];
   paheliList: PawariPaheliItem[];
   lokgeetList: PawariLokgeetItem[];
+  lokgeetCategories: string[];
+  saveLokgeetCategory: (catName: string) => Promise<void>;
+  deleteLokgeetCategory: (catName: string) => Promise<void>;
   quizQuestions: QuizQuestion[];
   pages: Record<string, PageContent>;
   editorialMembers: EditorialMember[];
@@ -562,6 +566,42 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {}
     return SAMPLE_LOKGEET;
   });
+
+  const DEFAULT_LOKGEET_CATEGORIES = [
+    'भजन / भक्ति गीत',
+    'विवाह गीत',
+    'खेती-किसानी गीत',
+    'भुजरिया / त्यौहार गीत',
+    'बधावा एवं जन्मोत्सव गीत',
+    'अन्य'
+  ];
+
+  const [lokgeetCategories, setLokgeetCategories] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('lokgeet_categories_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_LOKGEET_CATEGORIES;
+  });
+
+  const saveLokgeetCategory = async (catName: string) => {
+    const trimmed = catName.trim();
+    if (!trimmed || lokgeetCategories.includes(trimmed)) return;
+    const updated = [...lokgeetCategories, trimmed];
+    setLokgeetCategories(updated);
+    try { localStorage.setItem('lokgeet_categories_cache', JSON.stringify(updated)); } catch (e) {}
+    try { await setDoc(doc(db, 'settings', 'lokgeet_categories'), { categories: updated }); } catch (e) {}
+  };
+
+  const deleteLokgeetCategory = async (catName: string) => {
+    const updated = lokgeetCategories.filter(c => c !== catName);
+    setLokgeetCategories(updated);
+    try { localStorage.setItem('lokgeet_categories_cache', JSON.stringify(updated)); } catch (e) {}
+    try { await setDoc(doc(db, 'settings', 'lokgeet_categories'), { categories: updated }); } catch (e) {}
+  };
 
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(() => {
     try {
@@ -1149,14 +1189,20 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const saveBook = async (book: BookItem) => {
     const isNew = !books.some(b => b.id === book.id);
-    const updated = books.filter(b => b.id !== book.id);
-    updated.unshift(book);
+    const slug = ensureUniqueSlug(book.title_english || book.title_hindi, book.id, books, book.slug);
+    const bookToSave: BookItem = {
+      ...book,
+      slug,
+      status: book.status || 'published'
+    };
+    const updated = books.filter(b => b.id !== bookToSave.id);
+    updated.unshift(bookToSave);
     setBooks(updated);
     try {
       localStorage.setItem('local_books_cache', JSON.stringify(updated));
     } catch (e) {}
     try {
-      await setDoc(doc(db, 'books', book.id), book);
+      await setDoc(doc(db, 'books', bookToSave.id), bookToSave);
     } catch (e) {
       console.error('Error saving book:', e);
     }
@@ -1164,8 +1210,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logActivity({
       category: 'books',
       action: isNew ? 'create' : 'update',
-      title: isNew ? `Published New Book "${book.title_hindi || book.title_english}"` : `Updated Book Metadata "${book.title_hindi || book.title_english}"`,
-      details: `Authors: ${book.authors || 'N/A'}, Category: ${book.category || 'N/A'}, Price: ${book.price || 'N/A'}`
+      title: isNew ? `Published New Book "${bookToSave.title_hindi || bookToSave.title_english}"` : `Updated Book Metadata "${bookToSave.title_hindi || bookToSave.title_english}"`,
+      details: `Authors: ${bookToSave.authors || 'N/A'}, Category: ${bookToSave.category || 'N/A'}, Price: ${bookToSave.price || 'N/A'}`
     }).catch(console.warn);
   };
 
@@ -1192,14 +1238,20 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const saveBlog = async (blog: BlogItem) => {
     const isNew = !blogs.some(b => b.id === blog.id);
-    const updated = blogs.filter(b => b.id !== blog.id);
-    updated.unshift(blog);
+    const slug = ensureUniqueSlug(blog.title_english || blog.title_hindi, blog.id, blogs, blog.slug);
+    const blogToSave: BlogItem = {
+      ...blog,
+      slug,
+      status: blog.status || 'published'
+    };
+    const updated = blogs.filter(b => b.id !== blogToSave.id);
+    updated.unshift(blogToSave);
     setBlogs(updated);
     try {
       localStorage.setItem('local_blogs_cache', JSON.stringify(updated));
     } catch (e) {}
     try {
-      await setDoc(doc(db, 'blogs', blog.id), blog);
+      await setDoc(doc(db, 'blogs', blogToSave.id), blogToSave);
     } catch (e) {
       console.error('Error saving blog:', e);
     }
@@ -1207,8 +1259,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logActivity({
       category: 'blogs',
       action: isNew ? 'create' : 'update',
-      title: isNew ? `Published Blog Post "${blog.title_hindi || blog.title_english}"` : `Updated Blog Post "${blog.title_hindi || blog.title_english}"`,
-      details: `Author: ${blog.author || 'N/A'}, Category: ${blog.category || 'N/A'}`
+      title: isNew ? `Published Blog Post "${blogToSave.title_hindi || blogToSave.title_english}"` : `Updated Blog Post "${blogToSave.title_hindi || blogToSave.title_english}"`,
+      details: `Author: ${blogToSave.author || 'N/A'}, Category: ${blogToSave.category || 'N/A'}`
     }).catch(console.warn);
   };
 
@@ -1735,17 +1787,23 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Shabdkosh CRUD
   const saveShabdkosh = async (item: PawariShabdkoshItem) => {
     const isNew = !shabdkoshList.some(s => s.id === item.id);
-    const updated = shabdkoshList.filter(s => s.id !== item.id);
-    updated.unshift(item);
+    const slug = ensureUniqueSlug(item.word_pawari, item.id, shabdkoshList, item.slug);
+    const itemToSave: PawariShabdkoshItem = {
+      ...item,
+      slug,
+      status: item.status || 'published'
+    };
+    const updated = shabdkoshList.filter(s => s.id !== itemToSave.id);
+    updated.unshift(itemToSave);
     setShabdkoshList(updated);
     try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(updated)); } catch (e) {}
-    try { await setDoc(doc(db, 'shabdkosh', item.id), item); } catch (e) { console.error(e); }
+    try { await setDoc(doc(db, 'shabdkosh', itemToSave.id), itemToSave); } catch (e) { console.error(e); }
 
     logActivity({
       category: 'shabdkosh',
       action: isNew ? 'create' : 'update',
-      title: isNew ? `Added Shabdkosh Word "${item.word_pawari}"` : `Updated Shabdkosh Word "${item.word_pawari}"`,
-      details: `Meaning: ${item.meaning_hindi}, Category: ${item.category}`
+      title: isNew ? `Added Shabdkosh Word "${itemToSave.word_pawari}"` : `Updated Shabdkosh Word "${itemToSave.word_pawari}"`,
+      details: `Meaning: ${itemToSave.meaning_hindi}, Category: ${itemToSave.category}`
     }).catch(console.warn);
   };
 
@@ -1767,17 +1825,23 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Paheli CRUD
   const savePaheli = async (item: PawariPaheliItem) => {
     const isNew = !paheliList.some(p => p.id === item.id);
-    const updated = paheliList.filter(p => p.id !== item.id);
-    updated.unshift(item);
+    const slug = ensureUniqueSlug(item.answer_hindi || item.riddle_pawari, item.id, paheliList, item.slug);
+    const itemToSave: PawariPaheliItem = {
+      ...item,
+      slug,
+      status: item.status || 'published'
+    };
+    const updated = paheliList.filter(p => p.id !== itemToSave.id);
+    updated.unshift(itemToSave);
     setPaheliList(updated);
     try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(updated)); } catch (e) {}
-    try { await setDoc(doc(db, 'paheli', item.id), item); } catch (e) { console.error(e); }
+    try { await setDoc(doc(db, 'paheli', itemToSave.id), itemToSave); } catch (e) { console.error(e); }
 
     logActivity({
       category: 'paheli',
       action: isNew ? 'create' : 'update',
       title: isNew ? `Added Paheli Riddle` : `Updated Paheli Riddle`,
-      details: `Riddle: "${item.riddle_pawari.slice(0, 40)}...", Answer: ${item.answer_hindi}`
+      details: `Riddle: "${itemToSave.riddle_pawari.slice(0, 40)}...", Answer: ${itemToSave.answer_hindi}`
     }).catch(console.warn);
   };
 
@@ -1799,17 +1863,23 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Lokgeet CRUD
   const saveLokgeet = async (item: PawariLokgeetItem) => {
     const isNew = !lokgeetList.some(l => l.id === item.id);
-    const updated = lokgeetList.filter(l => l.id !== item.id);
-    updated.unshift(item);
+    const slug = ensureUniqueSlug(item.title_hindi || item.title_pawari, item.id, lokgeetList, item.slug);
+    const itemToSave: PawariLokgeetItem = {
+      ...item,
+      slug,
+      status: item.status || 'published'
+    };
+    const updated = lokgeetList.filter(l => l.id !== itemToSave.id);
+    updated.unshift(itemToSave);
     setLokgeetList(updated);
     try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
-    try { await setDoc(doc(db, 'lokgeet', item.id), item); } catch (e) { console.error(e); }
+    try { await setDoc(doc(db, 'lokgeet', itemToSave.id), itemToSave); } catch (e) { console.error(e); }
 
     logActivity({
       category: 'lokgeet',
       action: isNew ? 'create' : 'update',
-      title: isNew ? `Added Lokgeet "${item.title_pawari}"` : `Updated Lokgeet "${item.title_pawari}"`,
-      details: `Category: ${item.category}, Collector: ${item.singer_or_collector || 'N/A'}`
+      title: isNew ? `Added Lokgeet "${itemToSave.title_pawari}"` : `Updated Lokgeet "${itemToSave.title_pawari}"`,
+      details: `Category: ${itemToSave.category}, Collector: ${itemToSave.singer_or_collector || 'N/A'}`
     }).catch(console.warn);
   };
 
@@ -1863,10 +1933,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Public User Contributions
   const submitPublicContribution = async (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books', itemData: any) => {
     const id = 'contrib_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const titleForSlug = itemData.title_hindi || itemData.title_pawari || itemData.title_english || itemData.word_pawari || itemData.riddle_pawari || 'submission';
+    const slug = ensureUniqueSlug(titleForSlug, id, []);
     const newItem = {
       ...itemData,
       id: itemData.id || id,
-      status: 'pending' as const,
+      slug: itemData.slug || slug,
+      status: itemData.status || 'pending',
+      submitted_at: itemData.submitted_at || new Date().toISOString(),
       created_at: itemData.created_at || new Date().toISOString()
     };
 
@@ -1902,34 +1976,44 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }).catch(console.warn);
   };
 
-  const updateContributionStatus = async (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'submissions', id: string, status: 'approved' | 'pending' | 'rejected') => {
+  const updateContributionStatus = async (
+    type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'submissions', 
+    id: string, 
+    status: string,
+    editorial_comments?: string
+  ) => {
+    const updatePayload: any = { status };
+    if (editorial_comments !== undefined) {
+      updatePayload.editorial_comments = editorial_comments;
+    }
+
     if (type === 'shabdkosh') {
-      const updated = shabdkoshList.map(item => item.id === id ? { ...item, status } : item);
+      const updated = shabdkoshList.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setShabdkoshList(updated);
       try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'shabdkosh', id), { status }); } catch (e) { console.error(e); }
+      try { await updateDoc(doc(db, 'shabdkosh', id), updatePayload); } catch (e) { console.error(e); }
     } else if (type === 'paheli') {
-      const updated = paheliList.map(item => item.id === id ? { ...item, status } : item);
+      const updated = paheliList.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setPaheliList(updated);
       try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'paheli', id), { status }); } catch (e) { console.error(e); }
+      try { await updateDoc(doc(db, 'paheli', id), updatePayload); } catch (e) { console.error(e); }
     } else if (type === 'lokgeet') {
-      const updated = lokgeetList.map(item => item.id === id ? { ...item, status } : item);
+      const updated = lokgeetList.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setLokgeetList(updated);
       try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'lokgeet', id), { status }); } catch (e) { console.error(e); }
+      try { await updateDoc(doc(db, 'lokgeet', id), updatePayload); } catch (e) { console.error(e); }
     } else if (type === 'blogs') {
-      const updated = blogs.map(item => item.id === id ? { ...item, status } : item);
+      const updated = blogs.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setBlogs(updated);
       try { localStorage.setItem('local_blogs_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'blogs', id), { status }); } catch (e) { console.error(e); }
+      try { await updateDoc(doc(db, 'blogs', id), updatePayload); } catch (e) { console.error(e); }
     } else if (type === 'books') {
-      const updated = books.map(item => item.id === id ? { ...item, status } : item);
+      const updated = books.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setBooks(updated);
       try { localStorage.setItem('local_books_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'books', id), { status }); } catch (e) { console.error(e); }
+      try { await updateDoc(doc(db, 'books', id), updatePayload); } catch (e) { console.error(e); }
     } else if (type === 'submissions') {
-      const mappedStatus = status === 'approved' ? 'accepted' : status === 'rejected' ? 'rejected' : 'pending';
+      const mappedStatus = status === 'approved' || status === 'published' ? 'accepted' : status === 'rejected' ? 'rejected' : 'pending';
       const updated = submissions.map(item => item.id === id ? { ...item, status: mappedStatus as any } : item);
       setSubmissions(updated);
       try { await updateDoc(doc(db, 'submissions', id), { status: mappedStatus }); } catch (e) { console.error(e); }
@@ -1971,6 +2055,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         shabdkoshList,
         paheliList,
         lokgeetList,
+        lokgeetCategories,
+        saveLokgeetCategory,
+        deleteLokgeetCategory,
         quizQuestions,
         pages,
         editorialMembers,

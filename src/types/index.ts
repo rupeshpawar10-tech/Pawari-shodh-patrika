@@ -381,8 +381,11 @@ export interface PawariShabdkoshItem {
   category: string;
   image_url?: string;
   audio_url?: string;
+  slug?: string;
   contributor_name?: string;
-  status: 'approved' | 'pending' | 'rejected';
+  contributor_email?: string;
+  editorial_comments?: string;
+  status: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'published' | 'rejected' | string;
   created_at: string;
 }
 
@@ -395,8 +398,11 @@ export interface PawariPaheliItem {
   explanation_hindi?: string;
   category: string;
   image_url?: string;
+  slug?: string;
   contributor_name?: string;
-  status: 'approved' | 'pending' | 'rejected';
+  contributor_email?: string;
+  editorial_comments?: string;
+  status: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'published' | 'rejected' | string;
   created_at: string;
 }
 
@@ -411,8 +417,11 @@ export interface PawariLokgeetItem {
   audio_url?: string;
   youtube_url?: string;
   image_url?: string;
+  slug?: string;
   contributor_name?: string;
-  status: 'approved' | 'pending' | 'rejected';
+  contributor_email?: string;
+  editorial_comments?: string;
+  status: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'published' | 'rejected' | string;
   created_at: string;
 }
 
