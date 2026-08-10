@@ -12,6 +12,13 @@ export function updateMetaTags(
 ) {
   if (typeof document === 'undefined') return;
 
+  // Set html lang attribute
+  document.documentElement.lang = lang;
+
+  const origin = typeof window !== 'undefined' && window.location && window.location.origin 
+    ? window.location.origin 
+    : DEFAULT_DOMAIN;
+
   const journalTitle = lang === 'hi' 
     ? (settings.journal_title_hindi || 'पवारी शोध पत्रिका') 
     : (settings.journal_title_english || 'Pawari Shodh Patrika');
@@ -68,17 +75,24 @@ export function updateMetaTags(
   }
 
   // Admin route noindex
-  if (view === 'admin') {
+  if (view === 'admin' || view === 'author_article_editor') {
     document.title = `CMS Admin | ${journalTitle}`;
     addMeta('robots', 'noindex, nofollow');
     return;
   }
 
+  // Helper for absolute image URLs
+  const getAbsoluteUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return getCanonicalUrl(url);
+  };
+
   // Handle Article Detail Page
   if (view === 'article_detail' && article) {
-    const articleTitle = lang === 'hi' ? article.title_hindi : article.title_english;
-    const abstract = lang === 'hi' ? article.abstract_hindi : article.abstract_english;
-    const cleanAbstract = (abstract || '').replace(/[#*`_]/g, '').slice(0, 250) + '...';
+    const articleTitle = lang === 'hi' ? article.title_hindi || article.title_english : article.title_english || article.title_hindi;
+    const abstract = lang === 'hi' ? article.abstract_hindi || article.abstract_english : article.abstract_english || article.abstract_hindi;
+    const cleanAbstract = (abstract || '').replace(/[#*`_]/g, '').slice(0, 280).trim() + (abstract && abstract.length > 280 ? '...' : '');
     const pageUrl = getCanonicalUrl(getUrlForView('article_detail', article.slug || article.id));
 
     // Page Title
@@ -86,7 +100,9 @@ export function updateMetaTags(
 
     // Standard SEO Tags
     addMeta('description', cleanAbstract);
-    addMeta('keywords', (article.keywords || []).join(', '));
+    if (article.keywords && article.keywords.length > 0) {
+      addMeta('keywords', article.keywords.join(', '));
+    }
     addLink('canonical', pageUrl);
 
     // OpenGraph
@@ -95,21 +111,31 @@ export function updateMetaTags(
     addMeta('og:type', 'article', true);
     addMeta('og:url', pageUrl, true);
     addMeta('og:site_name', journalTitle, true);
-    if (settings.logo_url) addMeta('og:image', settings.logo_url, true);
+    if (settings.logo_url) addMeta('og:image', getAbsoluteUrl(settings.logo_url), true);
 
     // Twitter
     addMeta('twitter:card', 'summary_large_image');
     addMeta('twitter:title', articleTitle);
     addMeta('twitter:description', cleanAbstract);
+    if (settings.logo_url) addMeta('twitter:image', getAbsoluteUrl(settings.logo_url));
 
     // --- Google Scholar Highwire Press Meta Tags ---
     addMeta('citation_title', articleTitle);
-    (article.authors || []).forEach(author => {
-      if (author.name) {
-        addMeta('citation_author', author.name);
-        if (author.affiliation) {
-          addMeta('citation_author_institution', author.affiliation);
-        }
+
+    const resolvedAuthors = (article.authors || []).map(a => {
+      const authorObj = a as any;
+      const resolvedName = authorObj.name || (lang === 'hi' ? authorObj.name_hindi || authorObj.name_english : authorObj.name_english || authorObj.name_hindi) || '';
+      return {
+        name: resolvedName.trim(),
+        affiliation: (authorObj.affiliation || '').trim(),
+        orcid: authorObj.orcid
+      };
+    }).filter(a => a.name.length > 0);
+
+    resolvedAuthors.forEach(author => {
+      addMeta('citation_author', author.name);
+      if (author.affiliation) {
+        addMeta('citation_author_institution', author.affiliation);
       }
     });
 
@@ -138,13 +164,13 @@ export function updateMetaTags(
     addMeta('citation_abstract_html_url', pageUrl);
 
     if (article.page_numbers) {
-      const parts = article.page_numbers.split('-');
+      const parts = article.page_numbers.split(/[-–—]/);
       if (parts[0] && parts[0].trim()) addMeta('citation_firstpage', parts[0].trim());
       if (parts[1] && parts[1].trim()) addMeta('citation_lastpage', parts[1].trim());
     }
 
     if (article.pdf_url) {
-      addMeta('citation_pdf_url', article.pdf_url);
+      addMeta('citation_pdf_url', getAbsoluteUrl(article.pdf_url));
     }
 
     if (article.keywords && article.keywords.length > 0) {
@@ -152,6 +178,13 @@ export function updateMetaTags(
     }
 
     // JSON-LD ScholarlyArticle Schema
+    const structuredAuthors = resolvedAuthors.map(a => ({
+      '@type': 'Person',
+      'name': a.name,
+      ...(a.affiliation ? { 'affiliation': { '@type': 'Organization', 'name': a.affiliation } } : {}),
+      ...(a.orcid ? { 'sameAs': `https://orcid.org/${a.orcid}` } : {})
+    }));
+
     addJsonLd({
       '@context': 'https://schema.org',
       '@type': 'ScholarlyArticle',
@@ -159,12 +192,8 @@ export function updateMetaTags(
       'name': articleTitle,
       'abstract': cleanAbstract,
       'inLanguage': article.language === 'English' ? 'en' : 'hi',
-      'datePublished': pubDateFormatted,
-      'author': (article.authors || []).map(a => ({
-        '@type': 'Person',
-        'name': a.name,
-        'affiliation': a.affiliation ? { '@type': 'Organization', 'name': a.affiliation } : undefined
-      })),
+      'datePublished': pubDateFormatted.replace(/\//g, '-'),
+      'author': structuredAuthors,
       'isPartOf': {
         '@type': 'PublicationIssue',
         'issueNumber': String(article.issue),
@@ -181,11 +210,13 @@ export function updateMetaTags(
       },
       'mainEntityOfPage': pageUrl,
       'url': pageUrl,
-      'encoding': article.pdf_url ? {
-        '@type': 'MediaObject',
-        'contentUrl': article.pdf_url,
-        'encodingFormat': 'application/pdf'
-      } : undefined
+      ...(article.pdf_url ? {
+        'encoding': {
+          '@type': 'MediaObject',
+          'contentUrl': getAbsoluteUrl(article.pdf_url),
+          'encodingFormat': 'application/pdf'
+        }
+      } : {})
     });
 
     return;
@@ -234,6 +265,10 @@ export function updateMetaTags(
       pageTitle = lang === 'hi' ? `संपर्क एवं शोध पीठ | ${journalTitle}` : `Contact Editorial Office | ${journalTitle}`;
       description = lang === 'hi' ? 'माँ ताप्ती शोध संस्थान, मुलताई (म.प्र.) - संपर्क सूत्र, ईमेल एवं सम्पादकीय कार्यालय विवरण।' : 'Contact details, publisher address, and editorial office location for Pawari Shodh Patrika at Maa Tapti Research Institute.';
       break;
+    case 'pawari_writers':
+      pageTitle = lang === 'hi' ? `पवारी लेखक एवं शोधकर्ता | ${journalTitle}` : `Pawari Writers & Scholars | ${journalTitle}`;
+      description = lang === 'hi' ? 'पवारी भाषा, लोक-साहित्य और संस्कृति के प्रमुख लेखक, कवि और शोधकर्ताओं का परिचय।' : 'Profiles and bibliography of prominent Pawari language writers, poets, and researchers.';
+      break;
     case 'pawari_shabdkosh':
       pageTitle = `Pawari Shabdkosh (पवारी शब्दावली) | ${journalTitle}`;
       description = 'Explore the comprehensive Pawari dialect dictionary and vocabulary database.';
@@ -267,7 +302,13 @@ export function updateMetaTags(
   addMeta('og:type', 'website', true);
   addMeta('og:url', pageUrl, true);
   addMeta('og:site_name', journalTitle, true);
-  if (settings.logo_url) addMeta('og:image', settings.logo_url, true);
+  if (settings.logo_url) addMeta('og:image', getAbsoluteUrl(settings.logo_url), true);
+
+  // Twitter
+  addMeta('twitter:card', 'summary_large_image');
+  addMeta('twitter:title', pageTitle);
+  addMeta('twitter:description', description);
+  if (settings.logo_url) addMeta('twitter:image', getAbsoluteUrl(settings.logo_url));
 
   // Breadcrumb items for JSON-LD Structured Data
   const breadcrumbList = [
@@ -275,7 +316,7 @@ export function updateMetaTags(
       '@type': 'ListItem',
       'position': 1,
       'name': lang === 'hi' ? 'मुख्य पृष्ठ' : 'Home',
-      'item': DEFAULT_DOMAIN
+      'item': getCanonicalUrl('/')
     }
   ];
 
@@ -294,8 +335,8 @@ export function updateMetaTags(
     '@graph': [
       {
         '@type': 'WebSite',
-        '@id': `${DEFAULT_DOMAIN}/#website`,
-        'url': DEFAULT_DOMAIN,
+        '@id': `${getCanonicalUrl('/')}#website`,
+        'url': getCanonicalUrl('/'),
         'name': journalTitle,
         'description': description,
         'inLanguage': ['hi', 'en'],
@@ -307,7 +348,7 @@ export function updateMetaTags(
       },
       {
         '@type': 'Periodical',
-        '@id': `${DEFAULT_DOMAIN}/#periodical`,
+        '@id': `${getCanonicalUrl('/')}#periodical`,
         'name': journalTitle,
         'alternateName': settings.journal_title_english,
         'issn': [settings.issn_online, settings.issn_print].filter(i => i && i !== 'Applied For'),

@@ -211,6 +211,10 @@ export const ArchiveView: React.FC = () => {
                     <SafeImage 
                       src={issue.cover_image_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80'}
                       alt={issue.title_english}
+                      loading="lazy"
+                      decoding="async"
+                      width={96}
+                      height={128}
                       className="w-full h-full object-cover"
                     />
                   </div>

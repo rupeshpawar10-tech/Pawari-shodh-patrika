@@ -62,7 +62,11 @@ export const CurrentIssueView: React.FC = () => {
         <div className="w-28 sm:w-52 aspect-3/4 mx-auto md:mx-0 rounded-xl overflow-hidden border-2 border-amber-400/50 shadow-xl flex-shrink-0 bg-black">
           <SafeImage 
             src={currentIssue.cover_image_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80'} 
-            alt="Current Issue Cover"
+            alt="Current Journal Issue Cover"
+            loading="eager"
+            fetchPriority="high"
+            width={208}
+            height={277}
             className="w-full h-full object-cover" 
           />
         </div>

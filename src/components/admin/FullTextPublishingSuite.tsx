@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Article, Author, CustomSectionBlock, ArticleSection, ArticleMedia, ArticleRevision } from '../../types';
 import { SectionRichEditor } from './SectionRichEditor';
 import { WordPasteImporter } from '../common/WordPasteImporter';
+import { AcademicPdfExporter } from '../common/AcademicPdfExporter';
 import { ParsedWordArticle, cleanWordHtml } from '../../lib/wordParser';
 import { 
   Plus, 
@@ -317,17 +318,32 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
   const handleFinalSave = async (status: 'draft' | 'submitted' | 'published') => {
     setSaveStatus('saving');
     setIsAutosaving(true);
+
+    const introSec = sectionsList.find(s => s.section_type === 'introduction');
+    const litSec = sectionsList.find(s => s.section_type === 'literature_review');
+    const methSec = sectionsList.find(s => s.section_type === 'methodology');
+    const resSec = sectionsList.find(s => s.section_type === 'results' || s.section_type === 'discussion');
+    const concSec = sectionsList.find(s => s.section_type === 'conclusion');
+    const ackSec = sectionsList.find(s => s.section_type === 'acknowledgement');
+
     const updated: Article = {
       ...article,
       sections: sectionsList,
       status: status,
+      content_mode: 'full_text',
+      full_text_introduction: introSec?.content_html || article.full_text_introduction || '',
+      full_text_literature_review: litSec?.content_html || article.full_text_literature_review || '',
+      full_text_methodology: methSec?.content_html || article.full_text_methodology || '',
+      full_text_results_discussion: resSec?.content_html || article.full_text_results_discussion || '',
+      full_text_conclusion: concSec?.content_html || article.full_text_conclusion || '',
+      full_text_acknowledgement: ackSec?.content_html || article.full_text_acknowledgement || '',
       updated_at: new Date().toISOString()
     };
     setArticle(updated);
     try {
       await onSave(updated);
       try {
-        localStorage.setItem('draft_article_' + article.id, JSON.stringify(updated));
+        localStorage.setItem('draft_article_' + updated.id, JSON.stringify(updated));
       } catch (e) {}
       setHasUnsavedChanges(false);
       setLastSavedTime(new Date().toLocaleTimeString('hi-IN'));
@@ -391,6 +407,13 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
 
         {/* Top Actions */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Download Typeset Academic PDF */}
+          <AcademicPdfExporter
+            article={{ ...article, sections: sectionsList }}
+            lang={lang}
+            buttonLabel="Typeset PDF डाउनलोड"
+          />
+
           {/* Word Import Button */}
           <button
             type="button"

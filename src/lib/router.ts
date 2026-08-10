@@ -13,8 +13,13 @@ export interface RouteMatch {
 const DOMAIN_URL = 'https://pawari-shodh-patrika.vercel.app';
 
 export function getCanonicalUrl(path = '/'): string {
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${DOMAIN_URL}${cleanPath}`;
+  if (!path) path = '/';
+  const cleanPath = path.split('?')[0].split('#')[0].trim();
+  const normalizedPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+  const origin = typeof window !== 'undefined' && window.location && window.location.origin
+    ? window.location.origin
+    : DOMAIN_URL;
+  return `${origin}${normalizedPath}`;
 }
 
 /**
@@ -93,6 +98,10 @@ export function parseRouteFromUrl(): RouteMatch {
     if (pathname === '/articles' || pathname === '/books-literature' || pathname === '/books-blogs') {
       const tab = searchParams.get('tab') || null;
       return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab, bookId: bookParam || null, blogId: blogParam || null, isNotFound: false };
+    }
+
+    if (pathname === '/writers' || pathname === '/pawari-writers' || pathname === '/authors') {
+      return { view: 'pawari_writers', articleIdOrSlug: null, issueId: null, tab: 'writers', bookId: null, blogId: null, isNotFound: false };
     }
 
     if (pathname === '/shabdkosh' || pathname === '/pawari-shabdkosh') {
@@ -178,6 +187,7 @@ export function getUrlForView(
     case 'archive': return issueId ? `/issue/${issueId}` : '/archives';
     case 'articles':
     case 'books_blogs': return '/books-literature';
+    case 'pawari_writers': return '/writers';
     case 'pawari_shabdkosh': return '/shabdkosh';
     case 'pawari_paheli': return '/paheli';
     case 'pawari_lokgeet': return '/lokgeet';

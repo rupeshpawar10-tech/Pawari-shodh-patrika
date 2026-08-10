@@ -21,11 +21,13 @@ import { PaheliManager } from './PaheliManager';
 import { LokgeetManager } from './LokgeetManager';
 import { QuizManager } from './QuizManager';
 import { PublicContributionsManager } from './PublicContributionsManager';
+import { WritersManager } from './WritersManager';
 import { 
   LayoutDashboard, 
   FileText, 
   BookOpen, 
   Book,
+  UserCheck,
   FileCode, 
   Layers, 
   Users, 
@@ -50,11 +52,11 @@ import {
   Shield,
   ChevronDown,
   ChevronUp,
-  UserCheck,
   HelpCircle,
   Music,
   Award,
-  UserPlus
+  UserPlus,
+  Folder
 } from 'lucide-react';
 
 export const AdminLayout: React.FC = () => {
@@ -109,23 +111,24 @@ export const AdminLayout: React.FC = () => {
       ]
     },
     {
-      title: 'शोध पत्रिका एवं प्रकाशन / Publications',
+      title: 'शोध पत्रिका एवं प्रकाशन / Research Publications',
       items: [
         { id: 'articles', label: 'शोध पत्र एवं लेख (Articles)', icon: FileText },
-        { id: 'issues', label: 'अंक एवं वॉल्यूम (Volumes & Issues)', icon: BookOpen },
-        { id: 'books_blogs', label: 'पुस्तकें एवं ब्लॉग (Books & Blogs)', icon: Book }
+        { id: 'issues', label: 'अंक एवं वॉल्यूम (Volumes & Issues)', icon: BookOpen }
       ]
     },
     {
-      title: 'पवारी साहित्य एवं संस्कृति / Pawari Culture',
+      title: '📁 डिजिटलकरण संग्रह / Digitalization Repository',
       items: [
-        { id: 'shabdkosh', label: '1. पवारी शब्दकोश (Shabdkosh)', icon: BookOpen },
-        { id: 'paheli', label: '2. पवारी पहेली (Paheli)', icon: HelpCircle },
-        { id: 'lokgeet', label: '3. पवारी लोकगीत (Lokgeet)', icon: Music },
-        { id: 'cultural_quizzes', label: '4. पवारी क्विज़ (Quiz & Certificate)', icon: Award },
+        { id: 'books_blogs', label: '1. पुस्तकें एवं ब्लॉग (Books & Blogs)', icon: Book },
+        { id: 'writers', label: '2. लेखक एवं साहित्यकार (Writers & Authors)', icon: UserCheck },
+        { id: 'shabdkosh', label: '3. पवारी शब्दकोश (Shabdkosh)', icon: BookOpen },
+        { id: 'paheli', label: '4. पवारी पहेली (Paheli)', icon: HelpCircle },
+        { id: 'lokgeet', label: '5. पवारी लोकगीत (Lokgeet)', icon: Music },
+        { id: 'cultural_quizzes', label: '6. पवारी प्रश्नोत्तरी (Quiz)', icon: Award },
         { 
           id: 'public_contributions', 
-          label: '5. पाठक योगदान (Reader Contributions)', 
+          label: '7. पाठक योगदान (Reader Contributions)', 
           icon: UserPlus,
           badge: pendingContributionsCount > 0 ? `${pendingContributionsCount} new` : null,
           badgeColor: 'bg-amber-500 text-red-950 font-bold'
@@ -182,6 +185,7 @@ export const AdminLayout: React.FC = () => {
       case 'articles': return <ArticlesManager />;
       case 'issues': return <IssuesManager />;
       case 'books_blogs': return <BooksBlogsManager />;
+      case 'writers': return <WritersManager />;
       case 'shabdkosh': return <ShabdkoshManager />;
       case 'paheli': return <PaheliManager />;
       case 'lokgeet': return <LokgeetManager />;

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { PawariShabdkoshItem, PawariPaheliItem, PawariLokgeetItem, QuizQuestion, QuizCertificate } from '../../types';
+import { SafeImage } from '../common/SafeImage';
 import { 
   BookOpen, 
   HelpCircle, 
@@ -44,9 +45,41 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [shabdkoshCategory, setShabdkoshCategory] = useState('all');
+  const [shabdkoshLetter, setShabdkoshLetter] = useState('all');
   const [paheliCategory, setPaheliCategory] = useState('all');
   const [revealedPaheli, setRevealedPaheli] = useState<Record<string, boolean>>({});
   const [copiedPaheliId, setCopiedPaheliId] = useState<string | null>(null);
+
+  const HINDI_LETTERS = [
+    'all',
+    'अ', 'आ', 'इ', 'ई', 'उ', 'ऊ', 'ऋ', 'ए', 'ऐ', 'ओ', 'औ', 'अं',
+    'क', 'ख', 'ग', 'घ',
+    'च', 'छ', 'ज', 'झ',
+    'ट', 'ठ', 'ड', 'ढ',
+    'त', 'थ', 'द', 'ध', 'न',
+    'प', 'फ', 'ब', 'भ', 'म',
+    'य', 'र', 'ल', 'व',
+    'श', 'ष', 'स', 'ह',
+    'क्ष', 'त्र', 'ज्ञ'
+  ];
+
+  // Parse letter from URL on load if present
+  React.useEffect(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const letterParam = searchParams.get('letter') || searchParams.get('a');
+      if (letterParam) {
+        setShabdkoshLetter(letterParam);
+        setActiveTab('shabdkosh');
+      } else if (window.location.hash && window.location.hash.includes('letter=')) {
+        const parts = window.location.hash.split('letter=');
+        if (parts[1]) {
+          setShabdkoshLetter(decodeURIComponent(parts[1]));
+          setActiveTab('shabdkosh');
+        }
+      }
+    } catch (e) {}
+  }, []);
 
   const handleSharePaheli = async (item: PawariPaheliItem) => {
     const isAnswerRevealed = !!revealedPaheli[item.id];
@@ -139,7 +172,10 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const filteredShabdkosh = approvedShabdkosh.filter(item => {
     const matchesSearch = item.word_pawari.toLowerCase().includes(searchTerm.toLowerCase()) || item.meaning_hindi.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = shabdkoshCategory === 'all' || item.category === shabdkoshCategory;
-    return matchesSearch && matchesCategory;
+    const matchesLetter = shabdkoshLetter === 'all' || 
+                          item.word_pawari.trim().startsWith(shabdkoshLetter) ||
+                          item.word_pawari.trim().toLowerCase().startsWith(shabdkoshLetter.toLowerCase());
+    return matchesSearch && matchesCategory && matchesLetter;
   });
 
   // Paheli Filtering
@@ -440,18 +476,36 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       {/* SEARCH BAR FOR LISTINGS */}
       {activeTab !== 'quiz' && (
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-900/60 p-4 rounded-2xl border border-amber-900/30">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400/60" />
-            <input
-              type="text"
-              placeholder={
-                activeTab === 'shabdkosh' ? 'शब्द या अर्थ खोजें...' :
-                activeTab === 'paheli' ? 'पहेली या उत्तर खोजें...' : 'लोकगीत शीर्षक या बोल खोजें...'
-              }
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-amber-900/40 rounded-xl text-amber-100 placeholder-amber-400/40 focus:outline-none focus:border-amber-500 text-sm"
-            />
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400/60" />
+              <input
+                type="text"
+                placeholder={
+                  activeTab === 'shabdkosh' ? 'शब्द या अर्थ खोजें...' :
+                  activeTab === 'paheli' ? 'पहेली या उत्तर खोजें...' : 'लोकगीत शीर्षक या बोल खोजें...'
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-amber-900/40 rounded-xl text-amber-100 placeholder-amber-400/40 focus:outline-none focus:border-amber-500 text-sm"
+              />
+            </div>
+
+            {/* Compact Alphabet Selector Dropdown for Shabdkosh */}
+            {activeTab === 'shabdkosh' && (
+              <select
+                value={shabdkoshLetter}
+                onChange={(e) => setShabdkoshLetter(e.target.value)}
+                className="w-full sm:w-auto bg-slate-950 border border-amber-900/40 text-amber-200 text-xs font-semibold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 cursor-pointer"
+              >
+                <option value="all">वर्ण (अ-ज्ञ): सभी</option>
+                {HINDI_LETTERS.filter(l => l !== 'all').map(letChar => (
+                  <option key={letChar} value={letChar} className="bg-slate-900 text-amber-100">
+                    ' {letChar} ' वर्ण के शब्द
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {activeTab === 'shabdkosh' && (
@@ -513,11 +567,14 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
             >
               {item.image_url ? (
                 <div className="h-48 overflow-hidden relative bg-slate-950">
-                  <img 
+                  <SafeImage 
                     src={item.image_url} 
                     alt={item.word_pawari} 
+                    loading="lazy"
+                    decoding="async"
+                    width={380}
+                    height={192}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-70" />
                   <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-950/90 text-amber-300 border border-amber-700/50">
@@ -611,11 +668,14 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                   <div className="flex gap-4 items-start">
                     {item.image_url && (
                       <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 border border-amber-900/40 bg-slate-950">
-                        <img 
+                        <SafeImage 
                           src={item.image_url} 
                           alt="पहेली चित्र" 
+                          loading="lazy"
+                          decoding="async"
+                          width={96}
+                          height={96}
                           className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
                         />
                       </div>
                     )}
@@ -727,11 +787,14 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
               <div>
                 {item.image_url && (
                   <div className="h-44 rounded-xl overflow-hidden mb-4 relative bg-slate-950 border border-amber-900/30">
-                    <img 
+                    <SafeImage 
                       src={item.image_url} 
                       alt={item.title_pawari} 
+                      loading="lazy"
+                      decoding="async"
+                      width={500}
+                      height={176}
                       className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
                     <span className="absolute bottom-3 left-3 px-3 py-1 rounded-full text-xs font-bold bg-amber-950/90 text-amber-300 border border-amber-700/50">
@@ -976,11 +1039,14 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                   <div className="my-6 space-y-4">
                     {certificateData?.user_photo_url ? (
                       <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-4 border-amber-400 shadow-xl bg-slate-900">
-                        <img 
+                        <SafeImage 
                           src={certificateData.user_photo_url} 
                           alt={certificateData.user_name} 
+                          loading="lazy"
+                          decoding="async"
+                          width={96}
+                          height={96}
                           className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
                         />
                       </div>
                     ) : (

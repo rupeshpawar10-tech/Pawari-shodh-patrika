@@ -25,6 +25,10 @@ export const EditorialBoardView: React.FC = () => {
             <SafeImage 
               src={member.photo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'} 
               alt={member.name_english} 
+              loading="lazy"
+              decoding="async"
+              width={80}
+              height={80}
               className="w-full h-full object-cover"
               fallbackSrc="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
             />

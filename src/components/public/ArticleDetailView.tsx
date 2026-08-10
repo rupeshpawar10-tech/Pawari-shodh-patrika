@@ -4,8 +4,11 @@ import { getCanonicalUrl, getUrlForView } from '../../lib/router';
 import { updateMetaTags } from '../../lib/seo';
 import { CustomSectionBlock } from '../../types';
 import { getEmbeddablePdfUrl, downloadPdf } from '../../lib/pdfUtils';
-import { PdfCanvasViewer } from '../common/PdfCanvasViewer';
 import { SharePaperModal } from '../common/SharePaperModal';
+import { AcademicPdfExporter } from '../common/AcademicPdfExporter';
+import { SafeImage } from '../common/SafeImage';
+
+const PdfCanvasViewer = React.lazy(() => import('../common/PdfCanvasViewer').then(m => ({ default: m.PdfCanvasViewer })));
 import { 
   ArrowLeft, 
   Download, 
@@ -29,6 +32,7 @@ import {
   Hash,
   Sparkles,
   Info,
+  Loader2,
   X
 } from 'lucide-react';
 
@@ -209,6 +213,15 @@ export const ArticleDetailView: React.FC = () => {
         </button>
 
         <div className="flex items-center gap-2">
+          {article && (
+            <AcademicPdfExporter
+              article={article}
+              lang={lang}
+              variant="primary"
+              buttonLabel={lang === 'hi' ? 'Typeset PDF डाउनलोड' : 'Download Typeset PDF'}
+            />
+          )}
+
           <button
             onClick={handlePrint}
             className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-800 hover:text-slate-950 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl border border-slate-300 transition shadow-xs"
@@ -608,9 +621,11 @@ export const ArticleDetailView: React.FC = () => {
                       <figure className="my-6 p-4 sm:p-5 bg-amber-50/20 rounded-2xl border border-amber-900/15 shadow-2xs space-y-3 text-center print:break-inside-avoid">
                         {block.image_url ? (
                           <div className="relative group max-w-3xl mx-auto overflow-hidden rounded-xl border border-slate-200 bg-white">
-                            <img 
+                            <SafeImage 
                               src={block.image_url} 
                               alt={block.is_decorative ? '' : (block.alt_text || block.caption || block.title || 'Academic Figure Image')} 
+                              loading="lazy"
+                              decoding="async"
                               className="max-h-[500px] w-auto mx-auto object-contain cursor-zoom-in transition duration-200 group-hover:opacity-95" 
                               onClick={() => { setSelectedFigure(block); setLightboxZoom(1); }}
                             />
@@ -805,9 +820,11 @@ export const ArticleDetailView: React.FC = () => {
                       <figure key={figBlock.id} className="p-4 bg-amber-50/20 rounded-2xl border border-amber-900/15 shadow-2xs flex flex-col justify-between space-y-3 print:break-inside-avoid">
                         {figBlock.image_url ? (
                           <div className="relative group overflow-hidden rounded-xl border border-slate-200 bg-white">
-                            <img
+                            <SafeImage
                               src={figBlock.image_url}
                               alt={figBlock.is_decorative ? '' : (figBlock.alt_text || figBlock.caption || figBlock.title || 'Appendix Figure')}
+                              loading="lazy"
+                              decoding="async"
                               className="max-h-80 w-auto mx-auto object-contain cursor-zoom-in hover:opacity-95 transition"
                               onClick={() => { setSelectedFigure(figBlock); setLightboxZoom(1); }}
                             />
@@ -904,12 +921,19 @@ export const ArticleDetailView: React.FC = () => {
         {/* TAB 3: EMBEDDED PDF READER */}
         {activeTab === 'pdf' && article.pdf_url && !window.matchMedia('print').matches && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            <PdfCanvasViewer 
-              url={article.pdf_url || ''} 
-              title={lang === 'hi' ? article.title_hindi : article.title_english} 
-              onDownload={handleDownload}
-              className="h-[680px]" 
-            />
+            <React.Suspense fallback={
+              <div className="flex flex-col items-center justify-center h-[400px] bg-slate-900 rounded-xl text-amber-400 p-8 space-y-3">
+                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                <p className="text-xs font-mono text-slate-400">Loading PDF Reader Engine...</p>
+              </div>
+            }>
+              <PdfCanvasViewer 
+                url={article.pdf_url || ''} 
+                title={lang === 'hi' ? article.title_hindi : article.title_english} 
+                onDownload={handleDownload}
+                className="h-[680px]" 
+              />
+            </React.Suspense>
           </div>
         )}
 
@@ -1041,9 +1065,10 @@ export const ArticleDetailView: React.FC = () => {
             {/* Lightbox Image Stage */}
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-950/80 min-h-[320px]">
               {selectedFigure.image_url ? (
-                <img
+                <SafeImage
                   src={selectedFigure.image_url}
                   alt={selectedFigure.is_decorative ? '' : (selectedFigure.alt_text || selectedFigure.caption || selectedFigure.title || 'Academic Figure')}
+                  decoding="async"
                   style={{ transform: `scale(${lightboxZoom})`, transition: 'transform 0.15s ease-out' }}
                   className="max-h-[68vh] object-contain rounded-lg shadow-2xl"
                 />

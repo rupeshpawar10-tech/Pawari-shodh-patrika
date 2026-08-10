@@ -1,3 +1,5 @@
+import { PawariWriterItem } from '../types';
+
 export interface AttachedItem {
   id?: string;
   title: string;
@@ -385,4 +387,95 @@ Suresh Deshmukh’s work provides an indispensable guide for understanding Pawar
     ]
   }
 ];
+
+export const SAMPLE_WRITERS: PawariWriterItem[] = [
+  {
+    id: 'writer-1',
+    name_hindi: 'डॉ. कैलाश पवार',
+    name_english: 'Dr. Kailash Pawar',
+    photo_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80',
+    designation_hindi: 'वरिष्ठ पवारी भाषाविद् एवं शोधकर्ता',
+    designation_english: 'Senior Pawari Linguist & Scholar',
+    location_hindi: 'मुलताई (जिला बैतूल, म.प्र.)',
+    location_english: 'Multai (Betul District, M.P.)',
+    specialization_hindi: 'पवारी भाषाविज्ञान, ध्वनिविज्ञान एवं लोकसाहित्य',
+    bio_hindi: 'डॉ. कैलाश पवार माँ ताप्ती शोध संस्थान, मुलताई के अध्यक्ष एवं पवारी भाषा व लोकसाहित्य के अग्रणी शोधकर्ता हैं। इन्होंने पवारी बोली के ध्वनिविज्ञान, व्याकरण, एवं शब्दकोश पर विगत 25 वर्षों में गहन शोध कार्य किया है। इनके संपादन में अनेक प्रामाणिक ग्रंथ एवं शोध पत्रिकाएं प्रकाशित हुई हैं।',
+    bio_english: 'Dr. Kailash Pawar is the President of Maa Tapti Shodh Sansthan, Multai, and a pioneering researcher of Pawari language and folklore.',
+    awards_hindi: ['माँ ताप्ती साहित्य रत्न सम्मान (2024)', 'मध्य प्रदेश लोकसंस्कृति शोध पुरस्कार', 'सतपुड़ा भाषा गौरव उपाधि'],
+    published_books: ['पवारी बोली एवं लोकसाहित्य का प्रामाणिक इतिहास', 'पवारी-हिंदी-अंग्रेजी शब्दकोश'],
+    published_blogs: ['पवारी बोली का उद्भव और ऐतिहासिक प्रसार', 'पवारी लोकगीत और ताप्ती अंचल'],
+    contact_email: 'dr.kailashpawar@pawarishodh.org',
+    contact_phone: '+91 94250 12345',
+    website_url: 'https://pawarishodh.org/scholars/dr-kailash-pawar',
+    social_links: {
+      facebook: 'https://facebook.com/pawarishodh',
+      youtube: 'https://youtube.com/@pawarishodh',
+      wikipedia: 'https://hi.wikipedia.org'
+    },
+    is_featured: true,
+    status: 'approved',
+    created_at: '2026-01-10T00:00:00.000Z'
+  },
+  {
+    id: 'writer-2',
+    name_hindi: 'प्रो. रामेश्वर शर्मा',
+    name_english: 'Prof. Rameshwar Sharma',
+    photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
+    designation_hindi: 'लोकसंस्कृतिविद् एवं साहित्यकार',
+    designation_english: 'Folklorist & Eminent Literary Scholar',
+    location_hindi: 'छिंदवाड़ा एवं नागपुर (अंचल)',
+    location_english: 'Chhindwara & Nagpur Region',
+    specialization_hindi: 'मध्य भारत का लोकसाहित्य एवं लोकगीत',
+    bio_hindi: 'प्रो. रामेश्वर शर्मा सतपुड़ा एवं वर्धा-नागपुर सीमावर्ती अंचल के मूर्धन्य लोकसंस्कृतिविद हैं। इन्होंने पवारी लोकगीतों, विवाह गीतों एवं लोककथाओं का व्यापक क्षेत्रीय संकलन तथा वैज्ञानिक विश्लेषण किया है।',
+    bio_english: 'Prof. Rameshwar Sharma is a renowned folklorist specializing in Central Indian oral literature.',
+    awards_hindi: ['सतपुड़ा साहित्य गौरव (2023)', 'लोककला संवर्धन पुरस्कार'],
+    published_books: ['सतपुड़ा अंचल के पवारी लोकगीत एवं कथाएं', 'पवारी लोकगाथाएं और मौखिक परंपरा'],
+    published_blogs: ['डिजिटल युग में पवारी लोकसाहित्य का दस्तावेजीकरण'],
+    contact_email: 'rameshwar.sharma@pawarishodh.org',
+    is_featured: true,
+    status: 'approved',
+    created_at: '2026-01-12T00:00:00.000Z'
+  },
+  {
+    id: 'writer-3',
+    name_hindi: 'डॉ. अनिता मालवीय',
+    name_english: 'Dr. Anita Malviya',
+    photo_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&auto=format&fit=crop&q=80',
+    designation_hindi: 'पवारी कवयित्री एवं लेखिका',
+    designation_english: 'Pawari Poetess & Author',
+    location_hindi: 'बैतूल (म.प्र.)',
+    location_english: 'Betul (M.P.)',
+    specialization_hindi: 'पवारी काव्य सृजन एवं नारी लोक चेतना',
+    bio_hindi: 'डॉ. अनिता मालवीय पवारी भाषा में आधुनिक काव्य सृजन करने वाली प्रमुख रचनाकार हैं। इनकी रचनाएं पवारी समाज में नारी चेतना, पर्यावरण संरक्षण और लोक उत्सवों को समर्पित हैं।',
+    bio_english: 'Dr. Anita Malviya is a prominent Pawari poetess creating modern literature rooted in folk tradition.',
+    awards_hindi: ['पवारी काव्य श्री सम्मान (2025)', 'महिला साहित्य सर्जना पुरस्कार'],
+    published_books: ['पवारी काव्य धारा: लोक चेतना के स्वर'],
+    published_blogs: ['पवारी लोकोत्सवों में मातृशक्तियों की भूमिका'],
+    contact_email: 'anita.malviya@pawarishodh.org',
+    is_featured: true,
+    status: 'approved',
+    created_at: '2026-01-15T00:00:00.000Z'
+  },
+  {
+    id: 'writer-4',
+    name_hindi: 'श्री सुरेश देशमुख',
+    name_english: 'Shri Suresh Deshmukh',
+    photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
+    designation_hindi: 'पवारी लोकसाहित्यकार एवं संस्कृति-अनुसंधानकर्ता',
+    designation_english: 'Pawari Folklorist & Cultural Researcher',
+    location_hindi: 'सिवनी (म.प्र.)',
+    location_english: 'Seoni (M.P.)',
+    specialization_hindi: 'पवारी कहावतें, पहेलियाँ एवं लोकदेवता अनुष्ठान',
+    bio_hindi: 'श्री सुरेश देशमुख सिवनी-छिंदवाड़ा क्षेत्र में पवारी लोक मुहावरों, कहावतों एवं पहेलियों के अग्रणी संकलनकर्ता हैं। इनके निरंतर प्रयासों से पवारी बोली के लुप्तप्राय शब्दों को नया जीवन मिला है।',
+    bio_english: 'Shri Suresh Deshmukh is an esteemed author collecting Pawari riddles and proverbs.',
+    awards_hindi: ['पवारी लोकसेवा सम्मान', 'सतपुड़ा शोध रत्न'],
+    published_books: ['पवारी लोक कहावतें एवं बुझौवल', 'सतपुड़ा के लोकदेवता और अनुष्ठान'],
+    published_blogs: ['सतपुड़ा की पवारी कहावतों में सामाजिक दर्शन'],
+    contact_email: 'suresh.deshmukh@pawarishodh.org',
+    is_featured: false,
+    status: 'approved',
+    created_at: '2026-01-20T00:00:00.000Z'
+  }
+];
+
 

@@ -114,6 +114,7 @@ export const AdminLogin: React.FC = () => {
               <input
                 type="email"
                 required
+                aria-label="Email Address"
                 placeholder="editor@pawari.org"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -129,6 +130,7 @@ export const AdminLogin: React.FC = () => {
               <input
                 type="password"
                 required
+                aria-label="Password"
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}

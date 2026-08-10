@@ -12,25 +12,28 @@ import {
   UserCheck, 
   LogOut, 
   ChevronRight,
+  ChevronDown,
   Sparkles,
   FileText,
   Search,
-  Award
+  Award,
+  Folder
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { lang, setLang, activeView, setActiveView, settings, setSelectedArticleId } = useCms();
   const { currentUser, userProfile, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [desktopDropdownOpen, setDesktopDropdownOpen] = useState(false);
+  const [mobileDropdownOpen, setMobileDropdownOpen] = useState(true);
 
   const navs = settings.navigation_labels;
 
-  const navItems: { key: PublicPageView; label: string }[] = [
+  const mainNav: { key: PublicPageView; label: string }[] = [
     { key: 'home', label: lang === 'hi' ? navs.home_hindi : navs.home_english },
     { key: 'about', label: lang === 'hi' ? navs.about_hindi : navs.about_english },
     { key: 'current_issue', label: lang === 'hi' ? navs.current_issue_hindi : navs.current_issue_english },
     { key: 'archive', label: lang === 'hi' ? navs.archive_hindi : navs.archive_english },
-    { key: 'books_blogs', label: lang === 'hi' ? '📚 पुस्तकें, ब्लॉग एवं पवारी साहित्य' : 'Books, Blogs & Literature' },
     { key: 'editorial_board', label: lang === 'hi' ? navs.editorial_board_hindi : navs.editorial_board_english },
     { key: 'author_guidelines', label: lang === 'hi' ? navs.author_guidelines_hindi : navs.author_guidelines_english },
     { key: 'contact', label: lang === 'hi' ? navs.contact_hindi : navs.contact_english },
@@ -65,7 +68,15 @@ export const Header: React.FC = () => {
           {/* Emblem / Seal Logo */}
           <div className="w-8 h-8 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-red-900 via-red-950 to-amber-900 border border-amber-500/50 p-0.5 flex items-center justify-center shadow-2xs flex-shrink-0 group-hover:scale-105 transition duration-200 overflow-hidden">
             {settings.logo_url ? (
-              <SafeImage src={settings.logo_url} alt="Seal" className="w-full h-full object-contain rounded-full" />
+              <SafeImage 
+                src={settings.logo_url} 
+                alt="Journal Seal Logo" 
+                loading="eager"
+                fetchPriority="high"
+                width={48}
+                height={48}
+                className="w-full h-full object-contain rounded-full" 
+              />
             ) : (
               <div className="w-full h-full rounded-full border border-amber-300/40 flex flex-col items-center justify-center bg-red-950 text-amber-300 p-0.5">
                 <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 stroke-[1.75]" />
@@ -159,8 +170,8 @@ export const Header: React.FC = () => {
         <div className="max-w-7xl mx-auto px-2 sm:px-6">
           
           {/* Desktop Nav Items */}
-          <nav className="hidden lg:flex items-center justify-between overflow-x-auto py-0">
-            {navItems.map((item) => {
+          <nav className="hidden lg:flex items-center justify-between overflow-x-visible py-0">
+            {mainNav.map((item) => {
               const isActive = activeView === item.key;
               const href = getUrlForView(item.key);
               return (
@@ -190,7 +201,7 @@ export const Header: React.FC = () => {
         {/* Mobile Drawer */}
         {mobileMenuOpen && (
           <div className="lg:hidden bg-red-950 border-t border-amber-500/20 px-3 py-2 space-y-1 animate-in slide-in-from-top-2 duration-150">
-            {navItems.map((item) => {
+            {mainNav.map((item) => {
               const isActive = activeView === item.key;
               const href = getUrlForView(item.key);
               return (

@@ -1,4 +1,3 @@
-// @ts-ignore
 import mammoth from 'mammoth';
 import { Author, CustomSectionBlock, Article } from '../types';
 
@@ -153,7 +152,7 @@ export async function parseWordArticle(input: {
       const result = await mammoth.convertToHtml(
         { arrayBuffer },
         {
-          convertImage: mammoth.images.inline((element: any) => {
+          convertImage: (mammoth.images as any).inline((element: any) => {
             return element.read("base64").then((imageBuffer: string) => ({
               src: `data:${element.contentType};base64,${imageBuffer}`
             }));

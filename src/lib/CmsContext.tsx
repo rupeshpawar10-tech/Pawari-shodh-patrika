@@ -25,9 +25,10 @@ import {
   PawariPaheliItem,
   PawariLokgeetItem,
   QuizQuestion,
-  QuizCertificate
+  QuizCertificate,
+  PawariWriterItem
 } from '../types';
-import { BookItem, BlogItem, SAMPLE_BOOKS, SAMPLE_BLOGS } from '../data/booksBlogsData';
+import { BookItem, BlogItem, SAMPLE_BOOKS, SAMPLE_BLOGS, SAMPLE_WRITERS } from '../data/booksBlogsData';
 import { 
   SAMPLE_SHABDKOSH, 
   SAMPLE_PAHELI, 
@@ -113,6 +114,7 @@ export type PublicPageView =
   | 'archive' 
   | 'articles' 
   | 'books_blogs'
+  | 'pawari_writers'
   | 'pawari_shabdkosh'
   | 'pawari_paheli'
   | 'pawari_lokgeet'
@@ -130,6 +132,7 @@ export type AdminTab =
   | 'articles' 
   | 'issues' 
   | 'books_blogs'
+  | 'writers'
   | 'shabdkosh'
   | 'paheli'
   | 'lokgeet'
@@ -169,6 +172,7 @@ interface CmsContextType {
   issues: Issue[];
   books: BookItem[];
   blogs: BlogItem[];
+  writers: PawariWriterItem[];
   shabdkoshList: PawariShabdkoshItem[];
   paheliList: PawariPaheliItem[];
   lokgeetList: PawariLokgeetItem[];
@@ -202,6 +206,8 @@ interface CmsContextType {
   deleteBook: (id: string) => Promise<void>;
   saveBlog: (blog: BlogItem) => Promise<void>;
   deleteBlog: (id: string) => Promise<void>;
+  saveWriter: (writer: PawariWriterItem) => Promise<void>;
+  deleteWriter: (id: string) => Promise<void>;
   
   // Shabdkosh, Paheli, Lokgeet, Quiz CRUD
   saveShabdkosh: (item: PawariShabdkoshItem) => Promise<void>;
@@ -463,8 +469,26 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const [settings, setSettings] = useState<JournalSettings>(DEFAULT_SETTINGS);
-  const [articles, setArticles] = useState<Article[]>(SAMPLE_ARTICLES);
-  const [issues, setIssues] = useState<Issue[]>(SAMPLE_ISSUES);
+  const [articles, setArticles] = useState<Article[]>(() => {
+    try {
+      const saved = localStorage.getItem('local_articles_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return SAMPLE_ARTICLES;
+  });
+  const [issues, setIssues] = useState<Issue[]>(() => {
+    try {
+      const saved = localStorage.getItem('local_issues_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return SAMPLE_ISSUES;
+  });
   const [books, setBooks] = useState<BookItem[]>(() => {
     try {
       const saved = localStorage.getItem('local_books_cache');
@@ -484,6 +508,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (e) {}
     return SAMPLE_BLOGS;
+  });
+
+  const [writers, setWriters] = useState<PawariWriterItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('pawari_writers_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return SAMPLE_WRITERS;
   });
 
   const [shabdkoshList, setShabdkoshList] = useState<PawariShabdkoshItem[]>(() => {
@@ -770,6 +805,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Fallback silently
       }
 
+      // 3.3 Writers & Authors
+      try {
+        const writersSnap = await getDocs(collection(db, 'writers'));
+        if (!writersSnap.empty && isMounted) {
+          const loadedWriters = writersSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariWriterItem));
+          setWriters(loadedWriters);
+          try { localStorage.setItem('pawari_writers_cache', JSON.stringify(loadedWriters)); } catch (e) {}
+        }
+      } catch (e) {
+        // Fallback silently
+      }
+
       // 4. Pages
       try {
         const pagesSnap = await getDocs(collection(db, 'pages'));
@@ -852,35 +899,35 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Fallback silently
       }
 
-      // 7. Media Library
-      try {
-        const mediaSnap = await getDocs(collection(db, 'media'));
-        if (!mediaSnap.empty && isMounted) {
-          const items = mediaSnap.docs.map(d => ({ id: d.id, ...d.data() } as MediaFile));
-          setMediaFiles(items);
+      // 7. Media Library, Contact Messages, Submissions (Staff Only)
+      if (auth.currentUser) {
+        try {
+          const mediaSnap = await getDocs(collection(db, 'media'));
+          if (!mediaSnap.empty && isMounted) {
+            const items = mediaSnap.docs.map(d => ({ id: d.id, ...d.data() } as MediaFile));
+            setMediaFiles(items);
+          }
+        } catch (e) {
+          // Silent fallback
         }
-      } catch (e) {
-        // Silent fallback
-      }
 
-      // 8. Contact Messages
-      try {
-        const msgSnap = await getDocs(collection(db, 'contact_messages'));
-        if (!msgSnap.empty && isMounted) {
-          setContactMessages(msgSnap.docs.map(d => ({ id: d.id, ...d.data() } as ContactMessage)));
+        try {
+          const msgSnap = await getDocs(collection(db, 'contact_messages'));
+          if (!msgSnap.empty && isMounted) {
+            setContactMessages(msgSnap.docs.map(d => ({ id: d.id, ...d.data() } as ContactMessage)));
+          }
+        } catch (e) {
+          // Silent fallback
         }
-      } catch (e) {
-        // Silent fallback
-      }
 
-      // 9. Submissions
-      try {
-        const subSnap = await getDocs(collection(db, 'submissions'));
-        if (!subSnap.empty && isMounted) {
-          setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() } as import('../types').Submission)));
+        try {
+          const subSnap = await getDocs(collection(db, 'submissions'));
+          if (!subSnap.empty && isMounted) {
+            setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() } as import('../types').Submission)));
+          }
+        } catch (e) {
+          // Silent fallback
         }
-      } catch (e) {
-        // Silent fallback
       }
 
       if (isMounted) {
@@ -995,7 +1042,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveArticle = async (article: Article) => {
-    let articleToSave = { ...article };
+    // Sanitize article object to strip out undefined values which cause Firestore setDoc failures
+    let articleToSave: Article = JSON.parse(JSON.stringify(article));
 
     // If pdf_url is a base64 Data URL, isolate it to user_files collection to prevent exceeding Firestore's 1MB document limit
     if (articleToSave.pdf_url && (articleToSave.pdf_url.startsWith('data:') || articleToSave.pdf_url.length > 300)) {
@@ -1026,7 +1074,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (e) {}
 
       try {
-        await setDoc(doc(db, 'user_files', fileId), userFileRecord);
+        await setDoc(doc(db, 'user_files', fileId), JSON.parse(JSON.stringify(userFileRecord)));
         articleToSave.pdf_url = fileId;
         articleToSave.pdf_storage_path = storagePath;
       } catch (err) {
@@ -1043,7 +1091,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {}
 
     try {
-      await setDoc(doc(db, 'articles', articleToSave.id), articleToSave);
+      const cleanData = JSON.parse(JSON.stringify(articleToSave));
+      await setDoc(doc(db, 'articles', articleToSave.id), cleanData);
       console.log(`[saveArticle] Successfully saved article metadata to Firestore with pdf_url: ${articleToSave.pdf_url}`);
     } catch (e) {
       console.error('Error saving article to Firestore:', e);
@@ -1181,6 +1230,49 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       action: 'delete',
       title: `Deleted Blog Post "${blogToDelete?.title_hindi || blogToDelete?.title_english || id}"`,
       details: `Removed blog post entry`
+    }).catch(console.warn);
+  };
+
+  const saveWriter = async (writer: PawariWriterItem) => {
+    const isNew = !writers.some(w => w.id === writer.id);
+    const updated = writers.filter(w => w.id !== writer.id);
+    updated.unshift(writer);
+    setWriters(updated);
+    try {
+      localStorage.setItem('pawari_writers_cache', JSON.stringify(updated));
+    } catch (e) {}
+    try {
+      await setDoc(doc(db, 'writers', writer.id), writer);
+    } catch (e) {
+      console.error('Error saving writer:', e);
+    }
+
+    logActivity({
+      category: 'writers' as any,
+      action: isNew ? 'create' : 'update',
+      title: isNew ? `Added New Writer Profile "${writer.name_hindi || writer.name_english}"` : `Updated Writer Profile "${writer.name_hindi || writer.name_english}"`,
+      details: `Designation: ${writer.designation_hindi || 'N/A'}, Region: ${writer.location_hindi || 'N/A'}`
+    }).catch(console.warn);
+  };
+
+  const deleteWriter = async (id: string) => {
+    const writerToDelete = writers.find(w => w.id === id);
+    const updated = writers.filter(w => w.id !== id);
+    setWriters(updated);
+    try {
+      localStorage.setItem('pawari_writers_cache', JSON.stringify(updated));
+    } catch (e) {}
+    try {
+      await deleteDoc(doc(db, 'writers', id));
+    } catch (e) {
+      console.error('Error deleting writer:', e);
+    }
+
+    logActivity({
+      category: 'writers' as any,
+      action: 'delete',
+      title: `Deleted Writer Profile "${writerToDelete?.name_hindi || writerToDelete?.name_english || id}"`,
+      details: `Removed writer from repository`
     }).catch(console.warn);
   };
 
@@ -1875,6 +1967,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         issues,
         books,
         blogs,
+        writers,
         shabdkoshList,
         paheliList,
         lokgeetList,
@@ -1902,6 +1995,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteBook,
         saveBlog,
         deleteBlog,
+        saveWriter,
+        deleteWriter,
         saveShabdkosh,
         deleteShabdkosh,
         savePaheli,

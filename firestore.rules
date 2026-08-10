@@ -2,83 +2,135 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'rupeshpawar10@gmail.com') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin')
+      );
+    }
+
+    function isCmsStaff() {
+      return isSignedIn() && (
+        isSuperAdmin() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         (
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'director' ||
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'editorial' ||
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'editor'
+         ))
+      );
+    }
+
     // Settings collection
     match /settings/{settingId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
     // Pages collection
     match /pages/{pageId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
     // Homepage sections layout config
     match /homepage_sections/{sectionId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
     // Articles collection
     match /articles/{articleId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
     // Issues collection
     match /issues/{issueId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
     // Editorial Board collections
     match /editorial_board/{memberId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
     match /editorial_members/{memberId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
     // Announcements collection
     match /announcements/{announcementId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
-    // Contact Messages
+    // Contact Messages - Public create, CMS staff read/write
     match /contact_messages/{messageId} {
-      allow read, write: if true;
+      allow create: if true;
+      allow read, update, delete: if isCmsStaff();
     }
 
-    // Submissions
+    // Submissions / Reader Contributions - Public create, CMS staff read/write
     match /submissions/{submissionId} {
-      allow read, write: if true;
+      allow create: if true;
+      allow read, update, delete: if isCmsStaff();
     }
 
     // Roles collection
     match /roles/{roleId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
     // Media Library
     match /media/{mediaId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
     // Books collection
     match /books/{bookId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
     // Blogs collection
     match /blogs/{blogId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isCmsStaff();
     }
 
     // User Files collection (Base64 file storage in Firestore)
     match /user_files/{fileId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // Users Collection (RBAC Profiles)
     match /users/{userId} {
-      allow read, write: if true;
+      allow get: if isOwner(userId) || isCmsStaff();
+      allow list: if isCmsStaff() || (
+        isSignedIn() && (
+          resource.data.email == request.auth.token.email ||
+          resource.data.uid == request.auth.uid
+        )
+      );
+      allow create, update: if isOwner(userId) || isCmsStaff();
+      allow delete: if isCmsStaff();
     }
   }
 }

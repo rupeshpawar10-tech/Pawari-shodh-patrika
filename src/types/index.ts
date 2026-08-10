@@ -437,3 +437,31 @@ export interface QuizCertificate {
   certificate_no: string;
 }
 
+export interface PawariWriterItem {
+  id: string;
+  name_hindi: string;
+  name_english: string;
+  photo_url?: string;
+  designation_hindi?: string;
+  designation_english?: string;
+  location_hindi?: string;
+  location_english?: string;
+  bio_hindi: string;
+  bio_english?: string;
+  specialization_hindi?: string;
+  awards_hindi?: string[];
+  published_books?: string[];
+  published_blogs?: string[];
+  contact_email?: string;
+  contact_phone?: string;
+  website_url?: string;
+  social_links?: {
+    facebook?: string;
+    youtube?: string;
+    wikipedia?: string;
+  };
+  is_featured?: boolean;
+  status: 'approved' | 'pending' | 'rejected';
+  created_at: string;
+}
+

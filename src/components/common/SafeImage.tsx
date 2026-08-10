@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { fileBlobManager } from '../../lib/fileBlobManager';
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -9,9 +8,24 @@ interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   className?: string;
   aspectRatio?: string;
   showFallbackIconOnFail?: boolean;
+  fetchPriority?: 'high' | 'low' | 'auto';
 }
 
-const DEFAULT_FALLBACK = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&auto=format&fit=crop&q=80';
+const DEFAULT_FALLBACK = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80';
+
+const getInitialResolvedUrl = (src?: string | null, fallbackSrc?: string): string => {
+  if (!src || src.trim() === '') return fallbackSrc || DEFAULT_FALLBACK;
+  const trimmed = src.trim();
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('blob:')
+  ) {
+    return trimmed;
+  }
+  return '';
+};
 
 export const SafeImage: React.FC<SafeImageProps> = ({
   src,
@@ -20,51 +34,51 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   className = '',
   showFallbackIconOnFail = true,
   onError,
+  loading: loadingProp,
+  decoding = 'async',
+  fetchPriority,
   ...props
 }) => {
-  const [resolvedUrl, setResolvedUrl] = useState<string>('');
+  const initialUrl = getInitialResolvedUrl(src, fallbackSrc);
+  const [resolvedUrl, setResolvedUrl] = useState<string>(initialUrl);
   const [hasError, setHasError] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(!initialUrl);
 
   useEffect(() => {
     let isMounted = true;
-    setHasError(false);
-    setLoading(true);
+    const currentInitial = getInitialResolvedUrl(src, fallbackSrc);
+
+    if (currentInitial) {
+      setResolvedUrl(currentInitial);
+      setHasError(false);
+      setLoading(false);
+      return;
+    }
 
     if (!src || src.trim() === '') {
-      setResolvedUrl(fallbackSrc);
+      setResolvedUrl(fallbackSrc || DEFAULT_FALLBACK);
+      setHasError(false);
       setLoading(false);
       return;
     }
 
     const trimmed = src.trim();
+    setHasError(false);
+    setLoading(true);
 
-    // Direct HTTP, HTTPS, Data URL, Blob URL
-    if (
-      trimmed.startsWith('http://') ||
-      trimmed.startsWith('https://') ||
-      trimmed.startsWith('data:') ||
-      trimmed.startsWith('blob:')
-    ) {
-      setResolvedUrl(trimmed);
-      setLoading(false);
-      return;
-    }
-
-    // Attempt to resolve file_ ID or stored reference
     fileBlobManager.getBlobUrl(trimmed).then(resolved => {
       if (isMounted) {
         if (resolved && resolved.trim() !== '') {
           setResolvedUrl(resolved);
         } else {
-          setResolvedUrl(fallbackSrc);
+          setResolvedUrl(fallbackSrc || DEFAULT_FALLBACK);
         }
         setLoading(false);
       }
     }).catch(err => {
       console.warn('[SafeImage] Failed to resolve URL:', err);
       if (isMounted) {
-        setResolvedUrl(fallbackSrc);
+        setResolvedUrl(fallbackSrc || DEFAULT_FALLBACK);
         setLoading(false);
       }
     });
@@ -100,12 +114,16 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 
   return (
     <img
-      src={resolvedUrl || fallbackSrc}
+      src={resolvedUrl || fallbackSrc || DEFAULT_FALLBACK}
       alt={alt}
       referrerPolicy="no-referrer"
       onError={handleError}
-      className={`${className} ${loading ? 'opacity-80 animate-pulse' : 'opacity-100'} transition-opacity duration-200`}
+      loading={loadingProp}
+      decoding={decoding}
+      fetchPriority={fetchPriority}
+      className={`${className} ${loading ? 'opacity-80' : 'opacity-100'} transition-opacity duration-150`}
       {...props}
     />
   );
 };
+

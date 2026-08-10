@@ -73,7 +73,7 @@ export const WordPasteImporter: React.FC<WordPasteImporterProps> = ({
     const items = Array.from(clipboardData.items || []);
     const imagePromises: Promise<string>[] = [];
 
-    items.forEach((item) => {
+    items.forEach((item: any) => {
       if (item.type.startsWith('image/')) {
         const file = item.getAsFile();
         if (file) {

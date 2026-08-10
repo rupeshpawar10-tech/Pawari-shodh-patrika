@@ -11,7 +11,7 @@ import {
   signOut as secondarySignOut
 } from 'firebase/auth';
 import { initializeApp, getApps } from 'firebase/app';
-import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, where } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { UserProfile, Role, UserRole, CustomRole, RolePermissions } from '../types';
@@ -312,12 +312,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Reassign users with deleted role back to editorial
     try {
-      const snap = await getDocs(collection(db, 'users'));
-      snap.forEach(async (uDoc) => {
-        const uData = uDoc.data() as UserProfile;
-        if (uData.role === roleId) {
-          await setDoc(doc(db, 'users', uDoc.id), { role: 'editorial' }, { merge: true });
-        }
+      allUsers.filter(u => u.role === (roleId as any)).forEach(async (u) => {
+        try {
+          await setDoc(doc(db, 'users', u.uid), { role: 'editorial' }, { merge: true });
+        } catch (e) {}
       });
     } catch (e) {}
 
@@ -328,8 +326,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await refreshUsersList();
   };
 
-  // Helper to fetch all users for Super Admin management view
+  // Helper to fetch all users for Super Admin / Staff management view
   const refreshUsersList = async () => {
+    // Role & auth check: Only fetch full users collection if user is authenticated and is staff
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    const email = currentUser.email?.toLowerCase().trim() || '';
+    const isSuperAdmin = email === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase();
+
+    const savedUserStr = localStorage.getItem('pawari_cms_user');
+    let currentRole = userProfile?.role;
+    if (!currentRole && savedUserStr) {
+      try {
+        currentRole = JSON.parse(savedUserStr)?.role;
+      } catch (e) {}
+    }
+
+    const isStaff = isSuperAdmin || ['super_admin', 'director', 'editorial', 'editor'].includes(currentRole || '');
+    if (!isStaff) {
+      return;
+    }
+
     try {
       const deletedIds = getDeletedUserIds();
       const isDeleted = (uUid: string, uEmail?: string) => {
@@ -352,24 +372,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (list.length === 0) {
-        // Seed default sample users into Firestore ONLY if they haven't been deleted
-        const sampleToSeed: UserProfile[] = [];
-        for (const u of DEFAULT_SAMPLE_USERS) {
-          if (!isDeleted(u.uid, u.email)) {
-            sampleToSeed.push(u);
-            try {
-              await setDoc(doc(db, 'users', u.uid), u, { merge: true });
-            } catch (e) {
-              console.warn('Error seeding default user:', u.email, e);
+        // Seed default sample users into Firestore ONLY if super admin
+        if (isSuperAdmin) {
+          const sampleToSeed: UserProfile[] = [];
+          for (const u of DEFAULT_SAMPLE_USERS) {
+            if (!isDeleted(u.uid, u.email)) {
+              sampleToSeed.push(u);
+              try {
+                await setDoc(doc(db, 'users', u.uid), u, { merge: true });
+              } catch (e) {
+                console.warn('Error seeding default user:', u.email, e);
+              }
             }
           }
+          setAllUsers(sampleToSeed);
         }
-        setAllUsers(sampleToSeed);
       } else {
         setAllUsers(list);
       }
     } catch (err) {
-      console.warn('refreshUsersList error, falling back to DEFAULT_SAMPLE_USERS:', err);
+      console.warn('refreshUsersList safe warning:', err);
       const deletedIds = getDeletedUserIds();
       setAllUsers(DEFAULT_SAMPLE_USERS.filter(u => !deletedIds.includes(u.uid) && !deletedIds.includes(u.email.toLowerCase().trim())));
     }
@@ -391,9 +413,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Load initial roles list and users list
+    // Load initial roles list (do not fetch users list until user is authenticated as staff)
     refreshRolesList();
-    refreshUsersList();
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -435,8 +456,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             let snap = await getDoc(userDocRef);
             let matchedProfile: UserProfile | null = snap.exists() ? (snap.data() as UserProfile) : null;
 
-            if (!matchedProfile) {
-              const qSnap = await getDocs(collection(db, 'users'));
+            if (!matchedProfile && email) {
+              const q = query(collection(db, 'users'), where('email', '==', email));
+              const qSnap = await getDocs(q);
               qSnap.forEach(d => {
                 const u = d.data() as UserProfile;
                 if (u.email?.toLowerCase().trim() === email) {
@@ -539,8 +561,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const snap = await getDoc(doc(db, 'users', user.uid));
       if (snap.exists()) {
         matchedProfile = snap.data() as UserProfile;
-      } else {
-        const qSnap = await getDocs(collection(db, 'users'));
+      } else if (signedInEmail) {
+        const q = query(collection(db, 'users'), where('email', '==', signedInEmail));
+        const qSnap = await getDocs(q);
         qSnap.forEach(d => {
           const u = d.data() as UserProfile;
           if (u.email?.toLowerCase().trim() === signedInEmail) {
@@ -587,7 +610,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 2. Fallback check against Firestore user accounts (for added CMS staff)
     try {
-      const qSnap = await getDocs(collection(db, 'users'));
+      const q = query(collection(db, 'users'), where('email', '==', cleanEmail));
+      const qSnap = await getDocs(q);
       let matchedUser: UserProfile | null = null;
 
       qSnap.forEach(d => {
@@ -734,14 +758,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Query and remove any matching Firestore document in 'users' collection
       try {
-        const snap = await getDocs(collection(db, 'users'));
-        for (const d of snap.docs) {
-          const uData = d.data() as UserProfile;
-          if (
-            d.id === uid ||
-            uData.uid === uid ||
-            (targetEmail && uData.email?.toLowerCase().trim() === targetEmail)
-          ) {
+        if (targetEmail) {
+          const q = query(collection(db, 'users'), where('email', '==', targetEmail));
+          const snap = await getDocs(q);
+          for (const d of snap.docs) {
             await deleteDoc(doc(db, 'users', d.id));
           }
         }

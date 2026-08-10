@@ -7,6 +7,7 @@ import { ConfirmModal } from '../common/ConfirmModal';
 import { ManuscriptReviewModal } from './ManuscriptReviewModal';
 import { WordPasteImporter } from '../common/WordPasteImporter';
 import { FullTextPublishingSuite } from './FullTextPublishingSuite';
+import { AcademicPdfExporter } from '../common/AcademicPdfExporter';
 import { ParsedWordArticle } from '../../lib/wordParser';
 import { 
   FileText, 
@@ -44,6 +45,7 @@ import {
 
 export const ArticlesManager: React.FC = () => {
   const { 
+    lang,
     articles, 
     submissions,
     saveArticle, 
@@ -589,10 +591,10 @@ export const ArticlesManager: React.FC = () => {
           <p className="text-xs text-slate-500 font-mono mt-0.5">Publish searchable, structured full-text articles with live preview, auto-segmentation, and PDF generation.</p>
         </div>
 
-        {canManageArticles && activeSection === 'published' && (
+        {canManageArticles && (
           <button
             onClick={handleCreateNew}
-            className="px-4 py-2.5 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-xl transition shadow-xs flex items-center space-x-2"
+            className="px-4 py-2.5 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-xl transition shadow-xs flex items-center space-x-2 cursor-pointer"
           >
             <Plus className="w-4 h-4 text-amber-400" />
             <span>Publish Full-Text Article (नया शोध पत्र जोड़ें)</span>
@@ -747,6 +749,12 @@ export const ArticlesManager: React.FC = () => {
                           <Edit3 className="w-3.5 h-3.5" />
                           <span>Edit Article</span>
                         </button>
+
+                        <AcademicPdfExporter
+                          article={art}
+                          variant="icon"
+                          lang={lang}
+                        />
 
                         <button
                           onClick={() => {

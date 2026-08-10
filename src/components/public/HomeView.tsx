@@ -307,7 +307,11 @@ export const HomeView: React.FC = () => {
                 <div className="w-36 sm:w-full mx-auto relative aspect-3/4 rounded-2xl overflow-hidden shadow-md border-2 border-amber-400/50 bg-red-950">
                   <SafeImage 
                     src={currentIssue.cover_image_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80'} 
-                    alt="Issue Cover" 
+                    alt="Current Journal Issue Cover" 
+                    loading="eager"
+                    fetchPriority="high"
+                    width={300}
+                    height={400}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-red-950/95 via-red-950/40 to-transparent flex flex-col justify-end p-4 text-amber-100 text-left">
