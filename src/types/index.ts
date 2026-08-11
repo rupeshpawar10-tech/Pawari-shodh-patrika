@@ -449,6 +449,18 @@ export interface QuizCertificate {
   certificate_no: string;
 }
 
+export interface QuizLeaderboardEntry {
+  id: string;
+  user_name: string;
+  user_photo_url?: string;
+  quiz_score: number;
+  total_questions: number;
+  percentage: number;
+  issued_date: string;
+  certificate_no: string;
+  created_at?: string;
+}
+
 export interface PawariWriterItem {
   id: string;
   name_hindi: string;

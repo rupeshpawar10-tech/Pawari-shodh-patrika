@@ -26,6 +26,7 @@ import {
   PawariLokgeetItem,
   QuizQuestion,
   QuizCertificate,
+  QuizLeaderboardEntry,
   PawariWriterItem
 } from '../types';
 import { BookItem, BlogItem, SAMPLE_BOOKS, SAMPLE_BLOGS, SAMPLE_WRITERS } from '../data/booksBlogsData';
@@ -33,7 +34,8 @@ import {
   SAMPLE_SHABDKOSH, 
   SAMPLE_PAHELI, 
   SAMPLE_LOKGEET, 
-  SAMPLE_QUIZ_QUESTIONS 
+  SAMPLE_QUIZ_QUESTIONS,
+  SAMPLE_QUIZ_LEADERBOARD
 } from '../data/pawariCulturalData';
 import { 
   DEFAULT_SETTINGS, 
@@ -181,6 +183,7 @@ interface CmsContextType {
   saveLokgeetCategory: (catName: string) => Promise<void>;
   deleteLokgeetCategory: (catName: string) => Promise<void>;
   quizQuestions: QuizQuestion[];
+  quizLeaderboard: QuizLeaderboardEntry[];
   pages: Record<string, PageContent>;
   editorialMembers: EditorialMember[];
   announcements: Announcement[];
@@ -222,6 +225,7 @@ interface CmsContextType {
   deleteLokgeet: (id: string) => Promise<void>;
   saveQuizQuestion: (question: QuizQuestion) => Promise<void>;
   deleteQuizQuestion: (id: string) => Promise<void>;
+  saveQuizCertificate: (cert: QuizCertificate) => Promise<void>;
   submitPublicContribution: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books', itemData: any) => Promise<void>;
   updateContributionStatus: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'submissions', id: string, status: 'approved' | 'pending' | 'rejected') => Promise<void>;
 
@@ -621,6 +625,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (e) {}
     return SAMPLE_QUIZ_QUESTIONS;
+  });
+
+  const [quizLeaderboard, setQuizLeaderboard] = useState<QuizLeaderboardEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem('pawari_quiz_leaderboard');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return SAMPLE_QUIZ_LEADERBOARD;
   });
   const [pages, setPages] = useState<Record<string, PageContent>>(DEFAULT_PAGES);
   const [editorialMembers, setEditorialMembers] = useState<EditorialMember[]>(() => {
@@ -1930,6 +1945,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }).catch(console.warn);
   };
 
+  const saveQuizCertificate = async (cert: QuizCertificate) => {
+    const newEntry: QuizLeaderboardEntry = {
+      ...cert,
+      created_at: new Date().toISOString()
+    };
+    const updated = [newEntry, ...quizLeaderboard.filter(e => e.id !== cert.id)]
+      .sort((a, b) => b.percentage - a.percentage || b.quiz_score - a.quiz_score);
+    setQuizLeaderboard(updated);
+    try { localStorage.setItem('pawari_quiz_leaderboard', JSON.stringify(updated)); } catch (e) {}
+    try { await setDoc(doc(db, 'quiz_leaderboard', cert.id), newEntry); } catch (e) { console.error(e); }
+  };
+
   // Public User Contributions
   const submitPublicContribution = async (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books', itemData: any) => {
     const id = 'contrib_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
@@ -2059,6 +2086,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         saveLokgeetCategory,
         deleteLokgeetCategory,
         quizQuestions,
+        quizLeaderboard,
         pages,
         editorialMembers,
         announcements,
@@ -2092,6 +2120,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteLokgeet,
         saveQuizQuestion,
         deleteQuizQuestion,
+        saveQuizCertificate,
         submitPublicContribution,
         updateContributionStatus,
         savePage,

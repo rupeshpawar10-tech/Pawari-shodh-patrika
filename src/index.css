@@ -205,5 +205,25 @@
   .no-print {
     display: none !important;
   }
+
+  /* Printable Certificate Specific Styling */
+  .printable-certificate {
+    display: block !important;
+    visibility: visible !important;
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 2.5rem !important;
+    background: #420708 !important;
+    color: #fef3c7 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    z-index: 999999 !important;
+  }
 }
 

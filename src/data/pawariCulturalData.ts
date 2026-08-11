@@ -4942,3 +4942,57 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     section_type: 'paheli'
   }
 ];
+
+export const SAMPLE_QUIZ_LEADERBOARD = [
+  {
+    id: 'lead-1',
+    user_name: 'रामेश्वर पवार (छिंदवाड़ा)',
+    quiz_score: 10,
+    total_questions: 10,
+    percentage: 100,
+    issued_date: '10 अगस्त 2026',
+    certificate_no: 'PST-2026-QUIZ-882109',
+    user_photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'lead-2',
+    user_name: 'सुनीता पंवार (बैतूल)',
+    quiz_score: 10,
+    total_questions: 10,
+    percentage: 100,
+    issued_date: '09 अगस्त 2026',
+    certificate_no: 'PST-2026-QUIZ-654312',
+    user_photo_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'lead-3',
+    user_name: 'अनिल देशमुख (बालाघाट)',
+    quiz_score: 9,
+    total_questions: 10,
+    percentage: 90,
+    issued_date: '08 अगस्त 2026',
+    certificate_no: 'PST-2026-QUIZ-412980',
+    user_photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'lead-4',
+    user_name: 'कविता चौधरी (मुलताई)',
+    quiz_score: 9,
+    total_questions: 10,
+    percentage: 90,
+    issued_date: '07 अगस्त 2026',
+    certificate_no: 'PST-2026-QUIZ-309182',
+    user_photo_url: ''
+  },
+  {
+    id: 'lead-5',
+    user_name: 'राजेश ठाकरे (नागपुर)',
+    quiz_score: 8,
+    total_questions: 10,
+    percentage: 80,
+    issued_date: '06 अगस्त 2026',
+    certificate_no: 'PST-2026-QUIZ-192834',
+    user_photo_url: ''
+  }
+];
+

@@ -11,7 +11,6 @@ import {
   Search, 
   Eye, 
   EyeOff, 
-  Lightbulb, 
   CheckCircle2, 
   X, 
   Upload, 
@@ -32,7 +31,11 @@ import {
   ChevronRight,
   Link2,
   ExternalLink,
-  Play
+  Play,
+  Trophy,
+  Medal,
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
 
 interface PawariCulturalSectionProps {
@@ -40,7 +43,16 @@ interface PawariCulturalSectionProps {
 }
 
 export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ initialTab = 'shabdkosh' }) => {
-  const { shabdkoshList, paheliList, lokgeetList, quizQuestions, submitPublicContribution, uploadFileToStorage } = useCms();
+  const { 
+    shabdkoshList, 
+    paheliList, 
+    lokgeetList, 
+    quizQuestions, 
+    quizLeaderboard,
+    saveQuizCertificate,
+    submitPublicContribution, 
+    uploadFileToStorage 
+  } = useCms();
   const [activeTab, setActiveTab] = useState<'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz'>(initialTab);
 
   // Filter approved items only for public display (Pending contributions require CMS approval)
@@ -185,9 +197,6 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const handleSharePaheli = async (item: PawariPaheliItem) => {
     const isAnswerRevealed = !!revealedPaheli[item.id];
     let shareText = `🧩 *पवारी पहेली (पवारी बुझौवल)* 🧩\n\n"${item.riddle_pawari}"`;
-    if (item.hint_hindi) {
-      shareText += `\n\n💡 *संकेत:* ${item.hint_hindi}`;
-    }
     if (isAnswerRevealed) {
       shareText += `\n\n✅ *उत्तर:* ${item.answer_hindi}`;
       if (item.answer_pawari) shareText += ` (${item.answer_pawari})`;
@@ -221,9 +230,6 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const handleWhatsAppSharePaheli = (item: PawariPaheliItem) => {
     const isAnswerRevealed = !!revealedPaheli[item.id];
     let shareText = `🧩 *पवारी पहेली (पवारी बुझौवल)* 🧩\n\n"${item.riddle_pawari}"`;
-    if (item.hint_hindi) {
-      shareText += `\n\n💡 *संकेत:* ${item.hint_hindi}`;
-    }
     if (isAnswerRevealed) {
       shareText += `\n\n✅ *उत्तर:* ${item.answer_hindi}`;
       if (item.answer_pawari) shareText += ` (${item.answer_pawari})`;
@@ -269,6 +275,91 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const [userPhoto, setUserPhoto] = useState<string>('');
   const [certificateData, setCertificateData] = useState<QuizCertificate | null>(null);
   const [copiedQuizLink, setCopiedQuizLink] = useState(false);
+  const [quizSubTab, setQuizSubTab] = useState<'quiz' | 'leaderboard'>('quiz');
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [leaderboardSearch, setLeaderboardSearch] = useState('');
+
+  const handleDownloadCertificateImage = async () => {
+    const certElement = document.getElementById('printable-certificate-card');
+    if (!certElement) {
+      alert('प्रमाण-पत्र कार्ड उपलब्ध नहीं है।');
+      return;
+    }
+    setIsGeneratingImage(true);
+    try {
+      const { default: html2canvas } = await import('html2canvas');
+      const canvas = await html2canvas(certElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#2a0506',
+        logging: false
+      });
+      const imageUri = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `Pawari_Quiz_Certificate_${(certificateData?.user_name || 'Participant').replace(/\s+/g, '_')}.png`;
+      link.href = imageUri;
+      link.click();
+    } catch (err) {
+      console.error('Error generating certificate image:', err);
+      alert('इमेज डाउनलोड करने में त्रुटि हुई।');
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const handleShareCertificateImage = async () => {
+    const certElement = document.getElementById('printable-certificate-card');
+    if (!certElement) {
+      alert('प्रमाण-पत्र कार्ड उपलब्ध नहीं है।');
+      return;
+    }
+    setIsGeneratingImage(true);
+    try {
+      const { default: html2canvas } = await import('html2canvas');
+      const canvas = await html2canvas(certElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#2a0506',
+        logging: false
+      });
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setIsGeneratingImage(false);
+          return;
+        }
+        const fileName = `Pawari_Quiz_Certificate_${(certificateData?.user_name || 'Participant').replace(/\s+/g, '_')}.png`;
+        const file = new File([blob], fileName, { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: 'पवारी भोयरी संस्कृति ई-प्रमाण-पत्र',
+              text: `🏆 मैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ 2026 में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त कर यह ई-प्रमाण-पत्र अर्जित किया है!`,
+              files: [file]
+            });
+          } catch (shareErr) {
+            console.log('Share prompt error/canceled:', shareErr);
+          }
+        } else {
+          // Fallback image download + WhatsApp text link share
+          const link = document.createElement('a');
+          link.download = fileName;
+          link.href = URL.createObjectURL(blob);
+          link.click();
+
+          const shareText = `🏆 *पवारी भोयरी संस्कृति ई-प्रमाण-पत्र* 🏆\n\nमैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त किए हैं!\n\n(मेरा प्रमाण-पत्र इमेज डाउनलोड हो गया है। इसे यहाँ अटैच करके शेयर करें!)\n\n👉 *क्विज़ में भाग लें:* ${window.location.origin}/quiz`;
+          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+        }
+        setIsGeneratingImage(false);
+      }, 'image/png');
+    } catch (err) {
+      console.error('Error sharing certificate image:', err);
+      setIsGeneratingImage(false);
+    }
+  };
 
   const handleCopyQuizLink = () => {
     const quizUrl = `${window.location.origin}/quiz`;
@@ -284,7 +375,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
   const handleShareQuizWhatsApp = () => {
     const quizUrl = `${window.location.origin}/quiz`;
-    const shareText = `🏆 *पवारी भोयरी लोक संस्कृति एवं साहित्य ई-क्विज़ 2026* 🏆\n\nअपनी पवारी बोली, लोकगीत, शब्दकोश एवं पहेली ज्ञान की परीक्षा दें और ई-प्रमाण-पत्र प्राप्त करें!\n\n(विशेष: यह क्विज़ निष्पक्षता हेतु बिना किसी संकेत / Hint के है)\n\n👉 *क्विज़ में भाग लेने के लिए नीचे दिए गए डायरेक्ट लिंक पर क्लिक करें:*\n${quizUrl}\n\n🚩 *माँ ताप्ती पवारी शोध संस्थान*`;
+    const shareText = `🏆 *पवारी भोयरी लोक संस्कृति एवं साहित्य ई-क्विज़ 2026* 🏆\n\nअपनी पवारी बोली, लोकगीत, शब्दकोश एवं पहेली ज्ञान की परीक्षा दें और ई-प्रमाण-पत्र प्राप्त करें!\n\n👉 *क्विज़ में भाग लेने के लिए नीचे दिए गए डायरेक्ट लिंक पर क्लिक करें:*\n${quizUrl}\n\n🚩 *माँ ताप्ती पवारी शोध संस्थान*`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
@@ -516,6 +607,9 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
     setCertificateData(cert);
     setIsQuizSubmitted(true);
+    if (saveQuizCertificate) {
+      saveQuizCertificate(cert);
+    }
   };
 
   const handleResetQuiz = () => {
@@ -865,13 +959,6 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                       <h3 className="text-xl font-bold text-amber-100 font-serif leading-relaxed mb-3">
                         "{item.riddle_pawari}"
                       </h3>
-
-                      {item.hint_hindi && (
-                        <p className="text-xs text-amber-300/80 flex items-center gap-1.5 bg-amber-950/40 p-2.5 rounded-xl border border-amber-800/30">
-                          <Lightbulb className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                          <span>संकेत: {item.hint_hindi}</span>
-                        </p>
-                      )}
                     </div>
                   </div>
 
@@ -1427,307 +1514,552 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
       {/* 4. QUIZ & CERTIFICATE ENGINE */}
       {activeTab === 'quiz' && (
-        <div className="max-w-3xl mx-auto space-y-6">
-          {/* Dedicated Quiz Share Link Banner */}
-          <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border border-amber-500/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-amber-100 shadow-xl">
-            <div className="space-y-1 text-center sm:text-left">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
-                <Award className="w-3.5 h-3.5 text-amber-400" />
-                <span>पवारी भोयरी संस्कृति ई-क्विज़</span>
-              </div>
-              <h3 className="font-serif font-bold text-amber-200 text-base sm:text-lg">
-                पवारी क्विज़ शेयर करें (Direct Link)
-              </h3>
-              <p className="text-xs text-amber-300/80">
-                बिना किसी संकेत (Hint) के अपनी पवारी भाषा एवं संस्कृति ज्ञान की परीक्षा लें। अपने मित्रों व समूह में क्विज़ लिंक शेयर करें!
-              </p>
-            </div>
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Sub-tab Navigation: Take Quiz vs Top Scorer Leaderboard */}
+          <div className="flex items-center justify-between bg-slate-900/90 border border-amber-500/40 p-2 rounded-2xl shadow-xl gap-2">
+            <button
+              onClick={() => setQuizSubTab('quiz')}
+              className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                quizSubTab === 'quiz'
+                  ? 'bg-amber-500 text-amber-950 shadow-md'
+                  : 'text-amber-200 hover:bg-amber-950/60'
+              }`}
+            >
+              <Award className="w-4 h-4" />
+              <span>📋 ई-क्विज़ परीक्षा (Take Quiz)</span>
+            </button>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={handleShareQuizWhatsApp}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition-all"
-              >
-                <Share2 className="w-4 h-4" />
-                <span>वॉट्सऐप शेयर</span>
-              </button>
-              <button
-                onClick={handleCopyQuizLink}
-                className="px-3.5 py-2 rounded-xl bg-amber-950 hover:bg-amber-900 border border-amber-600/60 text-amber-200 font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition-all"
-              >
-                {copiedQuizLink ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-400" />
-                    <span className="text-emerald-400">लिंक कॉपी हुआ!</span>
-                  </>
-                ) : (
-                  <>
-                    <Link2 className="w-4 h-4 text-amber-400" />
-                    <span>क्विज़ डायरेक्ट लिंक</span>
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              onClick={() => setQuizSubTab('leaderboard')}
+              className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                quizSubTab === 'leaderboard'
+                  ? 'bg-amber-500 text-amber-950 shadow-md'
+                  : 'text-amber-200 hover:bg-amber-950/60'
+              }`}
+            >
+              <Trophy className="w-4 h-4 text-amber-950" />
+              <span>🏆 टॉप स्कोरर लीडरबोर्ड ({quizLeaderboard?.length || 0})</span>
+            </button>
           </div>
 
-          {!isQuizSubmitted ? (
-            <div className="bg-slate-900/90 border border-amber-800/40 rounded-3xl p-6 md:p-8 shadow-2xl relative text-amber-100">
-              {/* User Details Setup Before or During Quiz */}
-              <div className="mb-6 p-4 bg-amber-950/40 border border-amber-800/30 rounded-2xl space-y-3">
-                <h4 className="text-sm font-bold text-amber-300 flex items-center gap-2">
-                  <User className="w-4 h-4 text-amber-400" />
-                  प्रमाण-पत्र हेतु प्रतिभागी का नाम एवं फोटो (Participant Info for Certificate)
-                </h4>
+          {/* LEADERBOARD SUB-TAB VIEW */}
+          {quizSubTab === 'leaderboard' ? (
+            <div className="space-y-6">
+              {/* Leaderboard Banner */}
+              <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border border-amber-500/40 rounded-3xl p-6 text-amber-100 text-center space-y-3 shadow-2xl relative overflow-hidden">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <span>पवारी भोयरी संस्कृति ज्ञान प्रतियोगिता</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-black text-amber-200 font-serif">
+                  टॉप स्कोरर लीडरबोर्ड (Top Scorers Leaderboard)
+                </h3>
+                <p className="text-xs sm:text-sm text-amber-300/80 max-w-xl mx-auto">
+                  निष्पक्ष परीक्षा में सर्वोच्च अंक प्राप्त करने वाले शीर्ष विद्वान प्रतिभागियों की सूची।
+                </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-amber-200 mb-1">
-                      आपका पूरा नाम (Full Name) *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="जैसे: रूपेश पवार / अनिता मालवीय"
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-amber-200 mb-1">
-                      प्रमाण-पत्र फोटो (Optional Photo)
-                    </label>
-                    <div className="flex gap-2 items-center">
-                      <input
-                        type="text"
-                        placeholder="https://... या फाइल अपलोड करें"
-                        value={userPhoto}
-                        onChange={(e) => setUserPhoto(e.target.value)}
-                        className="flex-1 px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-xs focus:outline-none focus:border-amber-500"
-                      />
-                      <label className="px-3 py-2 bg-amber-950 border border-amber-700 text-amber-200 rounded-xl cursor-pointer text-xs font-medium flex items-center gap-1">
-                        <Upload className="w-3.5 h-3.5" />
-                        <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'quiz')} className="hidden" />
-                      </label>
-                    </div>
-                  </div>
+                {/* Search Bar for Leaderboard */}
+                <div className="pt-2 max-w-md mx-auto relative">
+                  <Search className="w-4 h-4 text-amber-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="प्रतिभागी का नाम या प्रमाण-पत्र क्रमांक खोजें..."
+                    value={leaderboardSearch}
+                    onChange={(e) => setLeaderboardSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-slate-950/90 border border-amber-600/50 rounded-xl text-amber-100 text-xs placeholder:text-amber-400/50 focus:outline-none focus:border-amber-400"
+                  />
                 </div>
               </div>
 
-              {/* Question Header & Progress */}
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-amber-900/30">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
-                      प्रश्न {currentQIndex + 1} / {activeQuizQuestions.length}
-                    </span>
-                    <span className="text-[10px] bg-red-950/90 text-amber-300/90 border border-amber-700/50 px-2 py-0.5 rounded font-mono font-semibold">
-                      संकेत/Hint रहित निष्पक्ष परीक्षा
-                    </span>
-                  </div>
-                  <h3 className="text-lg md:text-xl font-bold text-amber-100 font-serif mt-1">
-                    {activeQuizQuestions[currentQIndex]?.question_pawari}
-                  </h3>
-                  {activeQuizQuestions[currentQIndex]?.question_hindi && (
-                    <p className="text-xs text-amber-400/70 mt-0.5">
-                      ({activeQuizQuestions[currentQIndex]?.question_hindi})
-                    </p>
-                  )}
-                </div>
-
-                <div className="w-12 h-12 rounded-full bg-amber-950 border border-amber-600/50 flex items-center justify-center font-bold text-amber-300 text-sm flex-shrink-0">
-                  {currentQIndex + 1}/{activeQuizQuestions.length}
-                </div>
-              </div>
-
-              {/* Options */}
-              <div className="space-y-3 mb-8">
-                {activeQuizQuestions[currentQIndex]?.options.map((opt, optIdx) => {
-                  const isSelected = userAnswers[currentQIndex] === optIdx;
+              {/* Top 3 Winner Podium Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {quizLeaderboard.slice(0, 3).map((item, index) => {
+                  const ranks = [
+                    { title: 'प्रथम स्थान (Rank 1)', badge: '🥇', color: 'from-amber-500 to-amber-300 text-amber-950 border-amber-400' },
+                    { title: 'द्वितीय स्थान (Rank 2)', badge: '🥈', color: 'from-slate-300 to-slate-100 text-slate-950 border-slate-300' },
+                    { title: 'तृतीय स्थान (Rank 3)', badge: '🥉', color: 'from-amber-700 to-amber-600 text-amber-100 border-amber-600' }
+                  ];
+                  const rank = ranks[index];
                   return (
-                    <button
-                      key={optIdx}
-                      onClick={() => handleSelectOption(optIdx)}
-                      className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
-                        isSelected 
-                          ? 'bg-amber-500/20 border-amber-500 text-amber-100 font-semibold shadow-lg' 
-                          : 'bg-slate-950/60 border-amber-900/40 text-amber-200/90 hover:bg-slate-950 hover:border-amber-700/50'
-                      }`}
-                    >
-                      <span className="text-sm flex items-center gap-3">
-                        <span className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs ${isSelected ? 'bg-amber-500 text-amber-950' : 'bg-slate-900 text-amber-400'}`}>
-                          {String.fromCharCode(65 + optIdx)}
-                        </span>
-                        {opt}
-                      </span>
-                      {isSelected && <Check className="w-5 h-5 text-amber-400" />}
-                    </button>
+                    <div key={item.id} className="bg-slate-900/90 border border-amber-500/40 rounded-3xl p-5 text-center space-y-3 relative shadow-xl hover:border-amber-400 transition-all flex flex-col justify-between">
+                      <div className="space-y-3">
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r ${rank.color} shadow-lg`}>
+                          <span>{rank.badge}</span>
+                          <span>{rank.title}</span>
+                        </div>
+
+                        <div className="relative w-20 h-20 mx-auto">
+                          {item.user_photo_url ? (
+                            <img
+                              src={item.user_photo_url}
+                              alt={item.user_name}
+                              className="w-20 h-20 rounded-full object-cover border-2 border-amber-400 shadow-md"
+                            />
+                          ) : (
+                            <div className="w-20 h-20 rounded-full bg-amber-950 border-2 border-amber-400 flex items-center justify-center text-amber-300 text-xl font-bold">
+                              {item.user_name.charAt(0)}
+                            </div>
+                          )}
+                          <div className="absolute -bottom-1 -right-1 bg-amber-500 text-amber-950 p-1 rounded-full shadow-md">
+                            <CheckCircle2 className="w-4 h-4" />
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-serif font-bold text-amber-100 text-base line-clamp-1">{item.user_name}</h4>
+                          <p className="text-[11px] text-amber-300/70 font-mono mt-0.5">{item.issued_date}</p>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-amber-900/40 bg-amber-950/40 rounded-2xl p-2.5 text-xs">
+                        <div className="flex justify-between items-center text-amber-200">
+                          <span>प्राप्तांक:</span>
+                          <strong className="text-amber-400 font-bold">{item.quiz_score}/{item.total_questions} ({item.percentage}%)</strong>
+                        </div>
+                        <div className="text-[10px] text-amber-400/60 font-mono mt-1 text-right">
+                          {item.certificate_no}
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
 
-              {/* Controls */}
-              <div className="flex items-center justify-between pt-4 border-t border-amber-900/30">
-                <button
-                  onClick={handlePrevQuiz}
-                  disabled={currentQIndex === 0}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-amber-200 text-xs font-semibold disabled:opacity-40 cursor-pointer"
-                >
-                  पिछला प्रश्न
-                </button>
+              {/* Full Participant Leaderboard List */}
+              <div className="bg-slate-900/90 border border-amber-800/40 rounded-3xl p-5 md:p-6 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-amber-900/30 pb-3">
+                  <h4 className="font-serif font-bold text-amber-200 text-lg flex items-center gap-2">
+                    <Medal className="w-5 h-5 text-amber-400" />
+                    समस्त प्रतिभागी सूची (Full Scorers List)
+                  </h4>
+                  <span className="text-xs text-amber-400/80 bg-amber-950 px-2.5 py-1 rounded-full border border-amber-800">
+                    कुल प्रतिभागी: {quizLeaderboard.length}
+                  </span>
+                </div>
 
-                {currentQIndex < activeQuizQuestions.length - 1 ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
+                  {quizLeaderboard
+                    .filter(item => 
+                      item.user_name.toLowerCase().includes(leaderboardSearch.toLowerCase()) ||
+                      item.certificate_no.toLowerCase().includes(leaderboardSearch.toLowerCase())
+                    )
+                    .map((item, idx) => (
+                      <div
+                        key={item.id}
+                        className="bg-slate-950/70 border border-amber-900/30 rounded-2xl p-3.5 flex items-center justify-between gap-3 hover:border-amber-700/50 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                            idx === 0 ? 'bg-amber-400 text-amber-950' : idx === 1 ? 'bg-slate-300 text-slate-950' : idx === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-amber-300'
+                          }`}>
+                            #{idx + 1}
+                          </span>
+
+                          {item.user_photo_url ? (
+                            <img src={item.user_photo_url} alt={item.user_name} className="w-9 h-9 rounded-full object-cover border border-amber-500/50 shrink-0" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-amber-950 border border-amber-700/50 flex items-center justify-center text-amber-300 font-bold text-xs shrink-0">
+                              {item.user_name.charAt(0)}
+                            </div>
+                          )}
+
+                          <div>
+                            <h5 className="font-semibold text-amber-100 text-xs sm:text-sm">{item.user_name}</h5>
+                            <p className="text-[10px] text-amber-400/60 font-mono">क्रमांक: {item.certificate_no} • {item.issued_date}</p>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="inline-block px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold">
+                            {item.quiz_score}/{item.total_questions} ({item.percentage}%)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                <div className="text-center pt-2">
                   <button
-                    onClick={handleNextQuiz}
-                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold text-sm shadow-lg cursor-pointer"
-                  >
-                    अगला प्रश्न
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleFinishQuiz}
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-emerald-950 font-bold text-sm shadow-xl flex items-center gap-2 cursor-pointer"
+                    onClick={() => {
+                      setQuizSubTab('quiz');
+                      handleResetQuiz();
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold text-xs shadow-lg inline-flex items-center gap-2 cursor-pointer"
                   >
                     <Award className="w-4 h-4" />
-                    <span>क्विज़ सबमिट करें एवं प्रमाण-पत्र देखें</span>
+                    <span>स्वयं क्विज़ दें और लीडरबोर्ड में स्थान पाएँ ➔</span>
                   </button>
-                )}
+                </div>
               </div>
             </div>
-          ) : certificateData && certificateData.percentage >= 60 ? (
-            /* CERTIFICATE DISPLAY & DOWNLOAD CARD FOR PASSING SCORE (>= 60%) */
+          ) : (
+            /* TAKE QUIZ OR VIEW CERTIFICATE SUB-TAB */
             <div className="space-y-6">
-              <div className="bg-slate-900/90 border border-amber-500/40 p-6 rounded-3xl text-center space-y-4 shadow-2xl">
-                <div className="inline-flex p-3 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">
-                  <Award className="w-10 h-10" />
+              {/* Dedicated Quiz Share Link Banner */}
+              <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border border-amber-500/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-amber-100 shadow-xl">
+                <div className="space-y-1 text-center sm:text-left">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                    <Award className="w-3.5 h-3.5 text-amber-400" />
+                    <span>पवारी भोयरी संस्कृति ई-क्विज़</span>
+                  </div>
+                  <h3 className="font-serif font-bold text-amber-200 text-base sm:text-lg">
+                    पवारी क्विज़ शेयर करें (Direct Link)
+                  </h3>
+                  <p className="text-xs text-amber-300/80">
+                    अपनी पवारी भाषा एवं संस्कृति ज्ञान की परीक्षा लें। अपने मित्रों व समूह में क्विज़ लिंक शेयर करें!
+                  </p>
                 </div>
-                <h3 className="text-2xl font-black text-amber-200 font-serif">
-                  बधाई हो! {certificateData?.user_name}
-                </h3>
-                <p className="text-sm text-amber-100/80">
-                  आपने {certificateData?.total_questions} में से {certificateData?.quiz_score} प्रश्नों का सही उत्तर देकर 
-                  <strong className="text-amber-400 mx-1 font-bold">{certificateData?.percentage}%</strong> सफलता प्राप्त की है!
-                </p>
 
-                <div className="flex flex-wrap justify-center gap-3 pt-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
-                    onClick={handlePrintCertificate}
-                    className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold text-sm shadow-lg flex items-center gap-2 cursor-pointer"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>ई-प्रमाण-पत्र प्रिंट / डाउनलोड करें</span>
-                  </button>
-
-                  <button
-                    onClick={handleShareWhatsApp}
-                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg flex items-center gap-2 cursor-pointer"
+                    onClick={handleShareQuizWhatsApp}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition-all"
                   >
                     <Share2 className="w-4 h-4" />
-                    <span>वॉट्सऐप पर शेयर करें</span>
+                    <span>वॉट्सऐप शेयर</span>
                   </button>
-
                   <button
                     onClick={handleCopyQuizLink}
-                    className="px-4 py-2.5 rounded-xl bg-amber-950 hover:bg-amber-900 border border-amber-700/60 text-amber-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                    className="px-3.5 py-2 rounded-xl bg-amber-950 hover:bg-amber-900 border border-amber-600/60 text-amber-200 font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition-all"
                   >
                     {copiedQuizLink ? (
                       <>
                         <Check className="w-4 h-4 text-emerald-400" />
-                        <span className="text-emerald-400">क्विज़ लिंक कॉपी हुआ!</span>
+                        <span className="text-emerald-400">लिंक कॉपी हुआ!</span>
                       </>
                     ) : (
                       <>
                         <Link2 className="w-4 h-4 text-amber-400" />
-                        <span>क्विज़ लिंक शेयर करें</span>
+                        <span>क्विज़ डायरेक्ट लिंक</span>
                       </>
                     )}
-                  </button>
-
-                  <button
-                    onClick={handleResetQuiz}
-                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-200 font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>पुनः क्विज़ दें</span>
                   </button>
                 </div>
               </div>
 
-              {/* HIGH-RES VISUAL CERTIFICATE TEMPLATE */}
-              <div className="print:m-0 print:p-0 print:shadow-none">
-                <div className="bg-gradient-to-br from-amber-950 via-red-950 to-amber-950 border-8 border-amber-600/80 p-8 md:p-12 rounded-3xl text-amber-100 relative shadow-2xl font-serif text-center overflow-hidden">
-                  {/* Decorative Border Corners */}
-                  <div className="absolute top-3 left-3 w-12 h-12 border-t-2 border-l-2 border-amber-400" />
-                  <div className="absolute top-3 right-3 w-12 h-12 border-t-2 border-r-2 border-amber-400" />
-                  <div className="absolute bottom-3 left-3 w-12 h-12 border-b-2 border-l-2 border-amber-400" />
-                  <div className="absolute bottom-3 right-3 w-12 h-12 border-b-2 border-r-2 border-amber-400" />
+              {!isQuizSubmitted ? (
+                <div className="bg-slate-900/90 border border-amber-800/40 rounded-3xl p-6 md:p-8 shadow-2xl relative text-amber-100">
+                  {/* User Details Setup Before or During Quiz */}
+                  <div className="mb-6 p-4 bg-amber-950/40 border border-amber-800/30 rounded-2xl space-y-3">
+                    <h4 className="text-sm font-bold text-amber-300 flex items-center gap-2">
+                      <User className="w-4 h-4 text-amber-400" />
+                      प्रमाण-पत्र हेतु प्रतिभागी का नाम एवं फोटो (Participant Info for Certificate)
+                    </h4>
 
-                  {/* Institution Header */}
-                  <div className="mb-6 space-y-1">
-                    <p className="text-xs uppercase tracking-widest text-amber-400 font-sans font-bold">
-                      🚩 माँ ताप्ती शोध संस्थान, मुलताई (बैतूल) 🚩
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-amber-200 mb-1">
+                          आपका पूरा नाम (Full Name) *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="जैसे: रूपेश पवार / अनिता मालवीय"
+                          value={userName}
+                          onChange={(e) => setUserName(e.target.value)}
+                          className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-amber-200 mb-1">
+                          प्रमाण-पत्र फोटो (Optional Photo)
+                        </label>
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            placeholder="https://... या फाइल अपलोड करें"
+                            value={userPhoto}
+                            onChange={(e) => setUserPhoto(e.target.value)}
+                            className="flex-1 px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-xs focus:outline-none focus:border-amber-500"
+                          />
+                          <label className="px-3 py-2 bg-amber-950 border border-amber-700 text-amber-200 rounded-xl cursor-pointer text-xs font-medium flex items-center gap-1">
+                            <Upload className="w-3.5 h-3.5" />
+                            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'quiz')} className="hidden" />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Question Header & Progress */}
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-amber-900/30">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
+                          प्रश्न {currentQIndex + 1} / {activeQuizQuestions.length}
+                        </span>
+                      </div>
+                      <h3 className="text-lg md:text-xl font-bold text-amber-100 font-serif mt-1">
+                        {activeQuizQuestions[currentQIndex]?.question_pawari}
+                      </h3>
+                    </div>
+
+                    <div className="w-12 h-12 rounded-full bg-amber-950 border border-amber-600/50 flex items-center justify-center font-bold text-amber-300 text-sm flex-shrink-0">
+                      {currentQIndex + 1}/{activeQuizQuestions.length}
+                    </div>
+                  </div>
+
+                  {/* Options */}
+                  <div className="space-y-3 mb-8">
+                    {activeQuizQuestions[currentQIndex]?.options.map((opt, optIdx) => {
+                      const isSelected = userAnswers[currentQIndex] === optIdx;
+                      return (
+                        <button
+                          key={optIdx}
+                          onClick={() => handleSelectOption(optIdx)}
+                          className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                            isSelected 
+                              ? 'bg-amber-500/20 border-amber-500 text-amber-100 font-semibold shadow-lg' 
+                              : 'bg-slate-950/60 border-amber-900/40 text-amber-200/90 hover:bg-slate-950 hover:border-amber-700/50'
+                          }`}
+                        >
+                          <span className="text-sm flex items-center gap-3">
+                            <span className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs ${isSelected ? 'bg-amber-500 text-amber-950' : 'bg-slate-900 text-amber-400'}`}>
+                              {String.fromCharCode(65 + optIdx)}
+                            </span>
+                            {opt}
+                          </span>
+                          {isSelected && <Check className="w-5 h-5 text-amber-400" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Controls */}
+                  <div className="flex items-center justify-between pt-4 border-t border-amber-900/30">
+                    <button
+                      onClick={handlePrevQuiz}
+                      disabled={currentQIndex === 0}
+                      className="px-4 py-2 rounded-xl bg-slate-800 text-amber-200 text-xs font-semibold disabled:opacity-40 cursor-pointer"
+                    >
+                      पिछला प्रश्न
+                    </button>
+
+                    {currentQIndex < activeQuizQuestions.length - 1 ? (
+                      <button
+                        onClick={handleNextQuiz}
+                        className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold text-sm shadow-lg cursor-pointer"
+                      >
+                        अगला प्रश्न
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleFinishQuiz}
+                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-emerald-950 font-bold text-sm shadow-xl flex items-center gap-2 cursor-pointer"
+                      >
+                        <Award className="w-4 h-4" />
+                        <span>क्विज़ सबमिट करें एवं प्रमाण-पत्र देखें</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : certificateData && certificateData.percentage >= 60 ? (
+                /* CERTIFICATE DISPLAY & DOWNLOAD CARD FOR PASSING SCORE (>= 60%) */
+                <div className="space-y-6">
+                  <div className="bg-slate-900/90 border border-amber-500/40 p-6 rounded-3xl text-center space-y-4 shadow-2xl">
+                    <div className="inline-flex p-3 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                      <Award className="w-10 h-10" />
+                    </div>
+                    <h3 className="text-2xl font-black text-amber-200 font-serif">
+                      बधाई हो! {certificateData?.user_name}
+                    </h3>
+                    <p className="text-sm text-amber-100/80">
+                      आपने {certificateData?.total_questions} में से {certificateData?.quiz_score} प्रश्नों का सही उत्तर देकर 
+                      <strong className="text-amber-400 mx-1 font-bold">{certificateData?.percentage}%</strong> सफलता प्राप्त की है!
                     </p>
-                    <h2 className="text-3xl md:text-4xl font-black text-amber-200 tracking-wide drop-shadow-md">
-                      पवारी भोयरी संस्कृति ई-प्रमाण-पत्र
+
+                    <div className="flex flex-wrap justify-center gap-3 pt-2">
+                      <button
+                        onClick={handleDownloadCertificateImage}
+                        disabled={isGeneratingImage}
+                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold text-xs sm:text-sm shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                      >
+                        {isGeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                        <span>सर्टिफिकेट HD इमेज (PNG) डाउनलोड करें</span>
+                      </button>
+
+                      <button
+                        onClick={handleShareCertificateImage}
+                        disabled={isGeneratingImage}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                      >
+                        {isGeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                        <span>सर्टिफिकेट थंबनेल इमेज शेयर करें</span>
+                      </button>
+
+                      <button
+                        onClick={handlePrintCertificate}
+                        className="px-4 py-2.5 rounded-xl bg-amber-950 hover:bg-amber-900 border border-amber-700/60 text-amber-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                      >
+                        <Download className="w-4 h-4 text-amber-400" />
+                        <span>प्रिंट / PDF</span>
+                      </button>
+
+                      <button
+                        onClick={() => setQuizSubTab('leaderboard')}
+                        className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-200 font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Trophy className="w-4 h-4 text-amber-400" />
+                        <span>लीडरबोर्ड देखें</span>
+                      </button>
+
+                      <button
+                        onClick={handleResetQuiz}
+                        className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-200 font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        <span>पुनः क्विज़ दें</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* HIGH-RES PRESTIGIOUS VISUAL CERTIFICATE TEMPLATE */}
+                  <div className="printable-certificate print:m-0 print:p-0 print:shadow-none transition-all" id="printable-certificate-card">
+                    <div className="bg-gradient-to-br from-[#2a0506] via-[#420708] to-[#1c0304] border-[10px] border-double border-amber-500/90 p-8 sm:p-12 md:p-16 rounded-3xl text-amber-100 relative shadow-2xl font-serif text-center overflow-hidden">
+                      
+                      {/* Subtle Background Watermark Text */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] select-none font-black text-6xl md:text-8xl text-amber-300 uppercase tracking-widest leading-none rotate-[-12deg]">
+                        माँ ताप्ती पवारी शोध संस्थान 2026
+                      </div>
+
+                  {/* Inner Fine Gold Line Frame */}
+                  <div className="absolute inset-3 border border-amber-400/40 rounded-2xl pointer-events-none" />
+
+                  {/* Decorative Filigree Corner Ornaments */}
+                  <div className="absolute top-4 left-4 w-10 h-10 border-t-2 border-l-2 border-amber-400/90 flex items-start justify-start p-1">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                  </div>
+                  <div className="absolute top-4 right-4 w-10 h-10 border-t-2 border-r-2 border-amber-400/90 flex items-start justify-end p-1">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                  </div>
+                  <div className="absolute bottom-4 left-4 w-10 h-10 border-b-2 border-l-2 border-amber-400/90 flex items-end justify-start p-1">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                  </div>
+                  <div className="absolute bottom-4 right-4 w-10 h-10 border-b-2 border-r-2 border-amber-400/90 flex items-end justify-end p-1">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                  </div>
+
+                  {/* Top Institution Banner */}
+                  <div className="relative z-10 space-y-2 mb-6">
+                    <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 font-sans text-xs font-bold uppercase tracking-widest shadow-inner">
+                      <Award className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>🚩 माँ ताप्ती पवारी शोध संस्थान, मुलताई (बैतूल) • म.प्र. 🚩</span>
+                    </div>
+
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-100 to-amber-300 tracking-wide drop-shadow-lg font-serif">
+                      राष्ट्रीय पवारी संस्कृति ई-प्रमाण-पत्र
                     </h2>
-                    <p className="text-xs text-amber-300/80 font-sans">
-                      (Pawari Cultural Heritage Quiz Certificate of Merit)
+
+                    <p className="text-xs sm:text-sm text-amber-300/80 font-sans tracking-wide uppercase font-semibold">
+                      NATIONAL E-CERTIFICATE OF CULTURAL & LINGUISTIC EXCELLENCE
                     </p>
                   </div>
 
-                  {/* Photo & Name Section */}
-                  <div className="my-6 space-y-4">
+                  {/* Grade & Score Badge Ribbon */}
+                  <div className="relative z-10 my-4 inline-flex items-center gap-3 px-5 py-2 rounded-2xl bg-amber-950/80 border border-amber-500/60 shadow-xl backdrop-blur-md">
+                    <div className="text-left font-sans">
+                      <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">परिणाम / Grade:</p>
+                      <p className="text-sm font-bold text-amber-200">
+                        {certificateData?.percentage >= 90 ? 'उत्कृष्ट श्रेणी (Grade A+ Distinction)' : 'प्रथम श्रेणी (Grade A)'}
+                      </p>
+                    </div>
+                    <div className="h-8 w-px bg-amber-500/40" />
+                    <div className="text-right font-sans">
+                      <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">प्राप्तांक / Score:</p>
+                      <p className="text-sm font-bold text-amber-300">
+                        {certificateData?.quiz_score} / {certificateData?.total_questions} ({certificateData?.percentage}%)
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Candidate Photo & Award Citation */}
+                  <div className="relative z-10 my-6 space-y-4">
                     {certificateData?.user_photo_url ? (
-                      <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-4 border-amber-400 shadow-xl bg-slate-900">
+                      <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full mx-auto overflow-hidden border-4 border-amber-400 shadow-2xl bg-amber-950 ring-4 ring-amber-500/30">
                         <SafeImage 
                           src={certificateData.user_photo_url} 
                           alt={certificateData.user_name} 
                           loading="lazy"
                           decoding="async"
-                          width={96}
-                          height={96}
+                          width={128}
+                          height={128}
                           className="w-full h-full object-cover"
                         />
                       </div>
                     ) : (
-                      <div className="w-20 h-20 rounded-full mx-auto bg-amber-900/60 border-2 border-amber-500/50 flex items-center justify-center text-amber-300">
-                        <Award className="w-10 h-10" />
+                      <div className="w-24 h-24 rounded-full mx-auto bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-300 p-1 shadow-2xl border-2 border-amber-200 flex items-center justify-center">
+                        <div className="w-full h-full rounded-full bg-amber-950 flex items-center justify-center text-amber-300">
+                          <Award className="w-12 h-12 text-amber-400" />
+                        </div>
                       </div>
                     )}
 
-                    <div>
-                      <p className="text-xs text-amber-300/80 font-sans uppercase tracking-wider">यह प्रमाण-पत्र सहर्ष प्रदान किया जाता है:</p>
-                      <h3 className="text-2xl md:text-3xl font-black text-amber-300 underline decoration-amber-500/50 underline-offset-8 mt-1">
+                    <div className="space-y-1">
+                      <p className="text-xs text-amber-300/80 font-sans uppercase tracking-widest font-medium">
+                        यह प्रमाण-पत्र ससम्मान प्रदान किया जाता है (Presented To):
+                      </p>
+                      <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-amber-200 tracking-wide underline decoration-amber-500/60 underline-offset-8 py-1 drop-shadow-md">
                         {certificateData?.user_name}
                       </h3>
                     </div>
                   </div>
 
-                  {/* Citation text */}
-                  <p className="text-sm md:text-base text-amber-100/90 max-w-xl mx-auto leading-relaxed my-4 font-normal">
-                    जिन्होंने पवारी भोयरी संस्कृति, लोकगीत, पहेली एवं शब्दकोश पर आधारित ज्ञान परीक्षण में 
-                    <strong className="text-amber-300 font-bold mx-1">{certificateData?.percentage}% प्राप्तांक</strong> के साथ उत्कृष्ट प्रदर्शन कर पवारी भाषा के संरक्षण एवं संवर्धन में सराहनीय योगदान दिया है।
+                  {/* Formal Citation Text */}
+                  <p className="relative z-10 text-sm sm:text-base md:text-lg text-amber-100/90 max-w-2xl mx-auto leading-relaxed my-5 font-serif font-normal bg-amber-950/40 p-4 rounded-2xl border border-amber-500/30 shadow-inner">
+                    जिन्होंने माँ ताप्ती पवारी शोध संस्थान द्वारा आयोजित <strong className="text-amber-300 font-bold">पवारी भोयरी संस्कृति ज्ञान ई-परीक्षा</strong> में 
+                    <strong className="text-amber-300 font-bold mx-1.5 underline decoration-amber-400">{certificateData?.percentage}% अंक</strong> प्राप्त कर सफलता अर्जित की है तथा पवारी भाषा, लोकगीत, पहेली एवं शब्दकोश संवर्धन में सराहनीय योगदान दिया है।
                   </p>
 
-                  {/* Seal and Signatures */}
-                  <div className="mt-10 pt-6 border-t border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-6 font-sans text-xs">
-                    <div className="text-left space-y-0.5">
-                      <p className="text-amber-400 font-bold">क्रमांक: {certificateData?.certificate_no}</p>
-                      <p className="text-amber-300/70">जारी तिथि: {certificateData?.issued_date}</p>
+                  {/* Seal, Verification Code & Official Signatures */}
+                  <div className="relative z-10 mt-10 pt-6 border-t-2 border-amber-500/40 flex flex-col sm:flex-row items-center justify-between gap-6 font-sans text-xs">
+                    
+                    {/* Verification Details */}
+                    <div className="text-center sm:text-left space-y-1">
+                      <div className="inline-block bg-amber-950/90 border border-amber-600/50 px-3 py-1.5 rounded-lg">
+                        <p className="text-amber-400 font-mono font-bold text-[11px]">
+                          प्रमाण-पत्र क्र.: PST-2026-QUIZ-{certificateData?.certificate_no}
+                        </p>
+                        <p className="text-amber-300/70 text-[10px]">
+                          जारी तिथि: {certificateData?.issued_date}
+                        </p>
+                      </div>
+                      <p className="text-[9px] text-amber-400/60 font-mono uppercase tracking-wider block">
+                        Verifiable Official Digital E-Certificate
+                      </p>
                     </div>
 
-                    <div className="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-300 font-bold text-[10px] uppercase text-center p-1 leading-tight shadow-inner">
-                      ऑफिशियल सील 2026
+                    {/* Golden Embossed Official Seal Badge */}
+                    <div className="relative group shrink-0">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-200 text-amber-950 p-1 shadow-2xl border-4 border-amber-100 flex items-center justify-center">
+                        <div className="w-full h-full rounded-full border-2 border-dashed border-amber-900/60 p-1 flex flex-col items-center justify-center text-center bg-amber-400/90 shadow-inner">
+                          <Award className="w-6 h-6 text-amber-950 mb-0.5" />
+                          <span className="text-[8px] font-black uppercase tracking-tight leading-none text-amber-950">
+                            माँ ताप्ती पवारी
+                          </span>
+                          <span className="text-[7px] font-bold text-amber-900 uppercase">
+                            शोध संस्थान 2026
+                          </span>
+                          <span className="text-[7px] font-black text-amber-950 mt-0.5 border-t border-amber-800/40 pt-0.5 w-full">
+                            ★ आधिकारिक मोहर ★
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="text-right space-y-0.5">
-                      <p className="font-serif text-sm font-bold text-amber-200">डॉ. कैलाश पवार</p>
-                      <p className="text-amber-400 font-semibold">संरक्षक / निदेशक</p>
-                      <p className="text-amber-300/60 text-[10px]">माँ ताप्ती पवारी शोध संस्थान</p>
+                    {/* Official Signatures */}
+                    <div className="text-center sm:text-right space-y-1">
+                      <div className="border-b border-amber-400/50 pb-1 mb-1 font-serif text-sm font-bold text-amber-200">
+                        डॉ. कैलाश पवार
+                      </div>
+                      <p className="text-amber-300 font-bold text-xs">संरक्षक / निदेशक</p>
+                      <p className="text-amber-400/80 text-[10px]">माँ ताप्ती पवारी शोध संस्थान, मुलताई</p>
                     </div>
+
                   </div>
+
                 </div>
               </div>
+
             </div>
           ) : (
             /* RETAKE QUIZ CARD FOR SCORES BELOW 60% */
@@ -1766,6 +2098,8 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
           )}
         </div>
       )}
+    </div>
+  )}
 
       {/* PUBLIC CONTRIBUTION MODAL FORM */}
       {isContribModalOpen && (
