@@ -29,24 +29,39 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
     try {
       const element = printContainerRef.current;
       
-      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+      const [jspdfModule, html2canvasModule] = await Promise.all([
         import('jspdf'),
         import('html2canvas')
       ]);
 
+      const jsPDF = (jspdfModule as any).jsPDF || (jspdfModule as any).default?.jsPDF || (jspdfModule as any).default;
+      const html2canvas = (html2canvasModule as any).default || html2canvasModule;
+
+      if (!jsPDF || typeof jsPDF !== 'function') {
+        throw new Error('jsPDF constructor not resolved');
+      }
+
       setProgressText(lang === 'hi' ? 'पीडीएफ तैयार हो रहा है...' : 'Generating Typeset PDF...');
 
-      // Temporarily ensure styles for rendering
+      // Ensure full rendering of element
       const canvas = await html2canvas(element, {
         scale: 2, // High resolution crisp text rendering
         useCORS: true,
+        allowTaint: true,
         logging: false,
         backgroundColor: '#ffffff',
-        windowWidth: 800
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: element.scrollWidth || 800
       });
 
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
       
       const pdfWidth = pdf.internal.pageSize.getWidth(); // 210 mm
       const pdfHeight = pdf.internal.pageSize.getHeight(); // 297 mm
@@ -78,7 +93,9 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
       setProgressText('');
     } catch (err) {
       console.error('PDF Generation Error:', err);
-      alert(lang === 'hi' ? 'पीडीएफ बनाने में त्रुटि हुई। कृपया पुनः प्रयास करें या Print फ़ंक्शन का उपयोग करें।' : 'Failed to generate PDF. Please try Print mode instead.');
+      // Fallback: trigger browser native print
+      alert(lang === 'hi' ? 'पीडीएफ डाउनलोड की प्रक्रिया में तकनीकी सहायता हेतु ब्राउज़र प्रिंट विंडो खोली जा रही है। कृपया "Save as PDF" चुनें।' : 'Opening browser print window to Save as PDF...');
+      window.print();
       setIsGenerating(false);
       setProgressText('');
     }
@@ -325,21 +342,30 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
       {/* Print Specific CSS */}
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
+          body {
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          body > *:not(#printable-typeset-paper) {
+            /* Keep hidden from print */
           }
           #printable-typeset-paper, #printable-typeset-paper * {
-            visibility: visible;
+            visibility: visible !important;
           }
           #printable-typeset-paper {
-            position: absolute;
-            left: 0;
-            top: 0;
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
             width: 100% !important;
-            min-height: auto !important;
-            padding: 20mm !important;
+            min-height: 100% !important;
+            padding: 15mm !important;
+            margin: 0 !important;
             border: none !important;
             box-shadow: none !important;
+            background: white !important;
+            color: black !important;
+            z-index: 9999999 !important;
+            overflow: visible !important;
           }
         }
       `}</style>

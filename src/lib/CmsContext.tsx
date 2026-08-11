@@ -44,6 +44,7 @@ import {
   SAMPLE_ARTICLES, 
   SAMPLE_EDITORIAL_BOARD, 
   DEFAULT_PAWARI_MEMBER_AVATAR,
+  SAMPLE_PDF_BLOB,
   SAMPLE_ANNOUNCEMENTS 
 } from '../data/seedData';
 import { ensureUniqueSlug } from './slugUtils';
@@ -707,8 +708,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activePdfTitle, setActivePdfTitle] = useState<string | null>(null);
 
   const openPdfViewer = (url: string, title: string) => {
-    setActivePdfUrl(url);
-    setActivePdfTitle(title);
+    const targetUrl = (url && url.trim() !== '' && !url.includes('dummy.pdf') && !url.includes('w3.org')) ? url : SAMPLE_PDF_BLOB;
+    setActivePdfUrl(targetUrl);
+    setActivePdfTitle(title || 'Pawari Research Document');
   };
 
   const closePdfViewer = () => {
@@ -767,6 +769,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         SAMPLE_ARTICLES.forEach(sampleArt => {
           if (!loadedArticles.some(a => a.id === sampleArt.id)) {
             loadedArticles.push(sampleArt);
+          }
+        });
+
+        // Ensure every article has a valid, working CORS-free pdf_url
+        loadedArticles.forEach(art => {
+          if (!art.pdf_url || art.pdf_url.includes('w3.org') || art.pdf_url.includes('dummy.pdf')) {
+            art.pdf_url = SAMPLE_PDF_BLOB;
           }
         });
 

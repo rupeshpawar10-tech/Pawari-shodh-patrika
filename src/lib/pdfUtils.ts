@@ -79,25 +79,57 @@ export function getEmbeddablePdfUrl(rawUrl: string): { displayUrl: string; isBlo
 export async function downloadPdf(rawUrl: string, fileName = 'article.pdf') {
   if (!rawUrl) return;
 
-  const resolved = await resolvePdfSource(rawUrl);
-  const cleanFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+  try {
+    const resolved = await resolvePdfSource(rawUrl);
+    const cleanFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
 
-  const a = document.createElement('a');
-  a.href = resolved;
-  a.download = cleanFileName;
-  a.target = '_blank';
-  a.rel = 'noreferrer';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+    let downloadUrl = resolved;
+    let tempBlobUrl = '';
+
+    if (resolved.startsWith('data:')) {
+      const blob = dataUrlToBlob(resolved);
+      if (blob) {
+        tempBlobUrl = URL.createObjectURL(blob);
+        downloadUrl = tempBlobUrl;
+      }
+    }
+
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = cleanFileName;
+    a.target = '_blank';
+    a.rel = 'noreferrer';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    if (tempBlobUrl) {
+      setTimeout(() => URL.revokeObjectURL(tempBlobUrl), 15000);
+    }
+  } catch (err) {
+    console.error('downloadPdf error:', err);
+  }
 }
 
-// Opens PDF in a new tab safely
+// Opens PDF in a new tab safely using Blob URL to prevent Chrome data: URL top frame navigation blocking
 export async function openPdfInNewTab(rawUrl: string) {
   if (!rawUrl) return;
 
-  const resolved = await resolvePdfSource(rawUrl);
-  window.open(resolved, '_blank');
+  try {
+    const resolved = await resolvePdfSource(rawUrl);
+    if (resolved.startsWith('data:')) {
+      const blob = dataUrlToBlob(resolved);
+      if (blob) {
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        return;
+      }
+    }
+    window.open(resolved, '_blank');
+  } catch (err) {
+    console.error('openPdfInNewTab error:', err);
+  }
 }
 
 /**
