@@ -410,6 +410,38 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [leaderboardSearch, setLeaderboardSearch] = useState('');
 
+  // Helper function to reliably render the certificate DOM element to HTML5 Canvas
+  const renderCertificateCanvas = async (certElement: HTMLElement): Promise<HTMLCanvasElement> => {
+    const html2canvasModule = await import('html2canvas');
+    const html2canvas = (html2canvasModule.default || html2canvasModule) as unknown as (element: HTMLElement, options?: any) => Promise<HTMLCanvasElement>;
+
+    return await html2canvas(certElement, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#FFFDF7',
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: certElement.scrollWidth,
+      windowHeight: certElement.scrollHeight,
+      onclone: (clonedDoc: Document) => {
+        // Strip oklch(...) colors from cloned stylesheets to prevent html2canvas color parser crash
+        const styleEls = clonedDoc.querySelectorAll('style');
+        styleEls.forEach((style) => {
+          if (style.textContent && style.textContent.includes('oklch')) {
+            style.textContent = style.textContent.replace(/oklch\([^)]+\)/g, '#b45309');
+          }
+        });
+        const target = clonedDoc.getElementById('printable-certificate-card');
+        if (target) {
+          target.style.backgroundColor = '#FFFDF7';
+          target.style.color = '#0f172a';
+        }
+      }
+    });
+  };
+
   const handleDownloadCertificateImage = async () => {
     const certElement = document.getElementById('printable-certificate-card');
     if (!certElement) {
@@ -418,16 +450,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     }
     setIsGeneratingImage(true);
     try {
-      const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(certElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: '#FFFDF7',
-        logging: false,
-        scrollX: 0,
-        scrollY: -window.scrollY
-      });
+      const canvas = await renderCertificateCanvas(certElement);
       const imageUri = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.download = `Pawari_Quiz_Certificate_${(certificateData?.user_name || 'Participant').replace(/\s+/g, '_')}.png`;
@@ -435,9 +458,9 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error generating certificate image:', err);
-      alert('इमेज डाउनलोड करने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+      alert('इमेज डाउनलोड करने में त्रुटि हुई: ' + (err?.message || 'पुनः प्रयास करें।'));
     } finally {
       setIsGeneratingImage(false);
     }
@@ -451,27 +474,21 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     }
     setIsGeneratingImage(true);
     try {
-      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-        import('jspdf'),
-        import('html2canvas')
-      ]);
+      const jspdfModule = await import('jspdf');
+      const jsPDFClass = ((jspdfModule as any).jsPDF || (jspdfModule as any).default) as any;
 
-      const canvas = await html2canvas(certElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: '#FFFDF7',
-        logging: false,
-        scrollX: 0,
-        scrollY: -window.scrollY
-      });
+      if (!jsPDFClass) {
+        throw new Error('jsPDF module load error');
+      }
+
+      const canvas = await renderCertificateCanvas(certElement);
 
       const imgData = canvas.toDataURL('image/png');
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       const orientation = imgWidth >= imgHeight ? 'l' : 'p';
 
-      const pdf = new jsPDF(orientation, 'mm', 'a4');
+      const pdf = new jsPDFClass(orientation, 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
 
@@ -484,9 +501,9 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
       pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight);
       pdf.save(`Pawari_Quiz_Certificate_${(certificateData?.user_name || 'Participant').replace(/\s+/g, '_')}.pdf`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error generating PDF:', err);
-      alert('PDF डाउनलोड करने में त्रुटि हुई।');
+      alert('PDF डाउनलोड करने में त्रुटि हुई: ' + (err?.message || 'पुनः प्रयास करें।'));
     } finally {
       setIsGeneratingImage(false);
     }
@@ -500,25 +517,18 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     }
     setIsGeneratingImage(true);
     try {
-      const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(certElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: '#FFFDF7',
-        logging: false,
-        scrollX: 0,
-        scrollY: -window.scrollY
-      });
+      const canvas = await renderCertificateCanvas(certElement);
+      const fileName = `Pawari_Quiz_Certificate_${(certificateData?.user_name || 'Participant').replace(/\s+/g, '_')}.png`;
 
       canvas.toBlob(async (blob) => {
         if (!blob) {
           setIsGeneratingImage(false);
+          alert('इमेज फ़ाइल तैयार करने में असमर्थ।');
           return;
         }
-        const fileName = `Pawari_Quiz_Certificate_${(certificateData?.user_name || 'Participant').replace(/\s+/g, '_')}.png`;
         const file = new File([blob], fileName, { type: 'image/png' });
 
+        let sharedSuccessfully = false;
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
@@ -526,14 +536,18 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
               text: `🏆 मैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ 2026 में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त कर यह ई-प्रमाण-पत्र अर्जित किया है!`,
               files: [file]
             });
+            sharedSuccessfully = true;
           } catch (shareErr) {
             console.log('Share prompt error/canceled:', shareErr);
           }
-        } else {
+        }
+
+        if (!sharedSuccessfully) {
           // Fallback image download + WhatsApp text link share
+          const imageUri = canvas.toDataURL('image/png');
           const link = document.createElement('a');
           link.download = fileName;
-          link.href = URL.createObjectURL(blob);
+          link.href = imageUri;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -543,8 +557,9 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
         }
         setIsGeneratingImage(false);
       }, 'image/png');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error sharing certificate image:', err);
+      alert('शेयर करने में त्रुटि हुई: ' + (err?.message || 'पुनः प्रयास करें।'));
       setIsGeneratingImage(false);
     }
   };
@@ -2435,13 +2450,10 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                   <div className="relative z-10 my-6 space-y-4">
                     {certificateData?.user_photo_url ? (
                       <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full mx-auto overflow-hidden border-4 border-amber-500 shadow-xl bg-amber-100 ring-4 ring-amber-300/50">
-                        <SafeImage 
+                        <img 
                           src={certificateData.user_photo_url} 
                           alt={certificateData.user_name} 
-                          loading="lazy"
-                          decoding="async"
-                          width={128}
-                          height={128}
+                          crossOrigin="anonymous"
                           className="w-full h-full object-cover"
                         />
                       </div>
