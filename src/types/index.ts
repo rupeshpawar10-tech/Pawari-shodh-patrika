@@ -201,6 +201,9 @@ export interface EditorialMember {
   photo_url?: string;
   email?: string;
   research_areas?: string[];
+  subject_areas?: string[];
+  bio_hindi?: string;
+  bio_english?: string;
   order: number;
 }
 

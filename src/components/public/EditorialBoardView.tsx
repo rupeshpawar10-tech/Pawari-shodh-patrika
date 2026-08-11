@@ -64,19 +64,26 @@ export const EditorialBoardView: React.FC = () => {
           )}
         </div>
 
-        {/* Research Expertise Tags */}
-        {member.research_areas && member.research_areas.length > 0 && (
+        {/* Research Expertise & Subject Areas Tags */}
+        {((member.research_areas && member.research_areas.length > 0) || (member.subject_areas && member.subject_areas.length > 0)) && (
           <div className="pt-2">
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-1">
-              {lang === 'hi' ? 'विशेषज्ञता क्षेत्र (Research Domains):' : 'Areas of Expertise:'}
+            <span className="text-[10px] font-mono font-bold text-amber-900 uppercase tracking-wider block mb-1">
+              {lang === 'hi' ? 'शोध क्षेत्र एवं विषय (Research Interests & Subject Areas):' : 'Research Interests & Subject Areas:'}
             </span>
             <div className="flex flex-wrap gap-1">
-              {member.research_areas.map((area, i) => (
-                <span key={i} className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-mono border border-slate-200">
+              {[...(member.research_areas || []), ...(member.subject_areas || [])].map((area, i) => (
+                <span key={i} className="text-[10px] bg-amber-50 text-amber-950 px-2.5 py-0.5 rounded-md font-medium border border-amber-200/80 shadow-2xs">
                   {area}
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Member Bio / Profile Summary */}
+        {(lang === 'hi' ? (member.bio_hindi || member.bio_english) : (member.bio_english || member.bio_hindi)) && (
+          <div className="pt-2 text-xs text-slate-600 italic leading-relaxed bg-amber-50/40 p-3 rounded-xl border border-amber-200/60">
+            "{lang === 'hi' ? (member.bio_hindi || member.bio_english) : (member.bio_english || member.bio_hindi)}"
           </div>
         )}
 

@@ -268,6 +268,25 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const [userName, setUserName] = useState('');
   const [userPhoto, setUserPhoto] = useState<string>('');
   const [certificateData, setCertificateData] = useState<QuizCertificate | null>(null);
+  const [copiedQuizLink, setCopiedQuizLink] = useState(false);
+
+  const handleCopyQuizLink = () => {
+    const quizUrl = `${window.location.origin}/quiz`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(quizUrl).then(() => {
+        setCopiedQuizLink(true);
+        setTimeout(() => setCopiedQuizLink(false), 2500);
+      });
+    } else {
+      prompt('पवारी ई-क्विज़ का डायरेक्ट लिंक शेयर करें:', quizUrl);
+    }
+  };
+
+  const handleShareQuizWhatsApp = () => {
+    const quizUrl = `${window.location.origin}/quiz`;
+    const shareText = `🏆 *पवारी भोयरी लोक संस्कृति एवं साहित्य ई-क्विज़ 2026* 🏆\n\nअपनी पवारी बोली, लोकगीत, शब्दकोश एवं पहेली ज्ञान की परीक्षा दें और ई-प्रमाण-पत्र प्राप्त करें!\n\n(विशेष: यह क्विज़ निष्पक्षता हेतु बिना किसी संकेत / Hint के है)\n\n👉 *क्विज़ में भाग लेने के लिए नीचे दिए गए डायरेक्ट लिंक पर क्लिक करें:*\n${quizUrl}\n\n🚩 *माँ ताप्ती पवारी शोध संस्थान*`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
 
   // Shabdkosh Filtering
   const filteredShabdkosh = approvedShabdkosh.filter(item => {
@@ -1409,6 +1428,48 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       {/* 4. QUIZ & CERTIFICATE ENGINE */}
       {activeTab === 'quiz' && (
         <div className="max-w-3xl mx-auto space-y-6">
+          {/* Dedicated Quiz Share Link Banner */}
+          <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border border-amber-500/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-amber-100 shadow-xl">
+            <div className="space-y-1 text-center sm:text-left">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                <Award className="w-3.5 h-3.5 text-amber-400" />
+                <span>पवारी भोयरी संस्कृति ई-क्विज़</span>
+              </div>
+              <h3 className="font-serif font-bold text-amber-200 text-base sm:text-lg">
+                पवारी क्विज़ शेयर करें (Direct Link)
+              </h3>
+              <p className="text-xs text-amber-300/80">
+                बिना किसी संकेत (Hint) के अपनी पवारी भाषा एवं संस्कृति ज्ञान की परीक्षा लें। अपने मित्रों व समूह में क्विज़ लिंक शेयर करें!
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleShareQuizWhatsApp}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition-all"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>वॉट्सऐप शेयर</span>
+              </button>
+              <button
+                onClick={handleCopyQuizLink}
+                className="px-3.5 py-2 rounded-xl bg-amber-950 hover:bg-amber-900 border border-amber-600/60 text-amber-200 font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition-all"
+              >
+                {copiedQuizLink ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span className="text-emerald-400">लिंक कॉपी हुआ!</span>
+                  </>
+                ) : (
+                  <>
+                    <Link2 className="w-4 h-4 text-amber-400" />
+                    <span>क्विज़ डायरेक्ट लिंक</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
           {!isQuizSubmitted ? (
             <div className="bg-slate-900/90 border border-amber-800/40 rounded-3xl p-6 md:p-8 shadow-2xl relative text-amber-100">
               {/* User Details Setup Before or During Quiz */}
@@ -1456,9 +1517,14 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
               {/* Question Header & Progress */}
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-amber-900/30">
                 <div>
-                  <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
-                    प्रश्न {currentQIndex + 1} / {activeQuizQuestions.length}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
+                      प्रश्न {currentQIndex + 1} / {activeQuizQuestions.length}
+                    </span>
+                    <span className="text-[10px] bg-red-950/90 text-amber-300/90 border border-amber-700/50 px-2 py-0.5 rounded font-mono font-semibold">
+                      संकेत/Hint रहित निष्पक्ष परीक्षा
+                    </span>
+                  </div>
                   <h3 className="text-lg md:text-xl font-bold text-amber-100 font-serif mt-1">
                     {activeQuizQuestions[currentQIndex]?.question_pawari}
                   </h3>
@@ -1558,6 +1624,23 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                   >
                     <Share2 className="w-4 h-4" />
                     <span>वॉट्सऐप पर शेयर करें</span>
+                  </button>
+
+                  <button
+                    onClick={handleCopyQuizLink}
+                    className="px-4 py-2.5 rounded-xl bg-amber-950 hover:bg-amber-900 border border-amber-700/60 text-amber-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    {copiedQuizLink ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-400" />
+                        <span className="text-emerald-400">क्विज़ लिंक कॉपी हुआ!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Link2 className="w-4 h-4 text-amber-400" />
+                        <span>क्विज़ लिंक शेयर करें</span>
+                      </>
+                    )}
                   </button>
 
                   <button

@@ -91,7 +91,16 @@
         "name_hindi": { "type": "string" },
         "name_english": { "type": "string" },
         "role": { "type": "string" },
+        "designation_hindi": { "type": "string" },
+        "designation_english": { "type": "string" },
+        "affiliation_hindi": { "type": "string" },
         "affiliation_english": { "type": "string" },
+        "email": { "type": "string" },
+        "photo_url": { "type": "string" },
+        "research_areas": { "type": "array", "items": { "type": "string" } },
+        "subject_areas": { "type": "array", "items": { "type": "string" } },
+        "bio_hindi": { "type": "string" },
+        "bio_english": { "type": "string" },
         "order": { "type": "number" }
       }
     },

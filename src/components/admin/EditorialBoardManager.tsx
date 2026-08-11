@@ -3,7 +3,7 @@ import { useCms } from '../../lib/CmsContext';
 import { EditorialMember } from '../../types';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { SafeImage } from '../common/SafeImage';
-import { Users, Plus, Edit3, Trash2, Upload, X, ShieldAlert, Tag, Settings, CheckCircle2 } from 'lucide-react';
+import { Users, Plus, Edit3, Trash2, Upload, X, ShieldAlert, Tag, Settings, CheckCircle2, GraduationCap } from 'lucide-react';
 
 const DEFAULT_REQUIRED_ROLES = [
   'Patron',
@@ -271,7 +271,31 @@ export const EditorialBoardManager: React.FC = () => {
                 </div>
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed">{mem.affiliation_english}</p>
+              <p className="text-xs font-semibold text-slate-800">{mem.name_hindi}</p>
+              <p className="text-xs text-red-900 font-medium">{mem.designation_hindi || mem.designation_english}</p>
+              <p className="text-xs text-slate-600 leading-relaxed">{mem.affiliation_hindi || mem.affiliation_english}</p>
+
+              {/* Research Areas & Subject Areas Tags */}
+              {((mem.research_areas && mem.research_areas.length > 0) || (mem.subject_areas && mem.subject_areas.length > 0)) && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] font-mono font-bold text-amber-950 uppercase tracking-wider mb-1">
+                    Research Interests & Subject Areas:
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {[...(mem.research_areas || []), ...(mem.subject_areas || [])].map((area, idx) => (
+                      <span key={idx} className="text-[10px] bg-amber-50 text-amber-900 px-2 py-0.5 rounded font-medium border border-amber-200">
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(mem.bio_hindi || mem.bio_english) && (
+                <p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded border border-slate-200">
+                  "{mem.bio_hindi || mem.bio_english}"
+                </p>
+              )}
             </div>
 
             <div className="pt-3 border-t flex items-center justify-between text-xs">
@@ -411,23 +435,119 @@ export const EditorialBoardManager: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Designation (English)</label>
-                  <input type="text" value={editingMember.designation_english || ''} onChange={e => setEditingMember({ ...editingMember, designation_english: e.target.value })} className="w-full p-2 border rounded" />
+                  <label className="block font-bold text-slate-700 mb-1">Designation (Hindi / पदनाम हिंदी)</label>
+                  <input type="text" placeholder="उदा. मुख्य संपादक, सह-प्राध्यापक" value={editingMember.designation_hindi || ''} onChange={e => setEditingMember({ ...editingMember, designation_hindi: e.target.value })} className="w-full p-2 border rounded" />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Display Order</label>
-                  <input type="number" value={editingMember.order} onChange={e => setEditingMember({ ...editingMember, order: Number(e.target.value) })} className="w-full p-2 border rounded" />
+                  <label className="block font-bold text-slate-700 mb-1">Designation (English)</label>
+                  <input type="text" placeholder="e.g. Chief Editor, Associate Professor" value={editingMember.designation_english || ''} onChange={e => setEditingMember({ ...editingMember, designation_english: e.target.value })} className="w-full p-2 border rounded" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Affiliation (English)</label>
-                  <input type="text" value={editingMember.affiliation_english || ''} onChange={e => setEditingMember({ ...editingMember, affiliation_english: e.target.value })} className="w-full p-2 border rounded" />
+                  <label className="block font-bold text-slate-700 mb-1">Affiliation (Hindi / संस्थान हिंदी)</label>
+                  <input type="text" placeholder="उदा. भाषाविज्ञान विभाग, विश्वविद्यालय" value={editingMember.affiliation_hindi || ''} onChange={e => setEditingMember({ ...editingMember, affiliation_hindi: e.target.value })} className="w-full p-2 border rounded" />
                 </div>
                 <div>
+                  <label className="block font-bold text-slate-700 mb-1">Affiliation (English)</label>
+                  <input type="text" placeholder="e.g. Department of Linguistics, Central University" value={editingMember.affiliation_english || ''} onChange={e => setEditingMember({ ...editingMember, affiliation_english: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="block font-bold text-slate-700 mb-1">Email</label>
-                  <input type="email" value={editingMember.email || ''} onChange={e => setEditingMember({ ...editingMember, email: e.target.value })} className="w-full p-2 border rounded" />
+                  <input type="email" placeholder="editor@pawarishodh.org" value={editingMember.email || ''} onChange={e => setEditingMember({ ...editingMember, email: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Display Order (क्रम संख्या)</label>
+                  <input type="number" value={editingMember.order} onChange={e => setEditingMember({ ...editingMember, order: Number(e.target.value) })} className="w-full p-2 border rounded" />
+                </div>
+              </div>
+
+              {/* Research Interests & Subject Areas Fields */}
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center space-x-1.5 text-amber-950 font-bold text-xs uppercase tracking-wider">
+                  <GraduationCap className="w-4 h-4 text-amber-700" />
+                  <span>Research Interests & Subject Areas (शोध क्षेत्र एवं विषय क्षेत्र)</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Research Interests / Expertise Areas (शोध क्षेत्र - Comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. पवारी लोकसाहित्य, भाषाविज्ञान, Comparative Literature, Phonetics"
+                    value={(editingMember.research_areas || []).join(', ')}
+                    onChange={e => {
+                      const raw = e.target.value;
+                      const arr = raw.split(',').map(s => s.trimStart());
+                      setEditingMember({ ...editingMember, research_areas: arr });
+                    }}
+                    className="w-full p-2 border border-slate-300 rounded bg-white text-xs font-medium"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">Separate multiple topics with commas (,)</p>
+                  {editingMember.research_areas && editingMember.research_areas.filter(Boolean).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {editingMember.research_areas.filter(Boolean).map((area, i) => (
+                        <span key={i} className="text-[10px] bg-amber-100 text-amber-950 px-2 py-0.5 rounded font-medium border border-amber-300">
+                          {area.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Subject Areas / Specializations (विषय क्षेत्र - Comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Cultural Anthropology, Dialectology, Sociolinguistics"
+                    value={(editingMember.subject_areas || []).join(', ')}
+                    onChange={e => {
+                      const raw = e.target.value;
+                      const arr = raw.split(',').map(s => s.trimStart());
+                      setEditingMember({ ...editingMember, subject_areas: arr });
+                    }}
+                    className="w-full p-2 border border-slate-300 rounded bg-white text-xs font-medium"
+                  />
+                  {editingMember.subject_areas && editingMember.subject_areas.filter(Boolean).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {editingMember.subject_areas.filter(Boolean).map((subj, i) => (
+                        <span key={i} className="text-[10px] bg-red-100 text-red-950 px-2 py-0.5 rounded font-medium border border-red-300">
+                          {subj.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bio / Profile Summary */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Short Profile / Bio (हिंदी)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="संक्षिप्त विवरण / परिचय..."
+                    value={editingMember.bio_hindi || ''}
+                    onChange={e => setEditingMember({ ...editingMember, bio_hindi: e.target.value })}
+                    className="w-full p-2 border rounded text-xs bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Short Profile / Bio (English)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Short summary/bio..."
+                    value={editingMember.bio_english || ''}
+                    onChange={e => setEditingMember({ ...editingMember, bio_english: e.target.value })}
+                    className="w-full p-2 border rounded text-xs bg-white"
+                  />
                 </div>
               </div>
 
