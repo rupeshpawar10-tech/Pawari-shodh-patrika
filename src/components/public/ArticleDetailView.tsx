@@ -4,6 +4,7 @@ import { getCanonicalUrl, getUrlForView } from '../../lib/router';
 import { updateMetaTags } from '../../lib/seo';
 import { CustomSectionBlock } from '../../types';
 import { getEmbeddablePdfUrl, downloadPdf } from '../../lib/pdfUtils';
+import { findArticle } from '../../lib/slugUtils';
 import { SharePaperModal } from '../common/SharePaperModal';
 import { AcademicPdfExporter } from '../common/AcademicPdfExporter';
 import { SafeImage } from '../common/SafeImage';
@@ -49,8 +50,8 @@ export const ArticleDetailView: React.FC = () => {
   } = useCms();
 
   const article = selectedArticleId 
-    ? articles.find(a => a.id === selectedArticleId || a.slug === selectedArticleId) 
-    : articles[0];
+    ? findArticle(articles, selectedArticleId) 
+    : (articles[0] || null);
 
   const hasFullText = Boolean(
     article?.content_mode === 'full_text' ||
@@ -105,17 +106,41 @@ export const ArticleDetailView: React.FC = () => {
 
   if (!article) {
     return (
-      <div className="max-w-4xl mx-auto my-12 p-12 text-center text-slate-600 font-serif space-y-4 bg-white rounded-3xl border border-amber-900/10 shadow-md">
-        <h3 className="text-lg font-bold text-red-950">{lang === 'hi' ? 'शोध पत्र नहीं मिला' : 'Research Paper Not Found'}</h3>
-        <p className="text-xs text-slate-500 max-w-md mx-auto">
-          {lang === 'hi' ? 'यह शोध पत्र हटा दिया गया है या शेयर लिंक अमान्य है।' : 'This research paper may have been removed or the shared link is invalid.'}
-        </p>
-        <button 
-          onClick={() => setActiveView('articles')} 
-          className="mt-2 px-5 py-2.5 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-xl shadow transition"
-        >
-          {lang === 'hi' ? 'सभी शोध पत्र देखें' : 'View All Research Papers'}
-        </button>
+      <div className="max-w-3xl mx-auto my-16 p-8 sm:p-12 text-center font-serif space-y-6 bg-white rounded-3xl border border-amber-900/15 shadow-xl">
+        <div className="w-16 h-16 rounded-full bg-red-100 text-red-900 flex items-center justify-center mx-auto text-2xl font-bold">
+          📄
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
+            {lang === 'hi' ? 'शोध पत्र नहीं मिला (Article Not Found)' : 'Research Paper Not Found'}
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
+            {lang === 'hi' 
+              ? 'आपने जिस शोध पत्र (Article) का अनुरोध किया है, वह या तो स्थानांतरित कर दिया गया है, उसका लिंक अमान्य है, या यह डेटाबेस में उपलब्ध नहीं है।' 
+              : 'The requested research paper could not be found. It may have been removed or the URL link is invalid.'}
+          </p>
+        </div>
+
+        <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
+          <button 
+            onClick={() => setActiveView('archive')} 
+            className="px-5 py-2.5 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-xl shadow transition"
+          >
+            {lang === 'hi' ? 'पुरालेख (Archives) देखें' : 'Browse Archives'}
+          </button>
+          <button 
+            onClick={() => setActiveView('current_issue')} 
+            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow transition"
+          >
+            {lang === 'hi' ? 'वर्तमान अंक पढ़ें' : 'View Current Issue'}
+          </button>
+          <button 
+            onClick={() => setActiveView('home')} 
+            className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition"
+          >
+            {lang === 'hi' ? 'होम पेज पर जाएं' : 'Return Home'}
+          </button>
+        </div>
       </div>
     );
   }
@@ -200,8 +225,21 @@ export const ArticleDetailView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-3 sm:px-8 py-3 sm:py-8 space-y-4 sm:space-y-8 animate-in fade-in duration-200 print:p-0 print:m-0 print:max-w-none">
+    <div className="max-w-4xl mx-auto px-3 sm:px-8 py-3 sm:py-8 space-y-6 sm:space-y-8 animate-in fade-in duration-200 print:p-0 print:m-0 print:max-w-none">
       
+      {/* ----------------- BREADCRUMB NAVIGATION ----------------- */}
+      <div className="flex items-center space-x-2 text-xs font-medium text-slate-500 print:hidden">
+        <button onClick={() => setActiveView('home')} className="hover:text-red-950 transition">
+          {lang === 'hi' ? 'मुख्य पृष्ठ' : 'Home'}
+        </button>
+        <span>/</span>
+        <button onClick={() => setActiveView('articles')} className="hover:text-red-950 transition">
+          {lang === 'hi' ? 'शोध आलेख' : 'Research Articles'}
+        </button>
+        <span>/</span>
+        <span className="text-red-950 font-bold truncate max-w-[220px]">{article.title_hindi}</span>
+      </div>
+
       {/* Back Button & Navigation Bar (Hidden during Print) */}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <button
@@ -997,6 +1035,84 @@ export const ArticleDetailView: React.FC = () => {
           </div>
         )}
 
+      </div>
+
+      {/* ----------------- RELATED ARTICLES SECTION (If available) ----------------- */}
+      {(() => {
+        const relatedArticles = articles
+          .filter(a => a.id !== article.id && (a.category === article.category || a.issue === article.issue))
+          .slice(0, 3);
+        
+        if (relatedArticles.length === 0) return null;
+
+        return (
+          <section className="bg-white border border-amber-900/15 rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-sm space-y-4 print:hidden">
+            <h2 className="text-lg font-serif font-bold text-red-950 flex items-center space-x-2 border-b border-amber-900/10 pb-2">
+              <BookOpen className="w-5 h-5 text-amber-700" />
+              <span>{lang === 'hi' ? 'संबंधित शोध आलेख (Related Research Articles)' : 'Related Research Articles'}</span>
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {relatedArticles.map(rel => (
+                <div
+                  key={rel.id}
+                  onClick={() => {
+                    // Navigate to article via window history pushState or CmsContext
+                    window.history.pushState({ view: 'article_detail', articleId: rel.id }, '', `/article/${rel.slug || rel.id}`);
+                    window.location.reload(); // or trigger router sync if router listens
+                  }}
+                  className="bg-amber-50/40 hover:bg-amber-50 border border-amber-900/10 rounded-xl p-4 flex flex-col justify-between cursor-pointer transition space-y-3 group"
+                >
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-mono bg-red-950 text-amber-100 px-2 py-0.5 rounded font-bold">
+                      {rel.category}
+                    </span>
+                    <h3 className="text-sm font-serif font-bold text-slate-900 group-hover:text-red-900 line-clamp-2 leading-snug">
+                      {rel.title_hindi}
+                    </h3>
+                    <p className="text-xs text-slate-600 line-clamp-2 font-sans">
+                      {rel.abstract_hindi || rel.abstract_english}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-amber-900/10 flex items-center justify-between text-xs font-mono text-amber-900 font-bold">
+                    <span>Vol. {rel.volume}, {rel.year}</span>
+                    <span className="group-hover:translate-x-1 transition-transform">पूरा देखें ➔</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* ----------------- BOTTOM NAVIGATION CTA ----------------- */}
+      <div className="bg-gradient-to-r from-red-950 via-red-900 to-amber-950 rounded-2xl p-6 text-amber-100 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md print:hidden">
+        <div className="space-y-1 text-center sm:text-left">
+          <h3 className="font-serif font-bold text-base text-amber-200">
+            {lang === 'hi' ? 'पवारी शोध पत्रिका (Pawari Shodh Patrika)' : 'Pawari Shodh Patrika Archive'}
+          </h3>
+          <p className="text-xs text-amber-100/80 font-sans max-w-md">
+            {lang === 'hi' 
+              ? 'इस अंक के अन्य सभी शोध पत्र पढ़ने या संपूर्ण पुरालेख (Archives) ब्राउज़ करने के लिए नीचे दिए गए बटन का उपयोग करें।' 
+              : 'Explore the complete issue or browse our full scholarly archive.'}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => setActiveView('current_issue')}
+            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-red-950 font-bold text-xs rounded-xl shadow transition"
+          >
+            {lang === 'hi' ? 'वर्तमान अंक देखें' : 'View Current Issue'}
+          </button>
+          <button
+            onClick={() => setActiveView('archive')}
+            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl border border-white/20 transition"
+          >
+            {lang === 'hi' ? 'संपूर्ण पुरालेख (Archives)' : 'Browse Archives'}
+          </button>
+        </div>
       </div>
 
       {/* Share Modal */}

@@ -22,23 +22,82 @@ export function createSlug(title: string, fallbackId: string = ''): string {
   return slug;
 }
 
-export function ensureUniqueSlug<T extends { id: string; slug?: string }>(
-  baseTitle: string,
-  itemId: string,
-  existingList: T[],
-  currentSlugOverride?: string
-): string {
-  let baseSlug = (currentSlugOverride && currentSlugOverride.trim() !== '')
-    ? createSlug(currentSlugOverride, itemId)
-    : createSlug(baseTitle, itemId);
+import { Article } from '../types';
 
-  let slug = baseSlug;
-  let counter = 1;
+export function findArticle(articles: Article[], identifier: string | null): Article | null {
+  if (!identifier) return null;
+  const cleanId = identifier.trim().toLowerCase();
+  
+  // 1. Exact ID match
+  let found = articles.find(a => a.id.toLowerCase() === cleanId);
+  if (found) return found;
 
-  while (existingList.some(item => item.id !== itemId && item.slug === slug)) {
-    counter++;
-    slug = `${baseSlug}-${counter}`;
+  // 2. Exact slug match
+  found = articles.find(a => a.slug && a.slug.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 3. Normalized slugified title match
+  const targetSlug = createSlug(identifier);
+  found = articles.find(a => {
+    const slugHi = createSlug(a.title_hindi);
+    const slugEn = createSlug(a.title_english);
+    const slugStored = a.slug ? createSlug(a.slug) : '';
+    return slugStored === targetSlug || slugHi === targetSlug || slugEn === targetSlug;
+  });
+  if (found) return found;
+
+  // 4. Legacy slug mapping
+  const legacyMap: Record<string, string> = {
+    '1': articles[0]?.id || '',
+    '2': articles[1]?.id || '',
+    '3': articles[2]?.id || '',
+    'art-1': articles[0]?.id || '',
+    'art-2': articles[1]?.id || '',
+    'vol-1-issue-1-art-1': articles[0]?.id || ''
+  };
+  if (legacyMap[cleanId]) {
+    found = articles.find(a => a.id === legacyMap[cleanId]);
+    if (found) return found;
   }
 
-  return slug;
+  // 5. Partial title substring search
+  found = articles.find(a => 
+    (a.title_english && a.title_english.toLowerCase().includes(cleanId)) ||
+    (a.title_hindi && a.title_hindi.toLowerCase().includes(cleanId))
+  );
+  return found || null;
 }
+
+export function ensureUniqueSlug(
+  title: string, 
+  fallbackId: string = '', 
+  itemsListOrSlugs: Array<{ id: string; slug?: string }> | string[] = [], 
+  currentSlug: string = ''
+): string {
+  let baseSlug = createSlug(title, fallbackId);
+  let uniqueSlug = baseSlug;
+  let counter = 1;
+
+  let existingSlugs: string[] = [];
+  if (Array.isArray(itemsListOrSlugs)) {
+    if (itemsListOrSlugs.length > 0 && typeof itemsListOrSlugs[0] === 'string') {
+      existingSlugs = itemsListOrSlugs as string[];
+    } else {
+      existingSlugs = (itemsListOrSlugs as Array<{ id: string; slug?: string }>)
+        .filter(item => item.id !== fallbackId)
+        .map(item => item.slug)
+        .filter(Boolean) as string[];
+    }
+  }
+
+  if (currentSlug) {
+    existingSlugs = existingSlugs.filter(s => s !== currentSlug);
+  }
+
+  while (existingSlugs.includes(uniqueSlug)) {
+    uniqueSlug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+  return uniqueSlug;
+}
+

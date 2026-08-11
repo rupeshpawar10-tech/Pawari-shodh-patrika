@@ -20,6 +20,7 @@ const EditorialBoardView = React.lazy(() => import('./components/public/Editoria
 const AuthorGuidelinesView = React.lazy(() => import('./components/public/AuthorGuidelinesView').then(m => ({ default: m.AuthorGuidelinesView })));
 const ManuscriptSubmissionView = React.lazy(() => import('./components/public/ManuscriptSubmissionView').then(m => ({ default: m.ManuscriptSubmissionView })));
 const ContactView = React.lazy(() => import('./components/public/ContactView').then(m => ({ default: m.ContactView })));
+const PawariLokgeetView = React.lazy(() => import('./components/public/PawariLokgeetView').then(m => ({ default: m.PawariLokgeetView })));
 const NotFoundView = React.lazy(() => import('./components/common/NotFoundView').then(m => ({ default: m.NotFoundView })));
 
 // Lazy-loaded global modals & admin components
@@ -226,7 +227,7 @@ const MainContent: React.FC = () => {
       case 'pawari_writers': return <BooksBlogsView initialTab="writers" />;
       case 'pawari_shabdkosh': return <BooksBlogsView initialTab="shabdkosh" />;
       case 'pawari_paheli': return <BooksBlogsView initialTab="paheli" />;
-      case 'pawari_lokgeet': return <BooksBlogsView initialTab="lokgeet" />;
+      case 'pawari_lokgeet': return <PawariLokgeetView />;
       case 'pawari_quiz': return <BooksBlogsView initialTab="quiz" />;
       case 'article_detail': 
         if (!currentArticle) return <NotFoundView />;

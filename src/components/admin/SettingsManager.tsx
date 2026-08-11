@@ -189,6 +189,16 @@ export const SettingsManager: React.FC = () => {
               <label className="block font-bold text-slate-700 mb-1">Publisher (English)</label>
               <input type="text" value={formSettings.publisher_english} onChange={e => setFormSettings({ ...formSettings, publisher_english: e.target.value })} className="w-full p-2.5 border rounded-lg" />
             </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Publication Frequency (Hindi)</label>
+              <input type="text" value={formSettings.frequency_hindi || ''} onChange={e => setFormSettings({ ...formSettings, frequency_hindi: e.target.value })} className="w-full p-2.5 border rounded-lg" placeholder="अर्द्धवार्षिक (वर्ष में 2 अंक: जून और दिसंबर)" />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Publication Frequency (English)</label>
+              <input type="text" value={formSettings.frequency_english || ''} onChange={e => setFormSettings({ ...formSettings, frequency_english: e.target.value })} className="w-full p-2.5 border rounded-lg" placeholder="Half-Yearly (2 Issues per Year: Published in June and December)" />
+            </div>
           </div>
         </div>
 

@@ -251,7 +251,6 @@ export function updateMetaTags(
       description = lang === 'hi' ? 'पवारी शोध पत्रिका के सभी प्रकाशित अंकों, वॉल्यूम और शोध पत्रों का पूर्ण डिजिटलाइज्ड आर्काइव।' : 'Explore the complete digital repository of past issues, published volumes, and peer-reviewed research papers in Pawari Shodh Patrika.';
       break;
     case 'articles':
-    case 'books_blogs':
       pageTitle = lang === 'hi' ? `प्रकाशित शोध पत्र एवं साहित्य | ${journalTitle}` : `Published Research Papers & Literature | ${journalTitle}`;
       description = lang === 'hi' ? 'पवारी शोध पत्रिका के अंतर्गत प्रकाशित शोध पत्र, शोध ग्रंथ एवं साहित्य संग्रह।' : 'Search and access open-access research articles, scholarly books, and cultural literature published in Pawari Shodh Patrika.';
       break;

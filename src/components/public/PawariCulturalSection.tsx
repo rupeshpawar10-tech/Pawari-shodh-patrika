@@ -418,7 +418,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     return await html2canvas(certElement, {
       scale: 2,
       useCORS: true,
-      allowTaint: true,
+      allowTaint: false,
       backgroundColor: '#FFFDF7',
       logging: false,
       scrollX: 0,
@@ -2453,7 +2453,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                         <img 
                           src={certificateData.user_photo_url} 
                           alt={certificateData.user_name} 
-                          crossOrigin="anonymous"
+                          crossOrigin={certificateData.user_photo_url.startsWith('http') ? 'anonymous' : undefined}
                           className="w-full h-full object-cover"
                         />
                       </div>

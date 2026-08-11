@@ -16,23 +16,32 @@ function openBlobDB(): Promise<IDBDatabase> {
     if (typeof window === 'undefined' || !window.indexedDB) {
       return reject(new Error('IndexedDB unavailable in current environment'));
     }
-    const request = window.indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    if (document.visibilityState === 'hidden') {
+      return reject(new Error('Document is hidden/closing'));
+    }
+    try {
+      const request = window.indexedDB.open(DB_NAME, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
 // Save Blob to IndexedDB
 export async function saveFileToIndexedDB(fileId: string, blob: Blob): Promise<void> {
   if (!fileId || !blob) return;
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+  let idb: IDBDatabase | null = null;
   try {
-    const idb = await openBlobDB();
+    idb = await openBlobDB();
     const tx = idb.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).put(blob, fileId);
     await new Promise((res, rej) => {
@@ -41,22 +50,33 @@ export async function saveFileToIndexedDB(fileId: string, blob: Blob): Promise<v
     });
   } catch (e) {
     console.warn('[FileBlobManager] IndexedDB save warning:', e);
+  } finally {
+    if (idb) {
+      try { idb.close(); } catch (_) {}
+    }
   }
 }
 
 // Retrieve Blob from IndexedDB
 export async function getFileFromIndexedDB(fileId: string): Promise<Blob | null> {
   if (!fileId) return null;
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return null;
+  let idb: IDBDatabase | null = null;
   try {
-    const idb = await openBlobDB();
+    idb = await openBlobDB();
     const tx = idb.transaction(STORE_NAME, 'readonly');
     const req = tx.objectStore(STORE_NAME).get(fileId);
-    return await new Promise((res, rej) => {
+    const result = await new Promise<Blob | null>((res, rej) => {
       req.onsuccess = () => res((req.result as Blob) || null);
       req.onerror = () => rej(req.error);
     });
+    return result;
   } catch (e) {
     return null;
+  } finally {
+    if (idb) {
+      try { idb.close(); } catch (_) {}
+    }
   }
 }
 

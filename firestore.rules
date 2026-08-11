@@ -98,8 +98,7 @@ service cloud.firestore {
 
     // Media Library
     match /media/{mediaId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // Books collection
@@ -153,8 +152,7 @@ service cloud.firestore {
 
     // User Files collection (Base64 file storage in Firestore)
     match /user_files/{fileId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Users Collection (RBAC Profiles)
