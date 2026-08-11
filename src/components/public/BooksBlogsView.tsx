@@ -6,6 +6,7 @@ import { SAMPLE_BOOKS, SAMPLE_BLOGS, SAMPLE_WRITERS, BookItem, BlogItem } from '
 import { PawariWriterItem } from '../../types';
 import { downloadPdf } from '../../lib/pdfUtils';
 import { PawariCulturalSection } from './PawariCulturalSection';
+import { PublicContributionModal } from './PublicContributionModal';
 import { 
   BookOpen, 
   Search, 
@@ -94,6 +95,8 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
   const [selectedBook, setSelectedBook] = useState<BookItem | null>(null);
   const [selectedBlog, setSelectedBlog] = useState<BlogItem | null>(null);
   const [selectedWriter, setSelectedWriter] = useState<PawariWriterItem | null>(null);
+  const [isContribModalOpen, setIsContribModalOpen] = useState(false);
+  const [contribDefaultTab, setContribDefaultTab] = useState<'books' | 'blogs' | 'writers' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'cultural_quizzes' | 'reviews'>('books');
   const [likedBlogs, setLikedBlogs] = useState<Record<string, number>>({});
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
 
@@ -410,13 +413,26 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
               <span>{lang === 'hi' ? 'पुस्तकालय एवं वैचारिक मंच' : 'Library & Scholarly Blog'}</span>
             </div>
 
-            <button
-              onClick={() => handleOpenPublishModal('book')}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-red-950 font-bold text-xs sm:text-sm shadow-xl flex items-center space-x-2 transition-all cursor-pointer transform hover:scale-[1.02]"
-            >
-              <Upload className="w-4 h-4 text-red-950" />
-              <span>{lang === 'hi' ? 'अपनी पुस्तक, समीक्षा या ब्लॉग प्रकाशित कराएं' : 'Publish Book, Review or Blog'}</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  setContribDefaultTab('books');
+                  setIsContribModalOpen(true);
+                }}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-red-950 font-bold text-xs sm:text-sm shadow-xl flex items-center space-x-2 transition-all cursor-pointer transform hover:scale-[1.02]"
+              >
+                <Plus className="w-4 h-4 text-red-950" />
+                <span>{lang === 'hi' ? '📚 सार्वजनिक योगदान फॉर्म' : 'Community Submission Form'}</span>
+              </button>
+
+              <button
+                onClick={() => handleOpenPublishModal('book')}
+                className="px-3.5 py-2 rounded-xl bg-red-900 hover:bg-red-800 text-amber-200 border border-amber-500/40 font-bold text-xs sm:text-sm shadow-lg flex items-center space-x-1.5 transition-all cursor-pointer"
+              >
+                <Upload className="w-4 h-4 text-amber-300" />
+                <span>{lang === 'hi' ? 'अकादमिक पांडुलिपि' : 'Manuscript'}</span>
+              </button>
+            </div>
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-serif font-bold text-amber-100 leading-tight">
@@ -612,16 +628,30 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
       {/* ---------------- CONTENT SECTION: PAWARI WRITERS & AUTHORS ---------------- */}
       {(activeTab === 'all' || activeTab === 'writers') && (
         <section className="space-y-4">
-          <div className="flex items-center justify-between border-b border-amber-900/10 pb-2">
+          <div className="flex flex-wrap items-center justify-between border-b border-amber-900/10 pb-2 gap-2">
             <div className="flex items-center space-x-2">
               <UserCheck className="w-5 h-5 text-red-900" />
               <h2 className="text-xl font-serif font-bold text-red-950">
                 {lang === 'hi' ? 'पवारी भाषा एवं मध्य भारत के साहित्यकार' : 'Pawari Language & Cultural Writers'}
               </h2>
             </div>
-            <span className="text-xs font-mono text-slate-500 font-bold">
-              {filteredWriters.length} {lang === 'hi' ? 'साहित्यकार पंजीकृत' : 'Writers Registered'}
-            </span>
+            
+            <div className="flex items-center space-x-3">
+              <span className="text-xs font-mono text-slate-500 font-bold hidden sm:inline">
+                {filteredWriters.length} {lang === 'hi' ? 'साहित्यकार पंजीकृत' : 'Writers Registered'}
+              </span>
+
+              <button
+                onClick={() => {
+                  setContribDefaultTab('writers');
+                  setIsContribModalOpen(true);
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-red-900 hover:bg-red-800 text-amber-100 font-serif font-bold text-xs shadow-xs flex items-center space-x-1.5 transition cursor-pointer"
+              >
+                <PenTool className="w-3.5 h-3.5 text-amber-300" />
+                <span>{lang === 'hi' ? '🖋️ साहित्यकार प्रोफाइल फॉर्म' : 'Add / Edit Writer Profile'}</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -1559,8 +1589,54 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
               </div>
             )}
 
+            {/* Reviews / Critiques on Author's Works */}
+            <div className="space-y-3 pt-2 border-t border-amber-200">
+              <h3 className="text-sm font-serif font-bold text-red-950 flex items-center space-x-2">
+                <FileText className="w-4 h-4 text-amber-700" />
+                <span>{lang === 'hi' ? 'कृतियों पर समीक्षाएं एवं समालोचना' : 'Reviews & Critiques on Works'}</span>
+              </h3>
+
+              {blogsList.filter(b => b.category === 'समीक्षा' && (b.content_hindi?.includes(selectedWriter.name_hindi) || b.title_hindi?.includes(selectedWriter.name_hindi))).length > 0 ? (
+                <div className="space-y-2">
+                  {blogsList.filter(b => b.category === 'समीक्षा' && (b.content_hindi?.includes(selectedWriter.name_hindi) || b.title_hindi?.includes(selectedWriter.name_hindi))).map(rev => (
+                    <div key={rev.id} className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-1">
+                      <h4 className="text-xs font-serif font-bold text-red-950">{rev.title_hindi}</h4>
+                      <p className="text-[11px] text-slate-600 line-clamp-2">{rev.excerpt_hindi || rev.content_hindi?.slice(0, 100)}</p>
+                      <span className="text-[10px] font-mono text-amber-800 block">समीक्षक: {rev.author} • {rev.published_date}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50/30 border border-amber-100 rounded-xl text-xs text-slate-600 italic flex items-center justify-between">
+                  <span>{lang === 'hi' ? 'वर्तमान में इस साहित्यकार की कृतियों पर कोई समीक्षा उपलब्ध नहीं है।' : 'No reviews recorded yet.'}</span>
+                  <button
+                    onClick={() => {
+                      setSelectedWriter(null);
+                      setContribDefaultTab('reviews');
+                      setIsContribModalOpen(true);
+                    }}
+                    className="text-[10px] font-bold text-red-900 hover:underline cursor-pointer"
+                  >
+                    + समीक्षा लिखें
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Modal Footer */}
-            <div className="flex items-center justify-end pt-4 border-t border-slate-200">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t border-slate-200">
+              <button
+                onClick={() => {
+                  setSelectedWriter(null);
+                  setContribDefaultTab('writers');
+                  setIsContribModalOpen(true);
+                }}
+                className="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs font-serif font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
+              >
+                <PenTool className="w-3.5 h-3.5 text-amber-800" />
+                <span>{lang === 'hi' ? '✍️ प्रोफाइल या जानकारी अपडेट करें' : 'Update Profile Info'}</span>
+              </button>
+
               <button
                 onClick={() => setSelectedWriter(null)}
                 className="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer"
@@ -1947,6 +2023,13 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </div>
         </div>
       )}
+
+      {/* ---------------- PUBLIC COMMUNITY CONTRIBUTION MODAL ---------------- */}
+      <PublicContributionModal
+        isOpen={isContribModalOpen}
+        onClose={() => setIsContribModalOpen(false)}
+        defaultTab={contribDefaultTab}
+      />
 
     </div>
   );

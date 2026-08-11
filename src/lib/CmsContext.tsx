@@ -226,8 +226,8 @@ interface CmsContextType {
   saveQuizQuestion: (question: QuizQuestion) => Promise<void>;
   deleteQuizQuestion: (id: string) => Promise<void>;
   saveQuizCertificate: (cert: QuizCertificate) => Promise<void>;
-  submitPublicContribution: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books', itemData: any) => Promise<void>;
-  updateContributionStatus: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'submissions', id: string, status: 'approved' | 'pending' | 'rejected') => Promise<void>;
+  submitPublicContribution: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'writers' | 'cultural_quizzes' | 'reviews', itemData: any) => Promise<void>;
+  updateContributionStatus: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'writers' | 'cultural_quizzes' | 'submissions', id: string, status: 'approved' | 'pending' | 'rejected', editorial_comments?: string) => Promise<void>;
 
   savePage: (page: PageContent) => Promise<void>;
   saveEditorialMember: (member: EditorialMember) => Promise<void>;
@@ -1958,9 +1958,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Public User Contributions
-  const submitPublicContribution = async (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books', itemData: any) => {
+  const submitPublicContribution = async (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'writers' | 'cultural_quizzes' | 'reviews', itemData: any) => {
     const id = 'contrib_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-    const titleForSlug = itemData.title_hindi || itemData.title_pawari || itemData.title_english || itemData.word_pawari || itemData.riddle_pawari || 'submission';
+    const titleForSlug = itemData.title_hindi || itemData.name_hindi || itemData.title_pawari || itemData.title_english || itemData.word_pawari || itemData.riddle_pawari || 'submission';
     const slug = ensureUniqueSlug(titleForSlug, id, []);
     const newItem = {
       ...itemData,
@@ -1970,6 +1970,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       submitted_at: itemData.submitted_at || new Date().toISOString(),
       created_at: itemData.created_at || new Date().toISOString()
     };
+
+    const targetCollection = (type === 'reviews') ? 'blogs' : (type === 'cultural_quizzes') ? 'quizQuestions' : type;
 
     if (type === 'shabdkosh') {
       const updated = [newItem as PawariShabdkoshItem, ...shabdkoshList];
@@ -1983,28 +1985,37 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const updated = [newItem as PawariLokgeetItem, ...lokgeetList];
       setLokgeetList(updated);
       try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
-    } else if (type === 'blogs') {
-      const updated = [newItem as BlogItem, ...blogs];
+    } else if (type === 'blogs' || type === 'reviews') {
+      const blogItem = { ...newItem, category: type === 'reviews' ? 'समीक्षा' : (newItem.category || 'आलेख') };
+      const updated = [blogItem as BlogItem, ...blogs];
       setBlogs(updated);
       try { localStorage.setItem('local_blogs_cache', JSON.stringify(updated)); } catch (e) {}
     } else if (type === 'books') {
       const updated = [newItem as BookItem, ...books];
       setBooks(updated);
       try { localStorage.setItem('local_books_cache', JSON.stringify(updated)); } catch (e) {}
+    } else if (type === 'writers') {
+      const updated = [newItem as PawariWriterItem, ...writers];
+      setWriters(updated);
+      try { localStorage.setItem('pawari_writers_cache', JSON.stringify(updated)); } catch (e) {}
+    } else if (type === 'cultural_quizzes') {
+      const updated = [newItem as QuizQuestion, ...quizQuestions];
+      setQuizQuestions(updated);
+      try { localStorage.setItem('pawari_quiz_questions_cache', JSON.stringify(updated)); } catch (e) {}
     }
 
-    try { await setDoc(doc(db, type, newItem.id), newItem); } catch (e) { console.error(e); }
+    try { await setDoc(doc(db, targetCollection, newItem.id), newItem); } catch (e) { console.error(e); }
 
     logActivity({
-      category: type === 'shabdkosh' ? 'shabdkosh' : type === 'paheli' ? 'paheli' : type === 'lokgeet' ? 'lokgeet' : type === 'blogs' ? 'blogs' : 'books',
+      category: type === 'shabdkosh' ? 'shabdkosh' : type === 'paheli' ? 'paheli' : type === 'lokgeet' ? 'lokgeet' : type === 'blogs' || type === 'reviews' ? 'blogs' : type === 'books' ? 'books' : 'general',
       action: 'create',
       title: `New Public User Submission (${type.toUpperCase()})`,
-      details: `Submitted by: ${itemData.contributor_name || itemData.author || itemData.authors || 'Public Reader'}`
+      details: `Submitted by: ${itemData.contributor_name || itemData.name_hindi || itemData.author || itemData.authors || 'Public Reader'}`
     }).catch(console.warn);
   };
 
   const updateContributionStatus = async (
-    type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'submissions', 
+    type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'writers' | 'cultural_quizzes' | 'submissions', 
     id: string, 
     status: string,
     editorial_comments?: string
@@ -2039,6 +2050,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setBooks(updated);
       try { localStorage.setItem('local_books_cache', JSON.stringify(updated)); } catch (e) {}
       try { await updateDoc(doc(db, 'books', id), updatePayload); } catch (e) { console.error(e); }
+    } else if (type === 'writers') {
+      const updated = writers.map(item => item.id === id ? { ...item, ...updatePayload } : item);
+      setWriters(updated);
+      try { localStorage.setItem('pawari_writers_cache', JSON.stringify(updated)); } catch (e) {}
+      try { await updateDoc(doc(db, 'writers', id), updatePayload); } catch (e) { console.error(e); }
+    } else if (type === 'cultural_quizzes') {
+      const updated = quizQuestions.map(item => item.id === id ? { ...item, ...updatePayload } : item);
+      setQuizQuestions(updated);
+      try { localStorage.setItem('pawari_quiz_questions_cache', JSON.stringify(updated)); } catch (e) {}
+      try { await updateDoc(doc(db, 'quizQuestions', id), updatePayload); } catch (e) { console.error(e); }
     } else if (type === 'submissions') {
       const mappedStatus = status === 'approved' || status === 'published' ? 'accepted' : status === 'rejected' ? 'rejected' : 'pending';
       const updated = submissions.map(item => item.id === id ? { ...item, status: mappedStatus as any } : item);

@@ -33,7 +33,10 @@ import {
   Clock,
   Layers,
   Award,
-  BookMarked
+  BookMarked,
+  HelpCircle,
+  Music,
+  Book
 } from 'lucide-react';
 
 export const HomeView: React.FC = () => {
@@ -537,6 +540,203 @@ export const HomeView: React.FC = () => {
 
           </section>
         )}
+
+        {/* ==========================================
+            4.5. PAWARI CULTURE, LITERATURE & HERITAGE HUB
+            ========================================== */}
+        <section className="bg-gradient-to-br from-[#420708] via-[#2a0506] to-[#1c0304] border border-amber-500/40 rounded-3xl p-6 sm:p-8 text-amber-100 shadow-xl space-y-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-900/20 rounded-full blur-2xl pointer-events-none"></div>
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-amber-500/30 pb-4">
+            <div>
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40 text-xs font-bold uppercase tracking-wider mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>पवारी भाषा, लोकसंस्कृति व साहित्य केंद्र</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-amber-100 tracking-tight">
+                {lang === 'hi' ? 'पवारी शब्दकोश, पहेली, लोकगीत, पुस्तकें व समीक्षा हब' : 'Pawari Shabdkosh, Paheli, Lokgeet, Books & Reviews Hub'}
+              </h2>
+              <p className="text-xs sm:text-sm text-amber-200/80 font-serif mt-1 max-w-2xl">
+                {lang === 'hi' 
+                  ? 'माँ ताप्ती पवारी शोध संस्थान द्वारा संरक्षित पवारी भाषा के प्रामाणिक कोष, प्राचीन लोक पहेलियाँ, विवाह व फाग लोकगीत, ई-बुक्स, समीक्षाएँ व ऑनलाइन संस्कृति परीक्षा।'
+                  : 'Authentic Pawari dictionary, ancient riddles, folk songs, digital books, literary reviews, and cultural e-quiz with certificates.'}
+              </p>
+            </div>
+
+            <a
+              href={getUrlForView('books_blogs')}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveView('books_blogs');
+              }}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-red-950 font-bold text-xs sm:text-sm rounded-xl transition flex items-center space-x-1.5 shadow-md shrink-0 self-start md:self-center"
+            >
+              <span>{lang === 'hi' ? 'संपूर्ण साहित्य संग्रह देखें' : 'Explore Full Collection'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
+
+          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            
+            {/* 1. Pawari Shabdkosh Card */}
+            <a
+              href={getUrlForView('pawari_shabdkosh')}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveView('pawari_shabdkosh');
+              }}
+              className="bg-black/40 hover:bg-black/60 border border-amber-500/30 hover:border-amber-400 p-4 rounded-2xl transition duration-200 group flex flex-col justify-between space-y-3 cursor-pointer shadow-md"
+            >
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 group-hover:scale-110 transition">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-serif font-bold text-amber-100 group-hover:text-amber-300 transition">
+                  📖 पवारी शब्दकोश (Shabdkosh)
+                </h3>
+                <p className="text-xs text-amber-200/70 leading-relaxed font-sans">
+                  १,०००+ प्रामाणिक पवारी शब्द, हिंदी-अंग्रेजी अनुवाद, व्याकरण, वर्ग श्रेणी व वाक्य प्रयोग।
+                </p>
+              </div>
+              <div className="flex items-center text-xs font-bold text-amber-300 group-hover:underline pt-2 border-t border-amber-500/20">
+                <span>शब्दकोश खोजें</span>
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </div>
+            </a>
+
+            {/* 2. Pawari Paheli Card */}
+            <a
+              href={getUrlForView('pawari_paheli')}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveView('pawari_paheli');
+              }}
+              className="bg-black/40 hover:bg-black/60 border border-amber-500/30 hover:border-amber-400 p-4 rounded-2xl transition duration-200 group flex flex-col justify-between space-y-3 cursor-pointer shadow-md"
+            >
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 group-hover:scale-110 transition">
+                  <HelpCircle className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-serif font-bold text-amber-100 group-hover:text-amber-300 transition">
+                  🧩 पवारी पहेलियाँ (Paheli)
+                </h3>
+                <p className="text-xs text-amber-200/70 leading-relaxed font-sans">
+                  पारंपरिक पवारी बुझौवल, लोक पहेलियाँ, उत्तर छिपाएँ-देखें विकल्प व सांस्कृतिक व्याख्या।
+                </p>
+              </div>
+              <div className="flex items-center text-xs font-bold text-amber-300 group-hover:underline pt-2 border-t border-amber-500/20">
+                <span>पहेलियां बुझाएं</span>
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </div>
+            </a>
+
+            {/* 3. Pawari Lokgeet Card */}
+            <a
+              href={getUrlForView('pawari_lokgeet')}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveView('pawari_lokgeet');
+              }}
+              className="bg-black/40 hover:bg-black/60 border border-amber-500/30 hover:border-amber-400 p-4 rounded-2xl transition duration-200 group flex flex-col justify-between space-y-3 cursor-pointer shadow-md"
+            >
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 group-hover:scale-110 transition">
+                  <Music className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-serif font-bold text-amber-100 group-hover:text-amber-300 transition">
+                  🎵 पवारी लोकगीत (Lokgeet)
+                </h3>
+                <p className="text-xs text-amber-200/70 leading-relaxed font-sans">
+                  विवाह गीत, फाग, दिवारी, बिरहा एवं पवारी लोकगाथाओं का संपूर्ण लिखित व ऑडियो संग्रह।
+                </p>
+              </div>
+              <div className="flex items-center text-xs font-bold text-amber-300 group-hover:underline pt-2 border-t border-amber-500/20">
+                <span>लोकगीत सुनें व पढ़ें</span>
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </div>
+            </a>
+
+            {/* 4. Pawari Books Card */}
+            <a
+              href={getUrlForView('books_blogs')}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveView('books_blogs');
+              }}
+              className="bg-black/40 hover:bg-black/60 border border-amber-500/30 hover:border-amber-400 p-4 rounded-2xl transition duration-200 group flex flex-col justify-between space-y-3 cursor-pointer shadow-md"
+            >
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 group-hover:scale-110 transition">
+                  <Book className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-serif font-bold text-amber-100 group-hover:text-amber-300 transition">
+                  📚 पवारी पुस्तकें व ई-बुक्स (Books)
+                </h3>
+                <p className="text-xs text-amber-200/70 leading-relaxed font-sans">
+                  डिजिटल ग्रंथ, शोध ग्रंथ, पवारी व्याकरण पुस्तकें व ई-बुक्स निःशुल्क पीडीएफ डाउनलोड।
+                </p>
+              </div>
+              <div className="flex items-center text-xs font-bold text-amber-300 group-hover:underline pt-2 border-t border-amber-500/20">
+                <span>पुस्तकें देखें व डाउनलोड करें</span>
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </div>
+            </a>
+
+            {/* 5. Pawari Samiksha & Reviews Card */}
+            <a
+              href={getUrlForView('books_blogs')}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveView('books_blogs');
+              }}
+              className="bg-black/40 hover:bg-black/60 border border-amber-500/30 hover:border-amber-400 p-4 rounded-2xl transition duration-200 group flex flex-col justify-between space-y-3 cursor-pointer shadow-md"
+            >
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 group-hover:scale-110 transition">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-serif font-bold text-amber-100 group-hover:text-amber-300 transition">
+                  📑 पुस्तक समीक्षा व समालोचना (Reviews)
+                </h3>
+                <p className="text-xs text-amber-200/70 leading-relaxed font-sans">
+                  पवारी साहित्य समीक्षाएँ, विद्वानों के आलेख, समीक्षात्मक टिप्पणी व शोध निबंध।
+                </p>
+              </div>
+              <div className="flex items-center text-xs font-bold text-amber-300 group-hover:underline pt-2 border-t border-amber-500/20">
+                <span>समीक्षाएं पढ़ें</span>
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </div>
+            </a>
+
+            {/* 6. Pawari Quiz Card */}
+            <a
+              href={getUrlForView('pawari_quiz')}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveView('pawari_quiz');
+              }}
+              className="bg-gradient-to-br from-amber-600/30 via-amber-500/20 to-amber-900/30 hover:from-amber-600/40 border border-amber-400 p-4 rounded-2xl transition duration-200 group flex flex-col justify-between space-y-3 cursor-pointer shadow-lg"
+            >
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-amber-400 text-red-950 flex items-center justify-center font-bold shadow-md group-hover:scale-110 transition">
+                  <Award className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-serif font-bold text-amber-200 group-hover:text-amber-100 transition">
+                  🏆 संस्कृति ज्ञान ई-क्विज़ (Quiz & Certificate)
+                </h3>
+                <p className="text-xs text-amber-100/90 leading-relaxed font-sans font-medium">
+                  १० प्रश्नों की ऑनलाइन ज्ञान परीक्षा दें और नाम-सहित आकर्षक राष्ट्रीय ई-प्रमाण पत्र तुरंत डाउनलोड करें!
+                </p>
+              </div>
+              <div className="flex items-center justify-between text-xs font-bold text-amber-300 group-hover:underline pt-2 border-t border-amber-400/30">
+                <span>क्विज़ में भाग लें (निःशुल्क)</span>
+                <ArrowRight className="w-4 h-4" />
+              </div>
+            </a>
+
+          </div>
+        </section>
 
         {/* ==========================================
             5. PUBLISHED PAPERS SECTION (Latest 3-4 Papers)

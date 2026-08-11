@@ -435,7 +435,7 @@ export interface QuizQuestion {
   options: string[];
   correct_option_index: number;
   explanation: string;
-  section_type: 'shabdkosh' | 'paheli' | 'lokgeet';
+  section_type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'writers' | 'articles' | 'books';
 }
 
 export interface QuizCertificate {

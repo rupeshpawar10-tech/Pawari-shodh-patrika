@@ -104,14 +104,51 @@ service cloud.firestore {
 
     // Books collection
     match /books/{bookId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // Blogs collection
     match /blogs/{blogId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
+    }
+
+    // Pawari Writers / Authors collection
+    match /writers/{writerId} {
+      allow read, write: if true;
+    }
+
+    // Shabdkosh dictionary collection
+    match /shabdkosh/{itemId} {
+      allow read, write: if true;
+    }
+
+    // Paheli riddles collection
+    match /paheli/{itemId} {
+      allow read, write: if true;
+    }
+
+    // Lokgeet folk songs collection
+    match /lokgeet/{itemId} {
+      allow read, write: if true;
+    }
+
+    // Cultural Quiz Questions collections
+    match /quizQuestions/{questionId} {
+      allow read, write: if true;
+    }
+
+    match /quiz_questions/{questionId} {
+      allow read, write: if true;
+    }
+
+    // Quiz Leaderboard & Certificates
+    match /quiz_leaderboard/{entryId} {
+      allow read, write: if true;
+    }
+
+    // Activity Logs
+    match /activity_logs/{logId} {
+      allow read, write: if true;
     }
 
     // User Files collection (Base64 file storage in Firestore)
