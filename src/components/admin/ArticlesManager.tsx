@@ -8,6 +8,7 @@ import { ManuscriptReviewModal } from './ManuscriptReviewModal';
 import { WordPasteImporter } from '../common/WordPasteImporter';
 import { FullTextPublishingSuite } from './FullTextPublishingSuite';
 import { AcademicPdfExporter } from '../common/AcademicPdfExporter';
+import { FileUploadZone } from '../common/FileUploadZone';
 import { ParsedWordArticle } from '../../lib/wordParser';
 import { 
   FileText, 
@@ -2204,62 +2205,88 @@ export const ArticlesManager: React.FC = () => {
 
               {/* TAB 8: ATTACHED PDF FILE */}
               {editorTab === 'pdf' && (
-                <div className="space-y-4 animate-in fade-in duration-150 bg-slate-50 p-5 rounded-2xl border border-slate-200">
-                  <label className="block font-serif font-bold text-slate-900">PDF Document Attachment</label>
-                  
-                  <div className="flex flex-col sm:flex-row items-center gap-3">
-                    <label className={`cursor-pointer px-4 py-2.5 ${uploadingPdf ? 'bg-amber-600' : 'bg-red-950 hover:bg-red-900'} text-amber-100 font-bold text-xs rounded-xl transition flex items-center space-x-2 shrink-0`}>
-                      <Upload className="w-4 h-4" />
-                      <span>{uploadingPdf ? `Uploading PDF... ${pdfUploadPercent}%` : 'Upload Article PDF'}</span>
-                      <input 
-                        type="file" 
-                        accept=".pdf,application/pdf" 
-                        onChange={handlePdfUpload} 
-                        disabled={uploadingPdf} 
-                        className="hidden" 
-                      />
-                    </label>
-
-                    <div className="flex-1 w-full">
-                      <input
-                        type="text"
-                        value={editingArticle.pdf_url || ''}
-                        onChange={e => setEditingArticle({ ...editingArticle, pdf_url: e.target.value })}
-                        placeholder="Optional: Paste direct PDF URL..."
-                        className="w-full p-2 border rounded text-xs font-mono"
-                      />
+                <div className="space-y-5 animate-in fade-in duration-150 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                  <div className="flex flex-wrap items-center justify-between border-b pb-3 border-slate-200 gap-2">
+                    <div>
+                      <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
+                        <Upload className="w-5 h-5 text-red-900" />
+                        <span>शोध आलेख PDF अटैचमेंट व क्लाउड स्टोरेज (Firebase Storage)</span>
+                      </h3>
+                      <p className="text-xs text-slate-600">
+                        यहाँ PDF फ़ाइल डायरेक्ट अपलोड करें या फ़ायरबेस स्टोरेज का डाउनलोड लिंक दर्ज करें।
+                      </p>
                     </div>
+                    {editingArticle.pdf_url ? (
+                      <span className="px-3 py-1 bg-emerald-100 border border-emerald-300 text-emerald-950 font-bold text-xs rounded-full flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                        <span>PDF संलग्न है</span>
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-amber-100 border border-amber-300 text-amber-950 font-bold text-xs rounded-full">
+                        PDF फ़ाइल संलग्न नहीं है
+                      </span>
+                    )}
                   </div>
 
-                  {uploadingPdf && (
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5">
-                      <div className="flex justify-between text-xs font-bold text-emerald-900">
-                        <span>Ultrafast PDF Uploading...</span>
-                        <span className="font-mono">{pdfUploadPercent}%</span>
-                      </div>
-                      <div className="w-full bg-emerald-200/80 h-2.5 rounded-full overflow-hidden">
-                        <div
-                          className="bg-gradient-to-r from-emerald-600 to-teal-500 h-full transition-all duration-150 rounded-full"
-                          style={{ width: `${pdfUploadPercent}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
+                  {/* FileUploadZone */}
+                  <div className="space-y-2">
+                    <label className="block font-bold text-xs text-slate-800">
+                      Firebase Cloud Storage में PDF फ़ाइल अपलोड करें:
+                    </label>
+                    <FileUploadZone
+                      acceptedCategory="documents"
+                      maxFiles={1}
+                      customFolder="articles/pdfs"
+                      label="शोध पत्र PDF अपलोड करें (Upload Article PDF)"
+                      description="PDF फ़ाइल को यहाँ ड्रैग-ड्रॉप करें या कंप्यूटर से चुनें। (Max 15MB, Supports PDF)."
+                      onUploadComplete={(file) => {
+                        setEditingArticle(prev => prev ? ({
+                          ...prev,
+                          pdf_url: file.url,
+                          pdf_storage_path: file.path
+                        }) : null);
+                      }}
+                    />
+                  </div>
 
-                  {pdfUploadTimingInfo && (
-                    <p className="text-xs text-slate-600 font-mono">{pdfUploadTimingInfo}</p>
-                  )}
+                  {/* Direct Link Input */}
+                  <div className="space-y-2 pt-2 border-t border-slate-200">
+                    <label className="block font-bold text-xs text-slate-800">या डायरेक्ट PDF URL दर्ज करें (Direct PDF URL):</label>
+                    <input
+                      type="text"
+                      value={editingArticle.pdf_url || ''}
+                      onChange={e => setEditingArticle({ ...editingArticle, pdf_url: e.target.value })}
+                      placeholder="https://firebasestorage.googleapis.com/.../paper.pdf"
+                      className="w-full p-2.5 border rounded-xl text-xs font-mono text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
 
                   {editingArticle.pdf_url && (
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
-                      <span className="text-xs font-bold text-emerald-950">✓ PDF Attached</span>
-                      <button
-                        type="button"
-                        onClick={() => openPdfViewer(editingArticle.pdf_url || '', editingArticle.title_english || 'Article')}
-                        className="px-3 py-1 bg-emerald-700 text-white font-bold text-xs rounded-lg"
-                      >
-                        Preview PDF
-                      </button>
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <span className="text-xs font-bold text-emerald-950 block">✓ PDF फ़ाइल सफलतापूर्वक संलग्न है</span>
+                        <span className="text-[11px] font-mono text-emerald-800 truncate block max-w-sm">
+                          {editingArticle.pdf_storage_path || editingArticle.pdf_url}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openPdfViewer(editingArticle.pdf_url || '', editingArticle.title_english || editingArticle.title_hindi || 'Article')}
+                          className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-2xs"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>PDF पूर्वावलोकन देखें</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingArticle({ ...editingArticle, pdf_url: '', pdf_storage_path: '' })}
+                          className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-800 font-bold text-xs rounded-lg flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>हटाएं</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

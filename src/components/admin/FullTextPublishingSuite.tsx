@@ -3,6 +3,8 @@ import { Article, Author, CustomSectionBlock, ArticleSection, ArticleMedia, Arti
 import { SectionRichEditor } from './SectionRichEditor';
 import { WordPasteImporter } from '../common/WordPasteImporter';
 import { AcademicPdfExporter } from '../common/AcademicPdfExporter';
+import { FileUploadZone } from '../common/FileUploadZone';
+import { useCms } from '../../lib/CmsContext';
 import { ParsedWordArticle, cleanWordHtml } from '../../lib/wordParser';
 import { 
   Plus, 
@@ -37,7 +39,8 @@ import {
   List,
   Loader2,
   AlertTriangle,
-  FileCheck
+  FileCheck,
+  Upload
 } from 'lucide-react';
 
 interface FullTextPublishingSuiteProps {
@@ -55,8 +58,9 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
   onClose,
   lang = 'hi'
 }) => {
+  const { openPdfViewer } = useCms();
   const [article, setArticle] = useState<Article>({ ...initialArticle });
-  const [activeStep, setActiveStep] = useState<'metadata' | 'authors' | 'abstract' | 'sections' | 'figures' | 'history' | 'preview'>('sections');
+  const [activeStep, setActiveStep] = useState<'metadata' | 'authors' | 'abstract' | 'sections' | 'pdf' | 'history' | 'preview'>('sections');
   const [showPublishSuccessModal, setShowPublishSuccessModal] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -547,13 +551,28 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
         </button>
 
         <button
+          onClick={() => setActiveStep('pdf')}
+          className={`px-4 py-2.5 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${
+            activeStep === 'pdf' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          <Upload className="w-4 h-4" />
+          <span>5. PDF अटैचमेंट (Article PDF)</span>
+          {article.pdf_url ? (
+            <span className="bg-emerald-500 text-slate-950 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded">✓ Attached</span>
+          ) : (
+            <span className="bg-slate-200 text-slate-600 font-mono text-[10px] px-1.5 py-0.5 rounded">Optional</span>
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveStep('history')}
           className={`px-4 py-2.5 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${
             activeStep === 'history' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'
           }`}
         >
           <Clock className="w-4 h-4" />
-          <span>5. संस्करण इतिहास ({revisions.length} Snapshots)</span>
+          <span>6. संस्करण इतिहास ({revisions.length} Snapshots)</span>
         </button>
 
         <button
@@ -563,7 +582,7 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
           }`}
         >
           <Eye className="w-4 h-4" />
-          <span>6. शोध पत्र पूर्वावलोकन (Journal Live Preview)</span>
+          <span>7. शोध पत्र पूर्वावलोकन (Journal Live Preview)</span>
         </button>
       </div>
 
@@ -872,6 +891,173 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* PDF Attachment & Firebase Storage Tab */}
+      {activeStep === 'pdf' && (
+        <div className="bg-white rounded-2xl border border-slate-300 p-6 space-y-6 shadow-xs max-w-4xl mx-auto">
+          <div className="flex flex-wrap items-center justify-between border-b pb-3 border-slate-200 gap-2">
+            <h3 className="font-serif font-bold text-lg text-slate-900 flex items-center gap-2">
+              <Upload className="w-5 h-5 text-amber-600" />
+              <span>शोध आलेख PDF अटैचमेंट व क्लाउड स्टोरेज (Firebase Storage)</span>
+            </h3>
+            {article.pdf_url ? (
+              <span className="px-3 py-1 bg-emerald-100 border border-emerald-300 text-emerald-950 font-bold text-xs rounded-full flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                <span>Firebase Storage में सहेजा गया</span>
+              </span>
+            ) : (
+              <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-900 font-medium text-xs rounded-full">
+                PDF फ़ाइल संलग्न नहीं है
+              </span>
+            )}
+          </div>
+
+          {/* Content Publishing Mode Selection */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+            <label className="block font-bold text-xs text-slate-800">प्रकाशन मोड (Content Mode):</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <label className={`p-3 rounded-xl border cursor-pointer transition flex items-start gap-3 ${
+                (article.content_mode || 'full_text') === 'full_text' 
+                  ? 'bg-amber-50 border-amber-500 text-slate-900 font-bold shadow-xs' 
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+              }`}>
+                <input
+                  type="radio"
+                  name="content_mode"
+                  value="full_text"
+                  checked={(article.content_mode || 'full_text') === 'full_text'}
+                  onChange={() => {
+                    setArticle({ ...article, content_mode: 'full_text' });
+                    notifyChange();
+                  }}
+                  className="mt-0.5 text-amber-600"
+                />
+                <div>
+                  <span className="block font-bold text-slate-900">Full Text + PDF Download (अनुशंसित)</span>
+                  <span className="text-[11px] text-slate-500 font-normal">
+                    पाठक वेबसाइट पर पूरा HTML पाठ पढ़ सकते हैं एवं संलग्न PDF भी डाउनलोड/देख सकते हैं।
+                  </span>
+                </div>
+              </label>
+
+              <label className={`p-3 rounded-xl border cursor-pointer transition flex items-start gap-3 ${
+                article.content_mode === 'pdf_only' 
+                  ? 'bg-amber-50 border-amber-500 text-slate-900 font-bold shadow-xs' 
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+              }`}>
+                <input
+                  type="radio"
+                  name="content_mode"
+                  value="pdf_only"
+                  checked={article.content_mode === 'pdf_only'}
+                  onChange={() => {
+                    setArticle({ ...article, content_mode: 'pdf_only' });
+                    notifyChange();
+                  }}
+                  className="mt-0.5 text-amber-600"
+                />
+                <div>
+                  <span className="block font-bold text-slate-900">PDF Only Mode (केवल PDF View)</span>
+                  <span className="text-[11px] text-slate-500 font-normal">
+                    वेबसाइट आलेख पृष्ठ पर मुख्य रूप से केवल embedded PDF viewer प्रदर्शित होगा।
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* FileUploadZone Component */}
+          <div className="space-y-2">
+            <label className="block font-bold text-xs text-slate-800">
+              Firebase Storage में PDF फ़ाइल अपलोड करें:
+            </label>
+            <FileUploadZone
+              acceptedCategory="documents"
+              maxFiles={1}
+              customFolder="articles/pdfs"
+              label="शोध पत्र PDF अपलोड करें (Upload Article PDF)"
+              description="PDF फ़ाइल को यहाँ ड्रैग-ड्रॉप करें या कंप्यूटर से चुनें। फ़ाइल स्वचालित रूप से Firebase Storage में सुरक्षित रूप से सहेजी जाएगी (Max 15MB)।"
+              onUploadComplete={(file) => {
+                setArticle(prev => ({
+                  ...prev,
+                  pdf_url: file.url,
+                  pdf_storage_path: file.path
+                }));
+                notifyChange();
+              }}
+            />
+          </div>
+
+          {/* Direct URL Input */}
+          <div className="space-y-2 pt-2 border-t border-slate-200">
+            <label className="block font-bold text-xs text-slate-800">
+              या प्रत्यक्ष PDF URL दर्ज करें (Or Direct PDF Link):
+            </label>
+            <input
+              type="text"
+              value={article.pdf_url || ''}
+              onChange={(e) => {
+                setArticle({ ...article, pdf_url: e.target.value });
+                notifyChange();
+              }}
+              placeholder="https://firebasestorage.googleapis.com/.../article.pdf"
+              className="w-full p-3 border border-slate-300 rounded-xl font-mono text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none"
+            />
+          </div>
+
+          {/* Current Attached PDF Status Card */}
+          {article.pdf_url && (
+            <div className="bg-emerald-50/80 border border-emerald-300 rounded-2xl p-5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
+                    <FileCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-emerald-950 text-sm">संलग्न PDF विवरण (Attached PDF File)</h4>
+                    <p className="text-xs text-emerald-800 font-mono truncate max-w-md">
+                      {article.pdf_storage_path || article.pdf_url}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openPdfViewer(article.pdf_url || '', article.title_hindi || article.title_english || 'Article')}
+                    className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-2xs"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>PDF देखें (Live Viewer)</span>
+                  </button>
+                  <a
+                    href={article.pdf_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-2 bg-white hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>डाउनलोड</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('क्या आप सचमुच संलग्न PDF फ़ाइल हटाना चाहते हैं?')) {
+                        setArticle({ ...article, pdf_url: '', pdf_storage_path: '' });
+                        notifyChange();
+                      }
+                    }}
+                    className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>हटाएं</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
