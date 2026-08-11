@@ -593,6 +593,30 @@ export const SAMPLE_ARTICLES: Article[] = [
   },
 ];
 
+export const DEFAULT_PAWARI_MEMBER_AVATAR = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#420708"/>
+      <stop offset="50%" stop-color="#2a0506"/>
+      <stop offset="100%" stop-color="#190304"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="300" height="300" fill="url(#bg)" rx="24"/>
+  <circle cx="150" cy="150" r="140" stroke="url(#gold)" stroke-width="3" fill="none" opacity="0.6"/>
+  <!-- Scholar Silhouette -->
+  <circle cx="150" cy="110" r="46" fill="#fef3c7" opacity="0.92"/>
+  <path d="M70 235 C70 180 110 170 150 170 C190 170 230 180 230 235 Z" fill="#fef3c7" opacity="0.92"/>
+  <!-- Journal Crest Badge -->
+  <rect x="35" y="244" width="230" height="36" rx="8" fill="url(#gold)"/>
+  <text x="150" y="267" font-family="'Samskrit','Noto Serif Devanagari',serif" font-size="15" font-weight="bold" fill="#420708" text-anchor="middle">पवारी शोध पत्रिका</text>
+</svg>
+`)}`;
+
 export const SAMPLE_EDITORIAL_BOARD: EditorialMember[] = [
   {
     id: 'ed-001',

@@ -43,6 +43,7 @@ import {
   SAMPLE_ISSUES, 
   SAMPLE_ARTICLES, 
   SAMPLE_EDITORIAL_BOARD, 
+  DEFAULT_PAWARI_MEMBER_AVATAR,
   SAMPLE_ANNOUNCEMENTS 
 } from '../data/seedData';
 import { ensureUniqueSlug } from './slugUtils';
@@ -906,9 +907,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               parsed.forEach((cachedMember: EditorialMember) => {
                 const idx = loadedBoard.findIndex(m => m.id === cachedMember.id);
                 if (idx !== -1) {
-                  if (cachedMember.photo_url && (!loadedBoard[idx].photo_url || loadedBoard[idx].photo_url === '')) {
+                  // Prefer cached photo if available (data URL, storage URL, or custom photo)
+                  if (cachedMember.photo_url) {
                     loadedBoard[idx].photo_url = cachedMember.photo_url;
                   }
+                  if (cachedMember.name_hindi) loadedBoard[idx].name_hindi = cachedMember.name_hindi;
+                  if (cachedMember.name_english) loadedBoard[idx].name_english = cachedMember.name_english;
+                  if (cachedMember.role) loadedBoard[idx].role = cachedMember.role;
                 } else {
                   loadedBoard.push(cachedMember);
                 }
@@ -1353,8 +1358,35 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveEditorialMember = async (member: EditorialMember) => {
-    const updated = editorialMembers.filter(m => m.id !== member.id);
-    updated.push(member);
+    let persistentMember = { ...member };
+
+    // Convert blob: URLs to persistent Base64 Data URLs so images never disappear after reload
+    if (persistentMember.photo_url && persistentMember.photo_url.startsWith('blob:')) {
+      try {
+        const response = await fetch(persistentMember.photo_url);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve((reader.result as string) || '');
+          reader.readAsDataURL(blob);
+        });
+        if (base64) {
+          persistentMember.photo_url = base64;
+        } else {
+          persistentMember.photo_url = DEFAULT_PAWARI_MEMBER_AVATAR;
+        }
+      } catch (e) {
+        console.warn('Failed to convert blob photo URL to base64:', e);
+        persistentMember.photo_url = DEFAULT_PAWARI_MEMBER_AVATAR;
+      }
+    }
+
+    if (!persistentMember.photo_url) {
+      persistentMember.photo_url = DEFAULT_PAWARI_MEMBER_AVATAR;
+    }
+
+    const updated = editorialMembers.filter(m => m.id !== persistentMember.id);
+    updated.push(persistentMember);
     updated.sort((a, b) => a.order - b.order);
     setEditorialMembers(updated);
     try {
@@ -1363,8 +1395,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('LocalStorage save error:', e);
     }
     try {
-      await setDoc(doc(db, 'editorial_members', member.id), member);
-      await setDoc(doc(db, 'editorial_board', member.id), member).catch(console.warn);
+      await setDoc(doc(db, 'editorial_members', persistentMember.id), persistentMember);
+      await setDoc(doc(db, 'editorial_board', persistentMember.id), persistentMember).catch(console.warn);
     } catch (e) {
       console.error('Error saving editorial member:', e);
     }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { SafeImage } from '../common/SafeImage';
+import { DEFAULT_PAWARI_MEMBER_AVATAR } from '../../data/seedData';
 import { Mail, Award, BookOpen, GraduationCap, Building, ExternalLink, ShieldCheck, Globe, Sparkles } from 'lucide-react';
 
 export const EditorialBoardView: React.FC = () => {
@@ -23,14 +24,14 @@ export const EditorialBoardView: React.FC = () => {
         <div className="flex items-start space-x-3 sm:space-x-4">
           <div className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-amber-500/40 shadow-md flex-shrink-0 bg-slate-100 group-hover:scale-105 transition transform duration-200">
             <SafeImage 
-              src={member.photo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'} 
-              alt={member.name_english} 
+              src={member.photo_url || DEFAULT_PAWARI_MEMBER_AVATAR} 
+              alt={member.name_english || member.name_hindi || 'Editorial Board Member'} 
               loading="lazy"
               decoding="async"
               width={80}
               height={80}
               className="w-full h-full object-cover"
-              fallbackSrc="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
+              fallbackSrc={DEFAULT_PAWARI_MEMBER_AVATAR}
             />
           </div>
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { EditorialMember } from '../../types';
+import { DEFAULT_PAWARI_MEMBER_AVATAR } from '../../data/seedData';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { SafeImage } from '../common/SafeImage';
 import { Users, Plus, Edit3, Trash2, Upload, X, ShieldAlert, Tag, Settings, CheckCircle2, GraduationCap } from 'lucide-react';
@@ -96,7 +97,7 @@ export const EditorialBoardManager: React.FC = () => {
       affiliation_english: '',
       designation_hindi: '',
       designation_english: '',
-      photo_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+      photo_url: DEFAULT_PAWARI_MEMBER_AVATAR,
       email: '',
       research_areas: ['Linguistics'],
       order: editorialMembers.length + 1
@@ -130,21 +131,53 @@ export const EditorialBoardManager: React.FC = () => {
     const rawFile = e.target.files?.[0];
     if (!rawFile || !editingMember) return;
 
-    // 1. Instant local FileReader preview
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        setEditingMember(prev => prev ? { ...prev, photo_url: dataUrl } : null);
-      }
-    };
-    reader.readAsDataURL(rawFile);
-
     setUploadingPhoto(true);
     setPhotoError(null);
     setUploadSuccess(false);
+
     try {
-      // Compress the image first for avatars to prevent large base64 strings
+      // 1. Create a compressed Base64 Data URL (~20KB) as instant permanent fallback
+      const compressedDataUrl = await new Promise<string>((resolve) => {
+        const readerComp = new FileReader();
+        readerComp.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+            const maxDim = 300;
+            if (width > height) {
+              if (width > maxDim) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              }
+            } else {
+              if (height > maxDim) {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.82));
+            } else {
+              resolve((event.target?.result as string) || '');
+            }
+          };
+          img.onerror = () => resolve((event.target?.result as string) || '');
+          img.src = (event.target?.result as string) || '';
+        };
+        readerComp.onerror = () => resolve('');
+        readerComp.readAsDataURL(rawFile);
+      });
+
+      if (compressedDataUrl) {
+        setEditingMember(prev => prev ? { ...prev, photo_url: compressedDataUrl } : null);
+      }
+
+      // 2. Also prepare File object for Firebase Storage
       const compressedFile = await new Promise<File>((resolve) => {
         const readerComp = new FileReader();
         readerComp.onload = (event) => {
@@ -175,31 +208,28 @@ export const EditorialBoardManager: React.FC = () => {
                 } else {
                   resolve(rawFile);
                 }
-              }, 'image/jpeg', 0.8);
+              }, 'image/jpeg', 0.82);
             } else {
               resolve(rawFile);
             }
           };
           img.onerror = () => resolve(rawFile);
-          if (event.target?.result) {
-            img.src = event.target.result as string;
-          } else {
-            resolve(rawFile);
-          }
+          img.src = (event.target?.result as string) || '';
         };
         readerComp.onerror = () => resolve(rawFile);
         readerComp.readAsDataURL(rawFile);
       });
 
+      // 3. Upload to Firebase Storage
       const res = await uploadFileToStorage(compressedFile, 'editorial_photos');
-      if (res && res.url) {
+      if (res && res.url && (res.url.startsWith('http://') || res.url.startsWith('https://')) && !res.url.startsWith('blob:')) {
         setEditingMember(prev => prev ? { ...prev, photo_url: res.url } : null);
-        setUploadSuccess(true);
-        setTimeout(() => setUploadSuccess(false), 4000);
       }
+      setUploadSuccess(true);
+      setTimeout(() => setUploadSuccess(false), 4000);
     } catch (err: any) {
       console.error('Photo upload failed:', err);
-      // Even on storage error, local preview is kept so user can save
+      // Persistent compressed Data URL is kept as fallback
       setUploadSuccess(true);
     } finally {
       setUploadingPhoto(false);
@@ -256,10 +286,10 @@ export const EditorialBoardManager: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-amber-500/40 flex-shrink-0 bg-slate-100 shadow-2xs">
                   <SafeImage
-                    src={mem.photo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'}
-                    alt={mem.name_english}
+                    src={mem.photo_url || DEFAULT_PAWARI_MEMBER_AVATAR}
+                    alt={mem.name_english || mem.name_hindi || 'Editorial Member'}
                     className="w-full h-full object-cover"
-                    fallbackSrc="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
+                    fallbackSrc={DEFAULT_PAWARI_MEMBER_AVATAR}
                   />
                 </div>
                 <div>
@@ -560,10 +590,10 @@ export const EditorialBoardManager: React.FC = () => {
                   {/* Photo Preview Circle - Always visible */}
                   <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-amber-500/60 flex-shrink-0 bg-slate-200 shadow-xs relative">
                     <SafeImage
-                      src={editingMember.photo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'}
+                      src={editingMember.photo_url || DEFAULT_PAWARI_MEMBER_AVATAR}
                       alt="Member photo preview"
                       className="w-full h-full object-cover"
-                      fallbackSrc="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
+                      fallbackSrc={DEFAULT_PAWARI_MEMBER_AVATAR}
                     />
                     {uploadingPhoto && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -580,13 +610,21 @@ export const EditorialBoardManager: React.FC = () => {
                         <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" disabled={uploadingPhoto} />
                       </label>
 
+                      <button
+                        type="button"
+                        onClick={() => setEditingMember({ ...editingMember, photo_url: DEFAULT_PAWARI_MEMBER_AVATAR })}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition text-xs shadow-2xs flex items-center gap-1"
+                      >
+                        <span>🏛️ पवारी शोध पत्रिका डिफ़ॉल्ट एम्बलेम (Default Emblem)</span>
+                      </button>
+
                       {editingMember.photo_url && (
                         <button
                           type="button"
-                          onClick={() => setEditingMember({ ...editingMember, photo_url: '' })}
+                          onClick={() => setEditingMember({ ...editingMember, photo_url: DEFAULT_PAWARI_MEMBER_AVATAR })}
                           className="text-xs text-red-700 hover:text-red-900 hover:underline font-bold px-2 py-1 bg-red-50 rounded border border-red-200"
                         >
-                          Remove Photo
+                          Reset to Default
                         </button>
                       )}
                     </div>
@@ -647,10 +685,10 @@ export const EditorialBoardManager: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setEditingMember({ ...editingMember, photo_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80' })}
-                      className="px-2 py-0.5 bg-slate-100 hover:bg-amber-100 text-slate-700 rounded border font-mono"
+                      onClick={() => setEditingMember({ ...editingMember, photo_url: DEFAULT_PAWARI_MEMBER_AVATAR })}
+                      className="px-2 py-0.5 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded border border-amber-400 font-mono"
                     >
-                      Female 2
+                      Patrika Logo
                     </button>
                   </div>
                 </div>
