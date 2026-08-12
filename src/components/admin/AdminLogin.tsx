@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useAuth, AUTHORIZED_SUPER_ADMIN_EMAIL } from '../../lib/AuthContext';
+import { useAuth } from '../../lib/AuthContext';
 import { useCms } from '../../lib/CmsContext';
-import { ShieldCheck, ArrowLeft, ShieldAlert, Mail, Lock, LogIn, Globe, UserCheck } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, ShieldAlert, Mail, Lock, LogIn, Globe } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
-  const { googleLogin, login, directSuperAdminLogin } = useAuth();
+  const { googleLogin, login } = useAuth();
   const { setActiveView } = useCms();
 
   const [email, setEmail] = useState('');
@@ -33,20 +33,6 @@ export const AdminLogin: React.FC = () => {
       } else {
         setError(err?.message || 'Login failed. Please verify your credentials.');
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDirectSuperAdminAccess = async () => {
-    setError(null);
-    setUnauthorizedDomain(null);
-    setLoading(true);
-    try {
-      await directSuperAdminLogin();
-    } catch (err: any) {
-      console.error('Super Admin Direct Login Error:', err);
-      setError(err?.message || 'Super Admin login failed.');
     } finally {
       setLoading(false);
     }
@@ -113,18 +99,8 @@ export const AdminLogin: React.FC = () => {
               <ol className="list-decimal list-inside space-y-0.5 text-slate-600">
                 <li>Go to <strong>Firebase Console &gt; Authentication &gt; Settings</strong></li>
                 <li>Scroll to <strong>Authorized domains</strong></li>
-                <li>Add <code className="font-mono text-slate-900 font-bold">pawari-shodh-patrika.vercel.app</code>, <code className="font-mono text-slate-900 font-bold">localhost</code>, &amp; <code className="font-mono text-slate-900 font-bold">{unauthorizedDomain}</code></li>
+                <li>Add <code className="font-mono text-slate-900 font-bold">{unauthorizedDomain}</code>, <code className="font-mono text-slate-900 font-bold">pawari-shodh-patrika.vercel.app</code>, &amp; <code className="font-mono text-slate-900 font-bold">localhost</code></li>
               </ol>
-            </div>
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={handleDirectSuperAdminAccess}
-                className="w-full py-2.5 px-3 bg-red-950 hover:bg-red-900 text-amber-200 font-bold rounded-lg transition text-xs flex items-center justify-center space-x-2 shadow-xs"
-              >
-                <UserCheck className="w-4 h-4 text-amber-400" />
-                <span>Sign In as Super Admin ({AUTHORIZED_SUPER_ADMIN_EMAIL})</span>
-              </button>
             </div>
           </div>
         )}
@@ -174,16 +150,6 @@ export const AdminLogin: React.FC = () => {
                 onChange={e => setEmail(e.target.value)}
                 className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-amber-500 focus:bg-white"
               />
-              <p className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-                <span>Super Admin:</span>
-                <button 
-                  type="button" 
-                  onClick={() => { setEmail(AUTHORIZED_SUPER_ADMIN_EMAIL); setPassword('admin123'); }}
-                  className="text-amber-800 font-bold underline hover:text-amber-900"
-                >
-                  Auto-fill ({AUTHORIZED_SUPER_ADMIN_EMAIL})
-                </button>
-              </p>
             </div>
 
             <div>
@@ -210,17 +176,6 @@ export const AdminLogin: React.FC = () => {
               <LogIn className="w-4 h-4" />
               <span>{loading ? 'Authenticating...' : 'Sign In with Email & Password'}</span>
             </button>
-
-            <div className="pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={handleDirectSuperAdminAccess}
-                className="w-full py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-slate-900 font-bold rounded-xl transition text-xs flex items-center justify-center space-x-2 border border-amber-300 shadow-2xs"
-              >
-                <UserCheck className="w-4 h-4 text-amber-700" />
-                <span>Quick Super Admin Login</span>
-              </button>
-            </div>
           </form>
         ) : (
           <div className="space-y-3 pt-1">
@@ -241,17 +196,6 @@ export const AdminLogin: React.FC = () => {
             <p className="text-[11px] text-slate-500 text-center leading-relaxed">
               Super Admin &amp; authorized Gmail accounts can log in using Google OAuth.
             </p>
-
-            <div className="pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={handleDirectSuperAdminAccess}
-                className="w-full py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-slate-900 font-bold rounded-xl transition text-xs flex items-center justify-center space-x-2 border border-amber-300 shadow-2xs"
-              >
-                <UserCheck className="w-4 h-4 text-amber-700" />
-                <span>Quick Super Admin Login</span>
-              </button>
-            </div>
           </div>
         )}
 

@@ -7,6 +7,7 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCredential,
   getAuth as getSecondaryAuth,
   signOut as secondarySignOut
 } from 'firebase/auth';
@@ -199,8 +200,6 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<void>;
   googleLogin: () => Promise<void>;
   logout: () => Promise<void>;
-  demoLogin: (role: Role) => Promise<void>;
-  directSuperAdminLogin: (email?: string, name?: string) => Promise<void>;
   isSuperAdmin: boolean;
   isDirector: boolean;
   isEditorial: boolean;
@@ -522,92 +521,153 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
+  const handleAuthenticatedFirebaseUser = async (user: any) => {
+    if (!user || !user.email) {
+      await firebaseSignOut(auth);
+      localStorage.removeItem('pawari_cms_user');
+      setUserProfile(null);
+      setCurrentUser(null);
+      throw new Error('Sign in failed: No email returned from Google.');
+    }
+
+    const signedInEmail = user.email.toLowerCase().trim();
+    if (signedInEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+      const profile: UserProfile = {
+        uid: user.uid,
+        email: AUTHORIZED_SUPER_ADMIN_EMAIL,
+        display_name: AUTHORIZED_SUPER_ADMIN_NAME,
+        role: 'super_admin',
+        status: 'active',
+        created_at: new Date().toISOString()
+      };
+      try {
+        await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
+      } catch (e) {}
+      setUserProfile(profile);
+      localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+      await refreshUsersList();
+      return;
+    }
+
+    // Check if user exists in users collection
+    let matchedProfile: UserProfile | null = null;
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (snap.exists()) {
+        matchedProfile = snap.data() as UserProfile;
+      } else if (signedInEmail) {
+        const q = query(collection(db, 'users'), where('email', '==', signedInEmail));
+        const qSnap = await getDocs(q);
+        qSnap.forEach(d => {
+          const u = d.data() as UserProfile;
+          if (u.email?.toLowerCase().trim() === signedInEmail) {
+            matchedProfile = u;
+          }
+        });
+      }
+    } catch (e) {}
+
+    // Fallback check in default sample staff
+    if (!matchedProfile) {
+      const sample = DEFAULT_SAMPLE_USERS.find(s => s.email.toLowerCase().trim() === signedInEmail);
+      if (sample) matchedProfile = sample;
+    }
+
+    if (matchedProfile && (matchedProfile as UserProfile).status !== 'disabled') {
+      const profile: UserProfile = {
+        uid: user.uid,
+        email: signedInEmail,
+        display_name: matchedProfile.display_name || user.displayName || signedInEmail,
+        role: matchedProfile.role || 'editorial',
+        status: 'active',
+        created_at: matchedProfile.created_at || new Date().toISOString()
+      };
+      try {
+        await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
+      } catch (e) {}
+      setUserProfile(profile);
+      localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+      await refreshUsersList();
+    } else {
+      await firebaseSignOut(auth);
+      localStorage.removeItem('pawari_cms_user');
+      setUserProfile(null);
+      setCurrentUser(null);
+      throw new Error(`Unauthorized account (${signedInEmail}). Access is restricted to registered CMS staff.`);
+    }
+  };
+
+  const googleGsiLogin = async (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const loadGsiScript = (): Promise<void> => {
+        if ((window as any).google?.accounts?.oauth2) {
+          return Promise.resolve();
+        }
+        return new Promise((resScript, rejScript) => {
+          const existingScript = document.getElementById('gsi-client-script');
+          if (existingScript) {
+            existingScript.addEventListener('load', () => resScript());
+            existingScript.addEventListener('error', () => rejScript(new Error('Failed to load Google Sign-In script.')));
+            return;
+          }
+          const script = document.createElement('script');
+          script.id = 'gsi-client-script';
+          script.src = 'https://accounts.google.com/gsi/client';
+          script.async = true;
+          script.defer = true;
+          script.onload = () => resScript();
+          script.onerror = () => rejScript(new Error('Failed to load Google Sign-In script.'));
+          document.head.appendChild(script);
+        });
+      };
+
+      loadGsiScript().then(() => {
+        const clientId = firebaseConfig.oAuthClientId || (firebaseConfig as any).apiKey ? "747594245177-rgktn8e4o6o6qarvqcc92t8g2nrbe3s5.apps.googleusercontent.com" : "";
+        
+        if (!(window as any).google?.accounts?.oauth2) {
+          reject(new Error('Google Sign-In SDK is unavailable. Please check your internet connection.'));
+          return;
+        }
+
+        const client = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'openid email profile',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse.error) {
+              reject(new Error(tokenResponse.error_description || 'Google sign-in was cancelled or closed.'));
+              return;
+            }
+            try {
+              const accessToken = tokenResponse.access_token;
+              const credential = GoogleAuthProvider.credential(null, accessToken);
+              const userCredential = await signInWithCredential(auth, credential);
+              await handleAuthenticatedFirebaseUser(userCredential.user);
+              resolve();
+            } catch (authErr: any) {
+              reject(authErr);
+            }
+          }
+        });
+
+        client.requestAccessToken();
+      }).catch(reject);
+    });
+  };
+
   const googleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const res = await signInWithPopup(auth, provider);
-      const user = res.user;
-
-      if (!user || !user.email) {
-        await firebaseSignOut(auth);
-        localStorage.removeItem('pawari_cms_user');
-        setUserProfile(null);
-        setCurrentUser(null);
-        throw new Error('Sign in failed: No email returned from Google.');
-      }
-
-      const signedInEmail = user.email.toLowerCase().trim();
-      if (signedInEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
-        const profile: UserProfile = {
-          uid: user.uid,
-          email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-          display_name: AUTHORIZED_SUPER_ADMIN_NAME,
-          role: 'super_admin',
-          status: 'active',
-          created_at: new Date().toISOString()
-        };
-        try {
-          await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
-        } catch (e) {}
-        setUserProfile(profile);
-        localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
-        await refreshUsersList();
-        return;
-      }
-
-      // Check if user exists in users collection
-      let matchedProfile: UserProfile | null = null;
-      try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        if (snap.exists()) {
-          matchedProfile = snap.data() as UserProfile;
-        } else if (signedInEmail) {
-          const q = query(collection(db, 'users'), where('email', '==', signedInEmail));
-          const qSnap = await getDocs(q);
-          qSnap.forEach(d => {
-            const u = d.data() as UserProfile;
-            if (u.email?.toLowerCase().trim() === signedInEmail) {
-              matchedProfile = u;
-            }
-          });
-        }
-      } catch (e) {}
-
-      // Fallback check in default sample staff
-      if (!matchedProfile) {
-        const sample = DEFAULT_SAMPLE_USERS.find(s => s.email.toLowerCase().trim() === signedInEmail);
-        if (sample) matchedProfile = sample;
-      }
-
-      if (matchedProfile && (matchedProfile as UserProfile).status !== 'disabled') {
-        const profile: UserProfile = {
-          uid: user.uid,
-          email: signedInEmail,
-          display_name: matchedProfile.display_name || user.displayName || signedInEmail,
-          role: matchedProfile.role || 'editorial',
-          status: 'active',
-          created_at: matchedProfile.created_at || new Date().toISOString()
-        };
-        try {
-          await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
-        } catch (e) {}
-        setUserProfile(profile);
-        localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
-        await refreshUsersList();
-      } else {
-        await firebaseSignOut(auth);
-        localStorage.removeItem('pawari_cms_user');
-        setUserProfile(null);
-        setCurrentUser(null);
-        throw new Error(`Unauthorized account (${signedInEmail}). Access is restricted to registered CMS staff.`);
-      }
+      await handleAuthenticatedFirebaseUser(res.user);
     } catch (err: any) {
-      if (err?.code === 'auth/unauthorized-domain' || (err?.message && err.message.includes('auth/unauthorized-domain'))) {
-        const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
-        throw new Error(`AUTH_UNAUTHORIZED_DOMAIN:${currentDomain}`);
+      const isDomainError = err?.code === 'auth/unauthorized-domain' || (err?.message && err.message.includes('auth/unauthorized-domain'));
+      if (isDomainError) {
+        console.warn('Firebase popup domain restriction caught. Initiating Google OAuth client fallback...');
+        await googleGsiLogin();
+      } else {
+        throw err;
       }
-      throw err;
     }
   };
 
@@ -618,18 +678,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Please enter both email address and password.');
     }
 
-    // Super Admin direct pass-through
-    if (cleanEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
-      await directSuperAdminLogin();
-      return;
-    }
-
-    // 1. First attempt login via standard Firebase Auth
+    // 1. Attempt login via standard Firebase Auth
     try {
       await signInWithEmailAndPassword(auth, cleanEmail, pass);
       return;
     } catch (firebaseErr: any) {
-      console.warn('Firebase Auth login skipped/failed, falling back to database check:', firebaseErr);
+      const code = firebaseErr?.code;
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/user-disabled') {
+        throw new Error('Incorrect email address or password.');
+      }
     }
 
     // 2. Fallback check against Firestore user accounts & default staff accounts
@@ -664,14 +721,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Verify password if explicitly set on user profile
         if (u.password && u.password !== pass) {
-          throw new Error('Incorrect password. Please verify your password.');
+          throw new Error('Incorrect email address or password.');
         }
 
+        const isSuperAdminEmail = cleanEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase();
         const profile: UserProfile = {
           uid: u.uid || `user_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`,
           email: u.email,
           display_name: u.display_name,
-          role: u.role || 'editorial',
+          role: isSuperAdminEmail ? 'super_admin' : (u.role || 'editorial'),
           status: 'active',
           password: u.password,
           created_at: u.created_at || new Date().toISOString()
@@ -687,37 +745,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
     } catch (err: any) {
-      if (err.message && (err.message.includes('disabled') || err.message.includes('password') || err.message.includes('suspended') || err.message.includes('Google Sign-In'))) {
+      if (err.message && (err.message.includes('disabled') || err.message.includes('password') || err.message.includes('suspended') || err.message.includes('Incorrect'))) {
         throw err;
       }
     }
 
     throw new Error('Incorrect email address or password. Access is allowed only for registered CMS users.');
-  };
-
-  const directSuperAdminLogin = async (customEmail?: string, customName?: string) => {
-    const targetEmail = AUTHORIZED_SUPER_ADMIN_EMAIL;
-    const targetName = AUTHORIZED_SUPER_ADMIN_NAME;
-    const uid = 'admin_' + targetEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    
-    const profile: UserProfile = {
-      uid,
-      email: targetEmail,
-      display_name: targetName,
-      role: 'super_admin',
-      status: 'active',
-      created_at: new Date().toISOString()
-    };
-
-    try {
-      await setDoc(doc(db, 'users', uid), profile, { merge: true });
-    } catch (err) {
-      console.warn('Direct admin Firestore sync warning:', err);
-    }
-
-    setUserProfile(profile);
-    localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
-    await refreshUsersList();
   };
 
   const logout = async () => {
@@ -856,10 +889,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const demoLogin = async (role: Role) => {
-    await directSuperAdminLogin();
-  };
-
   const currentRoleObj = roles.find(r => r.id === (userProfile?.role || 'public'));
   const role = userProfile?.role || 'public';
 
@@ -886,8 +915,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         googleLogin,
         logout,
-        demoLogin,
-        directSuperAdminLogin,
         isSuperAdmin,
         isDirector,
         isEditorial,
