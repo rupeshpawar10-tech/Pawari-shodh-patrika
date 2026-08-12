@@ -861,15 +861,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isDirector = isSuperAdmin || role === 'director';
   const isEditorial = isDirector || role === 'editorial' || role === 'editor';
 
-  const canManageUsers = isSuperAdmin || isDirector || isEditorial || (currentRoleObj?.permissions?.canManageUsers ?? true);
+  const canManageUsers = isSuperAdmin || (currentRoleObj?.permissions?.canManageUsers ?? false);
   const canManageSettings = isSuperAdmin || isDirector || (currentRoleObj?.permissions?.canManageSettings ?? false);
   const canManageArticles = isSuperAdmin || isDirector || isEditorial || (currentRoleObj?.permissions?.canManageArticles ?? false);
   const canManageIssues = isSuperAdmin || isDirector || isEditorial || (currentRoleObj?.permissions?.canManageIssues ?? false);
   const canManagePages = isSuperAdmin || isDirector || isEditorial || (currentRoleObj?.permissions?.canManagePages ?? false);
   const canManageSubmissions = isSuperAdmin || isDirector || isEditorial || (currentRoleObj?.permissions?.canManageSubmissions ?? false);
-  const canManageBooks = isSuperAdmin || isDirector || isEditorial || role === 'book_editor' || (currentRoleObj?.permissions?.canManageBooks ?? true);
-  const canManageBlogs = isSuperAdmin || isDirector || isEditorial || role === 'blog_editor' || (currentRoleObj?.permissions?.canManageBlogs ?? true);
-  const canManageOther = isSuperAdmin || isDirector || isEditorial || role === 'other_manager' || (currentRoleObj?.permissions?.canManageOther ?? true);
+  const canManageBooks = isSuperAdmin || isDirector || isEditorial || role === 'book_editor' || (currentRoleObj?.permissions?.canManageBooks ?? false);
+  const canManageBlogs = isSuperAdmin || isDirector || isEditorial || role === 'blog_editor' || (currentRoleObj?.permissions?.canManageBlogs ?? false);
+  const canManageOther = isSuperAdmin || isDirector || isEditorial || role === 'other_manager' || (currentRoleObj?.permissions?.canManageOther ?? false);
 
   return (
     <AuthContext.Provider

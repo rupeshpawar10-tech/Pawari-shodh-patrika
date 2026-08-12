@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
-import { useAuth } from '../../lib/AuthContext';
+import { useAuth, AUTHORIZED_SUPER_ADMIN_EMAIL } from '../../lib/AuthContext';
 import { firebaseConfig } from '../../lib/firebase';
 import { AdminDashboard } from './AdminDashboard';
 import { ArticlesManager } from './ArticlesManager';
@@ -35,6 +35,7 @@ import {
   Image as ImageIcon, 
   Settings, 
   ShieldCheck, 
+  ShieldAlert,
   Key,
   History,
   LogOut, 
@@ -59,6 +60,41 @@ import {
   Folder
 } from 'lucide-react';
 
+const AccessRestrictedCard: React.FC<{ sectionTitle: string; requiredPermission: string }> = ({ sectionTitle, requiredPermission }) => {
+  const { userProfile } = useAuth();
+  const { setActiveAdminTab } = useCms();
+
+  return (
+    <div className="bg-white border border-red-200 rounded-2xl p-8 shadow-xs text-center space-y-4 max-w-xl mx-auto my-8 animate-in fade-in duration-200">
+      <div className="w-14 h-14 bg-red-100 text-red-700 rounded-full flex items-center justify-center mx-auto border border-red-200">
+        <ShieldAlert className="w-8 h-8" />
+      </div>
+      <div>
+        <h3 className="text-lg font-serif font-bold text-red-950">Access Restricted / अनुमति प्रतिबंधित</h3>
+        <p className="text-xs text-slate-600 mt-1">
+          You are signed in as <strong className="text-slate-900 font-mono uppercase bg-slate-100 px-1.5 py-0.5 rounded">{userProfile?.role || 'Guest'}</strong> ({userProfile?.email || 'Authenticated User'}).
+        </p>
+      </div>
+      <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-4 text-left text-xs text-slate-700 space-y-2">
+        <p className="font-semibold text-amber-900 flex items-center space-x-1.5">
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>Required Privilege: {requiredPermission}</span>
+        </p>
+        <p className="text-[11px] text-slate-600 leading-relaxed">
+          Your current assigned role does not grant permission to view or manage <strong>{sectionTitle}</strong>.
+          To request access, please contact the Super Admin (<code className="font-mono text-slate-900 font-semibold">{AUTHORIZED_SUPER_ADMIN_EMAIL}</code>).
+        </p>
+      </div>
+      <button
+        onClick={() => setActiveAdminTab('dashboard')}
+        className="px-5 py-2.5 bg-red-950 hover:bg-red-900 text-amber-100 font-bold rounded-xl text-xs transition shadow-xs"
+      >
+        Return to Overview Dashboard
+      </button>
+    </div>
+  );
+};
+
 export const AdminLayout: React.FC = () => {
   const { 
     activeAdminTab, 
@@ -81,6 +117,8 @@ export const AdminLayout: React.FC = () => {
     canManageIssues,
     canManagePages,
     canManageSubmissions,
+    canManageBooks,
+    canManageBlogs,
     roles 
   } = useAuth();
 
@@ -181,27 +219,48 @@ export const AdminLayout: React.FC = () => {
 
   const renderActiveTab = () => {
     switch (activeAdminTab) {
-      case 'dashboard': return <AdminDashboard />;
-      case 'articles': return <ArticlesManager />;
-      case 'issues': return <IssuesManager />;
-      case 'books_blogs': return <BooksBlogsManager />;
-      case 'writers': return <WritersManager />;
-      case 'shabdkosh': return <ShabdkoshManager />;
-      case 'paheli': return <PaheliManager />;
-      case 'lokgeet': return <LokgeetManager />;
-      case 'cultural_quizzes': return <QuizManager />;
-      case 'public_contributions': return <PublicContributionsManager />;
-      case 'submissions': return <SubmissionsManager />;
-      case 'pages': return <PagesManager />;
-      case 'section_manager': return <SectionManager />;
-      case 'editorial_board': return <EditorialBoardManager />;
-      case 'announcements': return <AnnouncementsManager />;
-      case 'media': return <MediaLibrary />;
-      case 'settings': return <SettingsManager />;
-      case 'users': return <UsersManager />;
-      case 'roles': return <RolesManager />;
-      case 'activity_log': return <ActivityLogManager />;
-      default: return <AdminDashboard />;
+      case 'dashboard':
+        return <AdminDashboard />;
+      case 'articles':
+        return canManageArticles ? <ArticlesManager /> : <AccessRestrictedCard sectionTitle="Research Papers & Articles" requiredPermission="Articles Management" />;
+      case 'issues':
+        return canManageIssues ? <IssuesManager /> : <AccessRestrictedCard sectionTitle="Volumes & Issues Archive" requiredPermission="Issues Management" />;
+      case 'books_blogs':
+        return (canManageBooks || canManageBlogs) ? <BooksBlogsManager /> : <AccessRestrictedCard sectionTitle="Books & Blogs" requiredPermission="Books/Blogs Management" />;
+      case 'writers':
+        return (canManageBooks || canManageBlogs) ? <WritersManager /> : <AccessRestrictedCard sectionTitle="Writers & Authors" requiredPermission="Literature Management" />;
+      case 'shabdkosh':
+        return <ShabdkoshManager />;
+      case 'paheli':
+        return <PaheliManager />;
+      case 'lokgeet':
+        return <LokgeetManager />;
+      case 'cultural_quizzes':
+        return <QuizManager />;
+      case 'public_contributions':
+        return <PublicContributionsManager />;
+      case 'submissions':
+        return canManageSubmissions ? <SubmissionsManager /> : <AccessRestrictedCard sectionTitle="Manuscript Submissions" requiredPermission="Submissions Review" />;
+      case 'pages':
+        return canManagePages ? <PagesManager /> : <AccessRestrictedCard sectionTitle="Dynamic Pages" requiredPermission="Pages Management" />;
+      case 'section_manager':
+        return canManagePages ? <SectionManager /> : <AccessRestrictedCard sectionTitle="Homepage Section Layout" requiredPermission="Pages Management" />;
+      case 'editorial_board':
+        return isEditorial ? <EditorialBoardManager /> : <AccessRestrictedCard sectionTitle="Editorial Board" requiredPermission="Editorial Team Access" />;
+      case 'announcements':
+        return canManagePages ? <AnnouncementsManager /> : <AccessRestrictedCard sectionTitle="Announcements & Notices" requiredPermission="Pages Management" />;
+      case 'media':
+        return isEditorial ? <MediaLibrary /> : <AccessRestrictedCard sectionTitle="Media Library" requiredPermission="Media Gallery Access" />;
+      case 'settings':
+        return canManageSettings ? <SettingsManager /> : <AccessRestrictedCard sectionTitle="Journal Settings" requiredPermission="Settings Management" />;
+      case 'users':
+        return canManageUsers ? <UsersManager /> : <AccessRestrictedCard sectionTitle="User Accounts" requiredPermission="Users Control" />;
+      case 'roles':
+        return canManageUsers ? <RolesManager /> : <AccessRestrictedCard sectionTitle="Roles & Access Control" requiredPermission="Users Control" />;
+      case 'activity_log':
+        return (isSuperAdmin || isDirector) ? <ActivityLogManager /> : <AccessRestrictedCard sectionTitle="Activity Log Audit" requiredPermission="Executive Audit Access" />;
+      default:
+        return <AdminDashboard />;
     }
   };
 
