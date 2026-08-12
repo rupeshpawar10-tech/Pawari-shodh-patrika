@@ -751,6 +751,14 @@ export const ArticlesManager: React.FC = () => {
                           <span>Edit Article</span>
                         </button>
 
+                        <button
+                          onClick={() => setActiveView('article_detail', art.slug || art.id)}
+                          className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg transition"
+                          title="वेबसाइट पर प्रकाशित लेख देखें (View Article)"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+
                         <AcademicPdfExporter
                           article={art}
                           variant="icon"

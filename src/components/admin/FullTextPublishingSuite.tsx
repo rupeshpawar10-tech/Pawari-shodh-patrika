@@ -38,6 +38,7 @@ import {
   ShieldCheck, 
   List,
   Loader2,
+  ExternalLink,
   AlertTriangle,
   FileCheck,
   Upload
@@ -58,7 +59,7 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
   onClose,
   lang = 'hi'
 }) => {
-  const { openPdfViewer, issues = [] } = useCms();
+  const { openPdfViewer, issues = [], setActiveView } = useCms();
   const [article, setArticle] = useState<Article>({ ...initialArticle });
   const [activeStep, setActiveStep] = useState<'metadata' | 'authors' | 'abstract' | 'sections' | 'pdf' | 'history' | 'preview'>('sections');
   const [showPublishSuccessModal, setShowPublishSuccessModal] = useState(false);
@@ -1509,12 +1510,26 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
                 type="button"
                 onClick={() => {
                   setShowPublishSuccessModal(false);
-                  window.open(`/article/${article.id}`, '_blank');
+                  onClose();
+                  setActiveView('article_detail', article.slug || article.id);
                 }}
                 className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-2"
               >
                 <Eye className="w-4 h-4" />
-                <span>वेबसाइट पर प्रकाशित लेख देखें (View Article)</span>
+                <span>वेबसाइट पर लेख देखें (View Article in App)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPublishSuccessModal(false);
+                  const targetSlugOrId = article.slug || article.id;
+                  window.open(`/article/${encodeURIComponent(targetSlugOrId)}`, '_blank');
+                }}
+                className="w-full py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>नए विंडो में खोलें (Open in New Window)</span>
               </button>
 
               <button

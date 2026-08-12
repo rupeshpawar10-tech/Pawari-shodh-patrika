@@ -103,9 +103,8 @@ export const ArticlesView: React.FC = () => {
   }, [filteredArticles, currentPage, pageSize]);
 
   const handleArticleClick = (artId: string) => {
-    setSelectedArticleId(artId);
     incrementArticleViews(artId);
-    setActiveView('article_detail');
+    setActiveView('article_detail', artId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

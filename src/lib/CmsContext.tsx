@@ -426,21 +426,31 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ) => {
     setIsNotFound(false);
     setActiveViewRaw(view);
+    
+    let targetArticleId = selectedArticleId;
     if (articleIdOrSlug !== undefined) {
       setSelectedArticleIdRaw(articleIdOrSlug);
+      targetArticleId = articleIdOrSlug;
     }
+    
+    let targetBookId = selectedBookId;
     if (bookId !== undefined) {
       setSelectedBookIdRaw(bookId);
+      targetBookId = bookId;
     }
+    
+    let targetBlogId = selectedBlogId;
     if (blogId !== undefined) {
       setSelectedBlogIdRaw(blogId);
+      targetBlogId = blogId;
     }
+
     navigateTo(
       view, 
-      articleIdOrSlug !== undefined ? articleIdOrSlug : selectedArticleId, 
+      targetArticleId, 
       issueId,
-      bookId !== undefined ? bookId : selectedBookId,
-      blogId !== undefined ? blogId : selectedBlogId
+      targetBookId,
+      targetBlogId
     );
   };
 
@@ -1080,8 +1090,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const targetId = articleParam || hashArticle;
         if (targetId && targetId.trim() !== '') {
-          setSelectedArticleId(targetId.trim());
-          setActiveView('article_detail');
+          setActiveView('article_detail', targetId.trim());
         }
       } catch (err) {
         console.warn('URL deep linking error:', err);

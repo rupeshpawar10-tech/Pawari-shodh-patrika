@@ -82,9 +82,8 @@ export const HomeView: React.FC = () => {
   const featuredArticles = displayCurrentIssueArticles.slice(0, 3);
 
   const handleArticleClick = (artId: string) => {
-    setSelectedArticleId(artId);
     incrementArticleViews(artId);
-    setActiveView('article_detail');
+    setActiveView('article_detail', artId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
