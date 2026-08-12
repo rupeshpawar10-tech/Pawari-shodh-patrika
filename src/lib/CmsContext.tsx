@@ -1167,6 +1167,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Sanitize article object to strip out undefined values which cause Firestore setDoc failures
     let articleToSave: Article = JSON.parse(JSON.stringify(article));
 
+    // Ensure article has a unique slug if missing
+    if (!articleToSave.slug || articleToSave.slug.trim() === '') {
+      articleToSave.slug = ensureUniqueSlug(articleToSave.title_english || articleToSave.title_hindi || 'article', articleToSave.id, articles);
+    }
+
     // If pdf_url is a base64 Data URL, isolate it to user_files collection to prevent exceeding Firestore's 1MB document limit
     if (articleToSave.pdf_url && (articleToSave.pdf_url.startsWith('data:') || articleToSave.pdf_url.length > 300)) {
       const dataUrl = articleToSave.pdf_url;

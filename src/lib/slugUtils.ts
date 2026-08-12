@@ -26,10 +26,15 @@ import { Article } from '../types';
 
 export function findArticle(articles: Article[], identifier: string | null): Article | null {
   if (!identifier) return null;
-  const cleanId = identifier.trim().toLowerCase();
+  let cleanId = identifier.trim().toLowerCase();
+  try {
+    cleanId = decodeURIComponent(cleanId).trim().toLowerCase();
+  } catch (e) {}
+
+  if (!cleanId) return null;
   
-  // 1. Exact ID match
-  let found = articles.find(a => a.id.toLowerCase() === cleanId);
+  // 1. Exact ID match (case-insensitive)
+  let found = articles.find(a => a.id && a.id.toLowerCase() === cleanId);
   if (found) return found;
 
   // 2. Exact slug match
@@ -37,7 +42,7 @@ export function findArticle(articles: Article[], identifier: string | null): Art
   if (found) return found;
 
   // 3. Normalized slugified title match
-  const targetSlug = createSlug(identifier);
+  const targetSlug = createSlug(cleanId);
   found = articles.find(a => {
     const slugHi = createSlug(a.title_hindi);
     const slugEn = createSlug(a.title_english);
@@ -60,8 +65,10 @@ export function findArticle(articles: Article[], identifier: string | null): Art
     if (found) return found;
   }
 
-  // 5. Partial title substring search
+  // 5. Partial title substring search or ID substring search
   found = articles.find(a => 
+    (a.id && a.id.toLowerCase().includes(cleanId)) ||
+    (a.slug && a.slug.toLowerCase().includes(cleanId)) ||
     (a.title_english && a.title_english.toLowerCase().includes(cleanId)) ||
     (a.title_hindi && a.title_hindi.toLowerCase().includes(cleanId))
   );

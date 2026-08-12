@@ -2,6 +2,7 @@ import React from 'react';
 import { AuthProvider, useAuth } from './lib/AuthContext';
 import { CmsProvider, useCms } from './lib/CmsContext';
 import { Article } from './types';
+import { findArticle } from './lib/slugUtils';
 
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
@@ -55,7 +56,7 @@ const AuthorArticleEditorView: React.FC<{
   setSelectedArticleId,
   lang,
 }) => {
-  const foundArticle = articles.find(a => a.id === selectedArticleId || a.slug === selectedArticleId);
+  const foundArticle = findArticle(articles, selectedArticleId);
   const targetArticle = React.useMemo(() => {
     if (foundArticle) return foundArticle;
     const articleId = selectedArticleId && selectedArticleId !== 'new' ? selectedArticleId : 'art_' + Date.now();
@@ -137,7 +138,7 @@ const MainContent: React.FC = () => {
   // Find currently selected article if viewing article_detail
   const currentArticle = React.useMemo(() => {
     if (activeView !== 'article_detail' || !selectedArticleId) return null;
-    return articles.find(a => a.id === selectedArticleId || a.slug === selectedArticleId) || null;
+    return findArticle(articles, selectedArticleId);
   }, [activeView, selectedArticleId, articles]);
 
   // Check if requested issue exists if viewing an issue path
