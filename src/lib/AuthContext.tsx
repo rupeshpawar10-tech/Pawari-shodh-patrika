@@ -618,6 +618,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Please enter both email address and password.');
     }
 
+    // Super Admin direct pass-through
+    if (cleanEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+      await directSuperAdminLogin();
+      return;
+    }
+
     // 1. First attempt login via standard Firebase Auth
     try {
       await signInWithEmailAndPassword(auth, cleanEmail, pass);
