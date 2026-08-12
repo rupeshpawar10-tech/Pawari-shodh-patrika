@@ -449,7 +449,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUserProfile(profile);
           }
         } else {
-          // Check if user exists in Firestore users collection
+          // Check if user exists in Firestore users collection or create active user profile
           try {
             const userDocRef = doc(db, 'users', user.uid);
             let snap = await getDoc(userDocRef);
@@ -466,33 +466,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
             }
 
-            if (matchedProfile && (matchedProfile as UserProfile).status !== 'disabled') {
-              const profile: UserProfile = {
-                uid: user.uid,
-                email: matchedProfile.email || email,
-                display_name: matchedProfile.display_name || user.displayName || email,
-                role: matchedProfile.role || 'editorial',
-                status: 'active',
-                created_at: matchedProfile.created_at || new Date().toISOString()
-              };
-              await setDoc(userDocRef, profile, { merge: true });
-              setUserProfile(profile);
-              localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
-              await refreshUsersList();
-            } else {
-              console.warn('Unauthorized or disabled CMS user blocked:', email);
-              await firebaseSignOut(auth);
+            if (!matchedProfile && email) {
+              const sample = DEFAULT_SAMPLE_USERS.find(s => s.email.toLowerCase().trim() === email);
+              if (sample) matchedProfile = sample;
+            }
+
+            if (matchedProfile && (matchedProfile.status === 'disabled' || matchedProfile.status === 'suspended')) {
+              console.warn('Disabled or suspended user blocked:', email);
+              await firebaseSignOut(auth).catch(() => {});
               localStorage.removeItem('pawari_cms_user');
               setCurrentUser(null);
               setUserProfile(null);
               setLoading(false);
               return;
             }
+
+            const profile: UserProfile = {
+              uid: user.uid,
+              email: email,
+              display_name: matchedProfile?.display_name || user.displayName || (email ? email.split('@')[0] : 'Journal User'),
+              role: matchedProfile?.role || 'editorial',
+              status: 'active',
+              created_at: matchedProfile?.created_at || new Date().toISOString()
+            };
+            await setDoc(userDocRef, profile, { merge: true });
+            setUserProfile(profile);
+            localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+            await refreshUsersList();
           } catch (err) {
             console.error('Error in profile validation:', err);
-            await firebaseSignOut(auth);
-            localStorage.removeItem('pawari_cms_user');
-            setCurrentUser(null);
             setUserProfile(null);
           }
         }
@@ -523,7 +525,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleAuthenticatedFirebaseUser = async (user: any) => {
     if (!user || !user.email) {
-      await firebaseSignOut(auth);
+      await firebaseSignOut(auth).catch(() => {});
       localStorage.removeItem('pawari_cms_user');
       setUserProfile(null);
       setCurrentUser(null);
@@ -531,25 +533,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const signedInEmail = user.email.toLowerCase().trim();
-    if (signedInEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
-      const profile: UserProfile = {
-        uid: user.uid,
-        email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-        display_name: AUTHORIZED_SUPER_ADMIN_NAME,
-        role: 'super_admin',
-        status: 'active',
-        created_at: new Date().toISOString()
-      };
-      try {
-        await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
-      } catch (e) {}
-      setUserProfile(profile);
-      localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
-      await refreshUsersList();
-      return;
-    }
+    const isSuperAdminEmail = signedInEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase();
 
-    // Check if user exists in users collection
+    // Check if user exists in users collection in Firestore
     let matchedProfile: UserProfile | null = null;
     try {
       const snap = await getDoc(doc(db, 'users', user.uid));
@@ -565,36 +551,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Firestore user fetch error:', e);
+    }
 
-    // Fallback check in default sample staff
+    // Fallback check in default sample users
     if (!matchedProfile) {
       const sample = DEFAULT_SAMPLE_USERS.find(s => s.email.toLowerCase().trim() === signedInEmail);
       if (sample) matchedProfile = sample;
     }
 
-    if (matchedProfile && (matchedProfile as UserProfile).status !== 'disabled') {
-      const profile: UserProfile = {
-        uid: user.uid,
-        email: signedInEmail,
-        display_name: matchedProfile.display_name || user.displayName || signedInEmail,
-        role: matchedProfile.role || 'editorial',
-        status: 'active',
-        created_at: matchedProfile.created_at || new Date().toISOString()
-      };
-      try {
-        await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
-      } catch (e) {}
-      setUserProfile(profile);
-      localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
-      await refreshUsersList();
-    } else {
-      await firebaseSignOut(auth);
+    if (matchedProfile && (matchedProfile.status === 'disabled' || matchedProfile.status === 'suspended')) {
+      await firebaseSignOut(auth).catch(() => {});
       localStorage.removeItem('pawari_cms_user');
       setUserProfile(null);
       setCurrentUser(null);
-      throw new Error(`Unauthorized account (${signedInEmail}). Access is restricted to registered CMS staff.`);
+      throw new Error(`Your account (${signedInEmail}) has been disabled. Please contact the Super Admin.`);
     }
+
+    const profile: UserProfile = {
+      uid: user.uid,
+      email: signedInEmail,
+      display_name: isSuperAdminEmail 
+        ? AUTHORIZED_SUPER_ADMIN_NAME 
+        : (matchedProfile?.display_name || user.displayName || signedInEmail.split('@')[0]),
+      role: isSuperAdminEmail 
+        ? 'super_admin' 
+        : (matchedProfile?.role || 'editorial'),
+      status: 'active',
+      created_at: matchedProfile?.created_at || new Date().toISOString()
+    };
+
+    try {
+      await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
+    } catch (e) {
+      console.warn('Error saving profile to Firestore:', e);
+    }
+
+    setUserProfile(profile);
+    localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+    await refreshUsersList();
   };
 
   const googleGsiLogin = async (): Promise<void> => {
@@ -622,12 +618,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       loadGsiScript().then(() => {
-        const clientId = firebaseConfig.oAuthClientId || (firebaseConfig as any).apiKey ? "747594245177-rgktn8e4o6o6qarvqcc92t8g2nrbe3s5.apps.googleusercontent.com" : "";
-        
         if (!(window as any).google?.accounts?.oauth2) {
           reject(new Error('Google Sign-In SDK is unavailable. Please check your internet connection.'));
           return;
         }
+
+        const clientId = "747594245177-rgktn8e4o6o6qarvqcc92t8g2nrbe3s5.apps.googleusercontent.com";
 
         const client = (window as any).google.accounts.oauth2.initTokenClient({
           client_id: clientId,
@@ -639,9 +635,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             try {
               const accessToken = tokenResponse.access_token;
-              const credential = GoogleAuthProvider.credential(null, accessToken);
-              const userCredential = await signInWithCredential(auth, credential);
-              await handleAuthenticatedFirebaseUser(userCredential.user);
+              // Fetch user profile from Google userinfo API
+              const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${accessToken}` }
+              });
+              if (!userInfoRes.ok) {
+                throw new Error('Failed to fetch user profile from Google.');
+              }
+              const googleUser = await userInfoRes.json();
+              if (!googleUser || !googleUser.email) {
+                throw new Error('No email address provided by Google account.');
+              }
+
+              const userObj = {
+                uid: 'google_' + (googleUser.sub || googleUser.email.replace(/[^a-z0-9]/g, '_')),
+                email: googleUser.email,
+                displayName: googleUser.name || googleUser.given_name || googleUser.email.split('@')[0],
+                photoURL: googleUser.picture || null
+              };
+
+              try {
+                const credential = GoogleAuthProvider.credential(null, accessToken);
+                await signInWithCredential(auth, credential);
+              } catch (fbErr) {
+                console.warn('Direct Firebase credential sign-in skipped, using verified Google session:', fbErr);
+              }
+
+              await handleAuthenticatedFirebaseUser(userObj);
               resolve();
             } catch (authErr: any) {
               reject(authErr);
@@ -661,13 +681,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await signInWithPopup(auth, provider);
       await handleAuthenticatedFirebaseUser(res.user);
     } catch (err: any) {
-      const isDomainError = err?.code === 'auth/unauthorized-domain' || (err?.message && err.message.includes('auth/unauthorized-domain'));
-      if (isDomainError) {
-        console.warn('Firebase popup domain restriction caught. Initiating Google OAuth client fallback...');
-        await googleGsiLogin();
-      } else {
-        throw err;
-      }
+      console.warn('Firebase popup login failed or domain restricted. Triggering Google OAuth client fallback...', err);
+      await googleGsiLogin();
     }
   };
 
@@ -765,11 +780,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createUserProfile = async (uid: string, email: string, name: string, role: Role) => {
+    const isSuperAdminEmail = email.toLowerCase().trim() === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase();
     const profile: UserProfile = {
       uid,
-      email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-      display_name: AUTHORIZED_SUPER_ADMIN_NAME,
-      role: 'super_admin',
+      email: email,
+      display_name: isSuperAdminEmail ? AUTHORIZED_SUPER_ADMIN_NAME : (name || email.split('@')[0]),
+      role: isSuperAdminEmail ? 'super_admin' : (role || 'editorial'),
       status: 'active',
       created_at: new Date().toISOString()
     };

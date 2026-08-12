@@ -123,30 +123,35 @@ export const Header: React.FC = () => {
             </button>
           </div>
 
-          {/* Admin CMS Button */}
-          {currentUser ? (
-            <div className="flex items-center space-x-1 bg-amber-50 text-amber-900 px-1.5 py-0.5 rounded border border-amber-300 text-[10px]">
+          {/* User Account / CMS Portal Button */}
+          {currentUser || userProfile ? (
+            <div className="flex items-center space-x-1 sm:space-x-1.5 bg-amber-50 text-amber-950 px-2 py-1 rounded-lg border border-amber-300 text-xs shadow-2xs">
+              <span className="font-bold text-slate-800 text-[11px] max-w-[120px] truncate hidden md:inline">
+                {userProfile?.display_name || userProfile?.email?.split('@')[0] || 'User'}
+              </span>
               <button
                 onClick={() => handleNavClick('admin')}
-                className="bg-red-950 text-amber-300 font-bold px-1.5 py-0.5 rounded hover:bg-red-900 transition"
+                className="bg-red-950 hover:bg-red-900 text-amber-300 font-bold px-2 py-0.5 rounded text-[11px] transition flex items-center space-x-1"
+                title="Go to CMS Portal"
               >
-                CMS
+                <ShieldCheck className="w-3 h-3" />
+                <span>{userProfile?.role === 'super_admin' ? 'Super Admin' : 'CMS'}</span>
               </button>
               <button 
                 onClick={() => logout()}
-                title="Logout"
-                className="hover:text-red-700 p-0.5"
+                title="Sign Out / Logout"
+                className="text-slate-600 hover:text-red-700 p-1 rounded hover:bg-red-100 transition"
               >
-                <LogOut className="w-3 h-3" />
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
             <button
               onClick={() => handleNavClick('admin')}
-              className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-400 text-red-950 font-bold px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-[11px] transition shadow-2xs"
+              className="flex items-center space-x-1 bg-amber-500 hover:bg-amber-400 text-red-950 font-bold px-2.5 py-1 rounded-lg text-xs transition shadow-2xs"
             >
-              <ShieldCheck className="w-3 h-3" />
-              <span className="hidden sm:inline">{lang === 'hi' ? 'CMS' : 'CMS Portal'}</span>
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>{lang === 'hi' ? 'साइन-इन / लॉगिन' : 'Sign In / CMS'}</span>
             </button>
           )}
 
