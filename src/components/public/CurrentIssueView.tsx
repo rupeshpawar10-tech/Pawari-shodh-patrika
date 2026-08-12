@@ -31,8 +31,10 @@ export const CurrentIssueView: React.FC = () => {
   const displayArticles = issueArticles.length > 0 ? issueArticles : allPublished;
 
   const handleArticleClick = (artId: string) => {
-    incrementArticleViews(artId);
-    setActiveView('article_detail', artId);
+    const art = articles.find(a => a.id === artId || a.slug === artId);
+    const targetId = art?.id || artId;
+    incrementArticleViews(targetId);
+    setActiveView('article_detail', art?.slug || targetId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

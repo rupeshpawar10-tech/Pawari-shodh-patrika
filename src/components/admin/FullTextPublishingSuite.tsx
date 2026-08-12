@@ -558,7 +558,7 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex bg-white rounded-2xl border border-slate-300 p-1.5 text-xs font-bold overflow-x-auto shadow-xs gap-1">
+      <div className="flex bg-white rounded-2xl border border-slate-300 p-1.5 text-xs font-bold overflow-x-auto no-scrollbar touch-scroll shadow-2xs gap-1.5 py-2">
         <button
           onClick={() => setActiveStep('sections')}
           className={`px-4 py-2.5 rounded-xl transition flex items-center gap-2 whitespace-nowrap ${

@@ -65,13 +65,13 @@ export function findArticle(articles: Article[], identifier: string | null): Art
     if (found) return found;
   }
 
-  // 5. Partial title substring search or ID substring search
-  found = articles.find(a => 
-    (a.id && a.id.toLowerCase().includes(cleanId)) ||
-    (a.slug && a.slug.toLowerCase().includes(cleanId)) ||
-    (a.title_english && a.title_english.toLowerCase().includes(cleanId)) ||
-    (a.title_hindi && a.title_hindi.toLowerCase().includes(cleanId))
-  );
+  // 5. Prefix search on ID or slug for long queries (>= 8 chars)
+  if (cleanId.length >= 8) {
+    found = articles.find(a => 
+      (a.id && a.id.toLowerCase().startsWith(cleanId)) ||
+      (a.slug && a.slug.toLowerCase().startsWith(cleanId))
+    );
+  }
   return found || null;
 }
 

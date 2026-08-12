@@ -83,8 +83,9 @@ export const HomeView: React.FC = () => {
   const featuredArticles = displayCurrentIssueArticles.slice(0, 3);
 
   const handleArticleClick = (artId: string) => {
+    const art = articles.find(a => a.id === artId);
     incrementArticleViews(artId);
-    setActiveView('article_detail', artId);
+    setActiveView('article_detail', art?.slug || artId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -165,17 +166,17 @@ export const HomeView: React.FC = () => {
             {/* Search Bar */}
             <form onSubmit={handleSearchSubmit} className="pt-2 max-w-2xl mx-auto">
               <div className="relative flex items-center">
-                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3.5 text-slate-400" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5 absolute left-3.5 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={lang === 'hi' ? 'शोध पत्र शीर्षक, लेखक या विषय से खोजें...' : 'Search research article by title, author, or keyword...'}
-                  className="w-full pl-10 pr-24 py-3 bg-white text-slate-900 placeholder-slate-400 text-xs sm:text-sm rounded-xl border-2 border-amber-400 shadow-md focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-medium"
+                  className="w-full pl-10 pr-24 py-3 bg-white text-slate-900 placeholder-slate-400 text-base sm:text-sm rounded-xl border-2 border-amber-400 shadow-md focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-medium min-h-[48px]"
                 />
                 <button
                   type="submit"
-                  className="absolute right-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition shadow-xs flex items-center space-x-1 cursor-pointer"
+                  className="absolute right-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 text-xs sm:text-sm font-bold rounded-lg transition shadow-xs flex items-center space-x-1 cursor-pointer min-h-[38px]"
                 >
                   <span>{lang === 'hi' ? 'खोजें' : 'Search'}</span>
                 </button>
@@ -190,7 +191,7 @@ export const HomeView: React.FC = () => {
                   e.preventDefault();
                   setActiveView('current_issue');
                 }}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm rounded-xl transition shadow-md flex items-center space-x-2"
+                className="px-5 py-3 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-bold text-xs sm:text-sm rounded-xl transition shadow-md flex items-center space-x-2 min-h-[44px] touch-active"
               >
                 <BookOpen className="w-4 h-4" />
                 <span>{lang === 'hi' ? 'वर्तमान अंक पढ़ें' : 'Read Current Issue'}</span>
@@ -202,7 +203,7 @@ export const HomeView: React.FC = () => {
                   e.preventDefault();
                   setActiveView('submit_manuscript');
                 }}
-                className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-amber-100 font-bold text-xs sm:text-sm rounded-xl border border-amber-400/40 transition flex items-center space-x-2 backdrop-blur-xs"
+                className="px-5 py-3 bg-white/10 hover:bg-white/20 active:bg-white/30 text-amber-100 font-bold text-xs sm:text-sm rounded-xl border border-amber-400/40 transition flex items-center space-x-2 backdrop-blur-xs min-h-[44px] touch-active"
               >
                 <Send className="w-4 h-4 text-amber-300" />
                 <span>{lang === 'hi' ? 'लेख भेजें' : 'Submit Article'}</span>

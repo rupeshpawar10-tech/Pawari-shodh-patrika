@@ -103,8 +103,10 @@ export const ArticlesView: React.FC = () => {
   }, [filteredArticles, currentPage, pageSize]);
 
   const handleArticleClick = (artId: string) => {
-    incrementArticleViews(artId);
-    setActiveView('article_detail', artId);
+    const art = articles.find(a => a.id === artId || a.slug === artId);
+    const targetId = art?.id || artId;
+    incrementArticleViews(targetId);
+    setActiveView('article_detail', art?.slug || targetId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -182,7 +184,7 @@ export const ArticlesView: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Search Box */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={search}
@@ -191,7 +193,7 @@ export const ArticlesView: React.FC = () => {
                 setGlobalSearchQuery(e.target.value);
               }}
               placeholder={lang === 'hi' ? 'शोध पत्र शीर्षक, लेखक, कीवर्ड या DOI से खोजें...' : 'Search by title, author, keyword or DOI...'}
-              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 text-slate-900 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 text-slate-900 text-base sm:text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-amber-500 min-h-[44px]"
             />
             {search && (
               <button 
@@ -199,7 +201,7 @@ export const ArticlesView: React.FC = () => {
                   setSearch('');
                   setGlobalSearchQuery('');
                 }} 
-                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -211,7 +213,7 @@ export const ArticlesView: React.FC = () => {
             <select
               value={selectedIssueFilter}
               onChange={(e) => setSelectedIssueFilter(e.target.value)}
-              className="w-full p-2.5 bg-amber-50/80 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500"
+              className="w-full p-2.5 bg-amber-50/80 border border-amber-300 rounded-xl text-base sm:text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 min-h-[44px]"
             >
               <option value="all">{lang === 'hi' ? 'सभी अंक (All Volumes & Issues)' : 'All Volumes & Issues'}</option>
               {publishedIssues.map(iss => (

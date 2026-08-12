@@ -71,8 +71,9 @@ export const ArchiveView: React.FC = () => {
   }, [issues, selectedVolume, searchQuery]);
 
   const handleArticleClick = (artId: string) => {
+    const art = articles.find(a => a.id === artId);
     incrementArticleViews(artId);
-    setActiveView('article_detail', artId);
+    setActiveView('article_detail', art?.slug || artId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

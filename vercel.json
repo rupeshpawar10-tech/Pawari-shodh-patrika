@@ -7,7 +7,6 @@
     { "source": "/editorial_board", "destination": "/editorial-board", "permanent": true },
     { "source": "/author_guidelines", "destination": "/author-guidelines", "permanent": true },
     { "source": "/submit_manuscript", "destination": "/submit-manuscript", "permanent": true },
-    { "source": "/articles", "destination": "/books-literature", "permanent": true },
     { "source": "/books-blogs", "destination": "/books-literature", "permanent": true },
     { "source": "/pawari-shabdkosh", "destination": "/shabdkosh", "permanent": true },
     { "source": "/pawari-paheli", "destination": "/paheli", "permanent": true },

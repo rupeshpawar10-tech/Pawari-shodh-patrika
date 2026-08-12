@@ -159,8 +159,13 @@ const MainContent: React.FC = () => {
 
   const isInvalidArticle = React.useMemo(() => {
     if (activeView !== 'article_detail' || !selectedArticleId) return false;
-    return !currentArticle && !loadingData;
-  }, [activeView, selectedArticleId, currentArticle, loadingData]);
+    if (!currentArticle) return !loadingData;
+    // Hide non-published articles from public visitors
+    if (!currentUser && currentArticle.status !== 'published') {
+      return true;
+    }
+    return false;
+  }, [activeView, selectedArticleId, currentArticle, loadingData, currentUser]);
 
   const pageIs404 = isNotFound || isInvalidArticle || isInvalidIssue;
 

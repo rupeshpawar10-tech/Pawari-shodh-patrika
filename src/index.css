@@ -37,7 +37,25 @@
   --color-brand-accent: #e11d48;
 }
 
-/* Helper dynamic brand classes */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Touch active feedback */
+.touch-active:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
 .bg-brand-primary {
   background-color: var(--color-brand-primary);
 }

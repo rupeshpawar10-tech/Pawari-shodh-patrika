@@ -1109,20 +1109,21 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  // Sync URL search params when viewing an article detail
+  // Clean up legacy URL search params when viewing an article detail
   useEffect(() => {
     if (activeView === 'article_detail' && selectedArticleId) {
       try {
         const currentUrl = new URL(window.location.href);
-        if (currentUrl.searchParams.get('article') !== selectedArticleId) {
-          currentUrl.searchParams.set('article', selectedArticleId);
+        if (currentUrl.searchParams.has('article') || currentUrl.searchParams.has('paper')) {
+          currentUrl.searchParams.delete('article');
+          currentUrl.searchParams.delete('paper');
           window.history.replaceState({}, '', currentUrl.toString());
         }
       } catch (e) {}
     } else if (activeView !== 'article_detail') {
       try {
         const currentUrl = new URL(window.location.href);
-        if (currentUrl.searchParams.has('article')) {
+        if (currentUrl.searchParams.has('article') || currentUrl.searchParams.has('paper')) {
           currentUrl.searchParams.delete('article');
           currentUrl.searchParams.delete('paper');
           window.history.replaceState({}, '', currentUrl.toString());

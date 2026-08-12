@@ -447,82 +447,82 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
         </div>
 
         {/* Action Bar / Main Navigation Tabs inside View */}
-        <div className="relative z-10 pt-2 flex flex-wrap items-center gap-2 border-t border-amber-500/20">
+        <div className="relative z-10 pt-2 flex items-center overflow-x-auto no-scrollbar touch-scroll whitespace-nowrap gap-2 border-t border-amber-500/20 py-1">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
               activeTab === 'all' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
-            <Layers className="w-3.5 h-3.5" />
+            <Layers className="w-4 h-4" />
             <span>{lang === 'hi' ? 'सभी सामग्री' : 'All Items'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('books')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
               activeTab === 'books' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
-            <Book className="w-3.5 h-3.5" />
+            <Book className="w-4 h-4" />
             <span>{lang === 'hi' ? '📚 पुस्तकें' : 'Books'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('blogs')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
               activeTab === 'blogs' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
-            <FileText className="w-3.5 h-3.5" />
+            <FileText className="w-4 h-4" />
             <span>{lang === 'hi' ? '✍️ ब्लॉग' : 'Blogs'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('writers')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
               activeTab === 'writers' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
-            <UserCheck className="w-3.5 h-3.5 text-amber-300" />
+            <UserCheck className="w-4 h-4 text-amber-300" />
             <span>{lang === 'hi' ? '🖋️ लेखक व साहित्यकार' : 'Writers & Authors'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('shabdkosh')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
               activeTab === 'shabdkosh' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
-            <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+            <BookOpen className="w-4 h-4 text-amber-300" />
             <span>{lang === 'hi' ? '📖 शब्दकोश' : 'Shabdkosh'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('paheli')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
               activeTab === 'paheli' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
-            <HelpCircle className="w-3.5 h-3.5 text-amber-300" />
+            <HelpCircle className="w-4 h-4 text-amber-300" />
             <span>{lang === 'hi' ? '🧩 पहेली' : 'Paheli'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('lokgeet')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
               activeTab === 'lokgeet' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'

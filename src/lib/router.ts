@@ -30,7 +30,10 @@ export function getCanonicalUrl(path = '/'): string {
  */
 export function parseRouteFromUrl(): RouteMatch {
   try {
-    const pathname = window.location.pathname.replace(/\/+/g, '/').toLowerCase();
+    let pathname = window.location.pathname.replace(/\/+/g, '/').toLowerCase();
+    if (pathname.length > 1 && pathname.endsWith('/')) {
+      pathname = pathname.slice(0, -1);
+    }
     const searchParams = new URLSearchParams(window.location.search);
     const hash = window.location.hash;
 
@@ -118,7 +121,11 @@ export function parseRouteFromUrl(): RouteMatch {
       return { view: 'pawari_shabdkosh', articleIdOrSlug: null, issueId: null, tab: 'shabdkosh', shabdkoshSlugOrId: slugOrId || null, isNotFound: false };
     }
 
-    if (pathname === '/articles' || pathname === '/books-literature' || pathname === '/books-blogs') {
+    if (pathname === '/articles' || pathname === '/research-articles' || pathname === '/papers') {
+      return { view: 'articles', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+    }
+
+    if (pathname === '/books-literature' || pathname === '/books-blogs') {
       const tab = searchParams.get('tab') || null;
       return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab, bookId: bookParam || null, blogId: blogParam || null, isNotFound: false };
     }
@@ -210,7 +217,7 @@ export function getUrlForView(
     case 'about': return '/about';
     case 'current_issue': return '/current-issue';
     case 'archive': return issueId ? `/issue/${issueId}` : '/archives';
-    case 'articles':
+    case 'articles': return '/articles';
     case 'books_blogs': return '/books-literature';
     case 'pawari_writers': return '/writers';
     case 'pawari_shabdkosh': return itemSlugOrId ? `/shabdkosh/${itemSlugOrId}` : '/shabdkosh';
