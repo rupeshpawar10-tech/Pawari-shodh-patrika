@@ -119,6 +119,8 @@ export interface Article {
   doi?: string;
   pdf_url?: string;
   pdf_storage_path?: string;
+  word_url?: string;
+  word_storage_path?: string;
   volume: number;
   issue: number;
   year: number;

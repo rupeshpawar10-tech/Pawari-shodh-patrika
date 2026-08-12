@@ -76,14 +76,23 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
     let createdBlobUrl = '';
 
     async function loadPdf() {
-      if (!url) {
-        if (isMounted) setLoading(false);
+      if (!url || url.trim() === '' || url === '#' || url.includes('undefined')) {
+        if (isMounted) {
+          setLoading(false);
+          setUseIframeFallback(true);
+        }
         return;
       }
 
       try {
         const resolved = await resolvePdfSource(url);
         if (!isMounted) return;
+
+        if (!resolved || resolved.trim() === '' || resolved === '#') {
+          setUseIframeFallback(true);
+          setLoading(false);
+          return;
+        }
 
         setResolvedSource(resolved);
 

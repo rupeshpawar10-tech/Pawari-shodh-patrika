@@ -20,8 +20,14 @@ export function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer | null {
     let base64 = dataUrl;
     if (dataUrl.includes(';base64,')) {
       base64 = dataUrl.split(';base64,')[1];
+    } else if (dataUrl.startsWith('http://') || dataUrl.startsWith('https://') || dataUrl.startsWith('/') || dataUrl.startsWith('blob:')) {
+      return null;
     }
-    const binaryString = atob(base64.trim().replace(/[\r\n\s]/g, ''));
+    const trimmed = base64.trim().replace(/[\r\n\s]/g, '');
+    if (!trimmed || trimmed.length < 4 || !/^[A-Za-z0-9+/]*={0,2}$/.test(trimmed)) {
+      return null;
+    }
+    const binaryString = atob(trimmed);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
@@ -29,7 +35,6 @@ export function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer | null {
     }
     return bytes.buffer;
   } catch (err) {
-    console.error('Failed to convert base64 to ArrayBuffer:', err);
     return null;
   }
 }

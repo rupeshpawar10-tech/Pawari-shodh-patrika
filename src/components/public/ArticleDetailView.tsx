@@ -8,6 +8,7 @@ import { findArticle } from '../../lib/slugUtils';
 import { SharePaperModal } from '../common/SharePaperModal';
 import { AcademicPdfExporter } from '../common/AcademicPdfExporter';
 import { SafeImage } from '../common/SafeImage';
+import { WordDocViewer } from '../common/WordDocViewer';
 
 const PdfCanvasViewer = React.lazy(() => import('../common/PdfCanvasViewer').then(m => ({ default: m.PdfCanvasViewer })));
 import { 
@@ -61,7 +62,14 @@ export const ArticleDetailView: React.FC = () => {
     (article?.custom_sections && article.custom_sections.length > 0)
   );
 
-  const [activeTab, setActiveTab] = useState<'full_text' | 'abstract' | 'pdf' | 'citation'>(
+  const hasValidPdf = Boolean(
+    article?.pdf_url && 
+    article.pdf_url.trim() !== '' && 
+    article.pdf_url !== '#' && 
+    !article.pdf_url.includes('undefined')
+  );
+
+  const [activeTab, setActiveTab] = useState<'full_text' | 'abstract' | 'pdf' | 'word' | 'citation'>(
     hasFullText ? 'full_text' : 'abstract'
   );
   const [selectedFigure, setSelectedFigure] = useState<CustomSectionBlock | null>(null);
@@ -73,14 +81,14 @@ export const ArticleDetailView: React.FC = () => {
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg'>('base');
 
   useEffect(() => {
-    if (article?.pdf_url) {
+    if (hasValidPdf) {
       const { displayUrl, cleanup } = getEmbeddablePdfUrl(article.pdf_url);
       setDisplayPdfUrl(displayUrl);
       return () => cleanup();
     } else {
       setDisplayPdfUrl('');
     }
-  }, [article?.pdf_url]);
+  }, [article?.pdf_url, hasValidPdf]);
 
   useEffect(() => {
     if (!article) return;
@@ -88,10 +96,13 @@ export const ArticleDetailView: React.FC = () => {
   }, [article, settings, lang]);
 
   useEffect(() => {
-    if (hasFullText && activeTab !== 'full_text' && activeTab !== 'pdf' && activeTab !== 'citation') {
+    if (hasFullText && activeTab !== 'full_text' && activeTab !== 'pdf' && activeTab !== 'citation' && activeTab !== 'abstract' && activeTab !== 'word') {
       setActiveTab('full_text');
     }
-  }, [selectedArticleId, hasFullText]);
+    if (activeTab === 'pdf' && !hasValidPdf) {
+      setActiveTab(hasFullText ? 'full_text' : 'abstract');
+    }
+  }, [selectedArticleId, hasFullText, hasValidPdf]);
 
   if (loadingData && selectedArticleId && !article) {
     return (
@@ -427,7 +438,7 @@ export const ArticleDetailView: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 print:hidden border-t border-slate-100">
           
           <div className="flex flex-wrap items-center gap-2">
-            {article.pdf_url ? (
+            {hasValidPdf ? (
               <>
                 <button
                   onClick={() => openPdfViewer(article.pdf_url || '', lang === 'hi' ? article.title_hindi : article.title_english)}
@@ -513,7 +524,7 @@ export const ArticleDetailView: React.FC = () => {
               <span>{lang === 'hi' ? 'शोध सार (Abstract)' : 'Bilingual Abstracts'}</span>
             </button>
 
-            {article.pdf_url && (
+            {hasValidPdf && (
               <button
                 onClick={() => setActiveTab('pdf')}
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold font-serif transition flex items-center space-x-1.5 ${
@@ -526,6 +537,18 @@ export const ArticleDetailView: React.FC = () => {
                 <span>{lang === 'hi' ? 'PDF दर्शक' : 'PDF Reader'}</span>
               </button>
             )}
+
+            <button
+              onClick={() => setActiveTab('word')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold font-serif transition flex items-center space-x-1.5 ${
+                activeTab === 'word'
+                  ? 'bg-red-950 text-amber-300 shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <FileText className="w-4 h-4 text-blue-400" />
+              <span>{lang === 'hi' ? 'वर्ड डॉक्यूमेंट (.docx)' : 'MS Word Document'}</span>
+            </button>
 
             <button
               onClick={() => setActiveTab('citation')}
@@ -972,6 +995,18 @@ export const ArticleDetailView: React.FC = () => {
                 className="h-[680px]" 
               />
             </React.Suspense>
+          </div>
+        )}
+
+        {/* TAB: WORD DOCUMENT VIEWER */}
+        {activeTab === 'word' && !window.matchMedia('print').matches && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <WordDocViewer
+              url={article.word_url}
+              article={article}
+              lang={lang}
+              className="h-[680px]"
+            />
           </div>
         )}
 

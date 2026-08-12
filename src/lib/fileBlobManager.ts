@@ -91,9 +91,16 @@ export function base64ToBlob(base64Data: string, contentType = 'application/pdf'
       const parts = base64Data.split(';base64,');
       type = parts[0].replace('data:', '') || contentType;
       cleanBase64 = parts[1];
+    } else if (base64Data.startsWith('http://') || base64Data.startsWith('https://') || base64Data.startsWith('/') || base64Data.startsWith('blob:')) {
+      return null;
     }
 
-    const binaryString = atob(cleanBase64.trim().replace(/[\r\n\s]/g, ''));
+    const trimmed = cleanBase64.trim().replace(/[\r\n\s]/g, '');
+    if (!trimmed || trimmed.length < 4 || !/^[A-Za-z0-9+/]*={0,2}$/.test(trimmed)) {
+      return null;
+    }
+
+    const binaryString = atob(trimmed);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
@@ -101,7 +108,6 @@ export function base64ToBlob(base64Data: string, contentType = 'application/pdf'
     }
     return new Blob([bytes], { type });
   } catch (err) {
-    console.error('[FileBlobManager] Failed base64ToBlob:', err);
     return null;
   }
 }

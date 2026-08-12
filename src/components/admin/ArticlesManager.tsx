@@ -2289,6 +2289,53 @@ export const ArticlesManager: React.FC = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* WORD DOCUMENT (.docx / .doc) ATTACHMENT SECTION */}
+                  <div className="pt-6 border-t border-slate-200 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-serif font-bold text-sm text-slate-900 flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-blue-700" />
+                          <span>MS Word (.docx/.doc) पांडुलिपि फ़ाइल (Word Manuscript)</span>
+                        </h4>
+                        <p className="text-xs text-slate-600">
+                          संपादित करने और वेब पर Word व्यूअर में प्रदर्शित करने के लिए Word फाइल अपलोड करें।
+                        </p>
+                      </div>
+                      {editingArticle.word_url ? (
+                        <span className="px-3 py-1 bg-blue-100 border border-blue-300 text-blue-950 font-bold text-xs rounded-full">
+                          Word फ़ाइल संलग्न है
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 bg-slate-100 text-slate-700 font-bold text-xs rounded-full">
+                          Word वैकल्पिक
+                        </span>
+                      )}
+                    </div>
+
+                    <FileUploadZone
+                      acceptedCategory="documents"
+                      maxFiles={1}
+                      customFolder="articles/words"
+                      label="Word (.docx / .doc) अपलोड करें"
+                      description="यहाँ .docx फ़ाइल ड्रॉप करें।"
+                      onUploadComplete={(file) => {
+                        setEditingArticle(prev => prev ? ({
+                          ...prev,
+                          word_url: file.url,
+                          word_storage_path: file.path
+                        }) : null);
+                      }}
+                    />
+
+                    <input
+                      type="text"
+                      value={editingArticle.word_url || ''}
+                      onChange={e => setEditingArticle({ ...editingArticle, word_url: e.target.value })}
+                      placeholder="या डायरेक्ट Word URL दर्ज करें (https://.../paper.docx)"
+                      className="w-full p-2.5 border rounded-xl text-xs font-mono text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
               )}
 

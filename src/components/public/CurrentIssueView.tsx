@@ -164,20 +164,24 @@ export const CurrentIssueView: React.FC = () => {
                   <Share2 className="w-4 h-4 text-emerald-200" />
                   <span>{lang === 'hi' ? 'शेयर' : 'Share'}</span>
                 </button>
-                <button
-                  onClick={(e) => handlePdfView(e, art)}
-                  className="px-3 py-2 bg-slate-100 hover:bg-red-900 hover:text-white text-slate-800 text-xs font-bold rounded-lg border border-slate-300 transition flex items-center space-x-1.5"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span>View PDF</span>
-                </button>
-                <button
-                  onClick={(e) => handlePdfDownload(e, art.id, art.pdf_url || '')}
-                  className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-red-950 text-xs font-bold rounded-lg transition flex items-center space-x-1.5"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download</span>
-                </button>
+                {art.pdf_url && art.pdf_url.trim() !== '' && art.pdf_url !== '#' && !art.pdf_url.includes('undefined') && (
+                  <>
+                    <button
+                      onClick={(e) => handlePdfView(e, art)}
+                      className="px-3 py-2 bg-slate-100 hover:bg-red-900 hover:text-white text-slate-800 text-xs font-bold rounded-lg border border-slate-300 transition flex items-center space-x-1.5"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span>View PDF</span>
+                    </button>
+                    <button
+                      onClick={(e) => handlePdfDownload(e, art.id, art.pdf_url || '')}
+                      className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-red-950 text-xs font-bold rounded-lg transition flex items-center space-x-1.5"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
