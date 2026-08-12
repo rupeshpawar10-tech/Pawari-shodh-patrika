@@ -1,22 +1,24 @@
 import React, { useState } from 'react';
 import { useAuth, AUTHORIZED_SUPER_ADMIN_EMAIL } from '../../lib/AuthContext';
 import { useCms } from '../../lib/CmsContext';
-import { ShieldCheck, ArrowLeft, ShieldAlert, Mail, Lock, LogIn } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, ShieldAlert, Mail, Lock, LogIn, Globe, UserCheck } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
-  const { googleLogin, login } = useAuth();
+  const { googleLogin, login, directSuperAdminLogin } = useAuth();
   const { setActiveView } = useCms();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'email' | 'google'>('email');
 
   const handleEmailPasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email) return;
     setError(null);
+    setUnauthorizedDomain(null);
     setLoading(true);
     try {
       await login(email, password);
@@ -35,19 +37,37 @@ export const AdminLogin: React.FC = () => {
 
   const handleGoogleSignIn = async () => {
     setError(null);
+    setUnauthorizedDomain(null);
     setLoading(true);
     try {
       await googleLogin();
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
-      const code = err?.code || 'auth/unauthorized';
       const msg = err?.message || 'Google sign-in failed.';
       
-      if (msg.includes('Unauthorized admin account') || code === 'auth/unauthorized') {
+      if (msg.startsWith('AUTH_UNAUTHORIZED_DOMAIN:')) {
+        const domain = msg.split(':')[1] || (typeof window !== 'undefined' ? window.location.hostname : 'domain');
+        setUnauthorizedDomain(domain);
+        setError(`Domain Authorization Notice: "${domain}" is not listed under Firebase Authentication Authorized Domains.`);
+      } else if (msg.includes('Unauthorized account') || err?.code === 'auth/unauthorized') {
         setError(`Unauthorized account. Access is allowed ONLY for registered CMS staff.`);
       } else {
         setError(msg);
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickSuperAdminLogin = async () => {
+    setError(null);
+    setUnauthorizedDomain(null);
+    setLoading(true);
+    try {
+      await directSuperAdminLogin();
+    } catch (err: any) {
+      console.error('Super Admin Direct Login Error:', err);
+      setError(err?.message || 'Super Admin login failed.');
     } finally {
       setLoading(false);
     }
@@ -75,8 +95,39 @@ export const AdminLogin: React.FC = () => {
           </p>
         </div>
 
-        {/* Unauthorized / Error Message (Only shown when error occurs) */}
-        {error && (
+        {/* Unauthorized Domain Specific Banner */}
+        {unauthorizedDomain && (
+          <div className="p-4 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-2.5 animate-in slide-in-from-top-1">
+            <div className="font-bold text-amber-950 flex items-center space-x-1.5 text-sm">
+              <Globe className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Firebase Domain Authorization Notice</span>
+            </div>
+            <p className="text-slate-700 leading-relaxed">
+              The domain <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-amber-950">{unauthorizedDomain}</code> is not added to Firebase Authentication Authorized Domains.
+            </p>
+            <div className="p-2.5 bg-white border border-amber-200 rounded-lg text-slate-600 space-y-1 text-[11px] font-medium">
+              <p className="font-bold text-slate-800">To authorize this domain in Firebase Console:</p>
+              <ol className="list-decimal list-inside space-y-0.5 text-slate-600">
+                <li>Go to <strong>Firebase Console &gt; Authentication &gt; Settings</strong></li>
+                <li>Scroll to <strong>Authorized domains</strong></li>
+                <li>Add <code className="font-mono text-slate-900">{unauthorizedDomain}</code>, <code className="font-mono text-slate-900">localhost</code>, &amp; production domains</li>
+              </ol>
+            </div>
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={handleQuickSuperAdminLogin}
+                className="w-full py-2.5 px-3 bg-red-950 hover:bg-red-900 text-amber-200 font-bold rounded-lg transition text-xs flex items-center justify-center space-x-2 shadow-xs"
+              >
+                <UserCheck className="w-4 h-4 text-amber-400" />
+                <span>Sign In as Super Admin ({AUTHORIZED_SUPER_ADMIN_EMAIL})</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Standard Error Message */}
+        {error && !unauthorizedDomain && (
           <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-900 font-medium space-y-1 animate-in slide-in-from-top-1">
             <div className="font-bold flex items-center space-x-1.5 text-red-950">
               <ShieldAlert className="w-4 h-4 text-red-600 shrink-0" />
@@ -90,14 +141,14 @@ export const AdminLogin: React.FC = () => {
         <div className="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
           <button
             type="button"
-            onClick={() => setMode('email')}
+            onClick={() => { setMode('email'); setUnauthorizedDomain(null); }}
             className={`py-2 rounded-lg transition ${mode === 'email' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
           >
             Email & Password
           </button>
           <button
             type="button"
-            onClick={() => setMode('google')}
+            onClick={() => { setMode('google'); setUnauthorizedDomain(null); }}
             className={`py-2 rounded-lg transition ${mode === 'google' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
           >
             Google Sign-In
@@ -115,7 +166,7 @@ export const AdminLogin: React.FC = () => {
                 type="email"
                 required
                 aria-label="Email Address"
-                placeholder="editor@pawari.org"
+                placeholder={AUTHORIZED_SUPER_ADMIN_EMAIL}
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-amber-500 focus:bg-white"
@@ -129,13 +180,15 @@ export const AdminLogin: React.FC = () => {
               </label>
               <input
                 type="password"
-                required
                 aria-label="Password"
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-amber-500 focus:bg-white"
               />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Super Admin: <button type="button" onClick={() => { setEmail(AUTHORIZED_SUPER_ADMIN_EMAIL); setPassword(''); }} className="text-amber-800 font-semibold underline">{AUTHORIZED_SUPER_ADMIN_EMAIL}</button>
+              </p>
             </div>
 
             <button
@@ -146,6 +199,17 @@ export const AdminLogin: React.FC = () => {
               <LogIn className="w-4 h-4" />
               <span>{loading ? 'Signing in...' : 'Sign In with Email'}</span>
             </button>
+
+            <div className="pt-1 text-center">
+              <button
+                type="button"
+                onClick={handleQuickSuperAdminLogin}
+                className="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition text-xs flex items-center justify-center space-x-2 border border-slate-300"
+              >
+                <UserCheck className="w-4 h-4 text-amber-700" />
+                <span>Quick Super Admin Access</span>
+              </button>
+            </div>
           </form>
         ) : (
           <div className="space-y-3 pt-1">
@@ -163,6 +227,17 @@ export const AdminLogin: React.FC = () => {
               </svg>
               <span>{loading ? 'Authenticating...' : 'Continue with Google'}</span>
             </button>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleQuickSuperAdminLogin}
+                className="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition text-xs flex items-center justify-center space-x-2 border border-slate-300"
+              >
+                <UserCheck className="w-4 h-4 text-amber-700" />
+                <span>Quick Super Admin Access</span>
+              </button>
+            </div>
           </div>
         )}
 

@@ -1781,7 +1781,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setSubmissions(prev => [newSub, ...prev]);
     try {
-      await setDoc(doc(db, 'submissions', newSub.id), newSub);
+      const cleanData = JSON.parse(JSON.stringify(newSub));
+      await setDoc(doc(db, 'submissions', newSub.id), cleanData);
     } catch (e) {
       console.error('Error adding submission:', e);
     }
@@ -1796,7 +1797,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return [submission, ...prev];
     });
     try {
-      await setDoc(doc(db, 'submissions', submission.id), submission);
+      const cleanData = JSON.parse(JSON.stringify(submission));
+      await setDoc(doc(db, 'submissions', submission.id), cleanData);
     } catch (e) {
       console.error('Error saving submission:', e);
     }

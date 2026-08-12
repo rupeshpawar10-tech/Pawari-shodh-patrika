@@ -31,7 +31,7 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
       
       const [jspdfModule, html2canvasModule] = await Promise.all([
         import('jspdf'),
-        import('html2canvas')
+        import('html2canvas-pro')
       ]);
 
       const jsPDF = (jspdfModule as any).jsPDF || (jspdfModule as any).default?.jsPDF || (jspdfModule as any).default;
@@ -52,7 +52,16 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
         backgroundColor: '#ffffff',
         scrollX: 0,
         scrollY: 0,
-        windowWidth: element.scrollWidth || 800
+        windowWidth: element.scrollWidth || 800,
+        onclone: (clonedDoc: Document) => {
+          // Replace any oklch color declarations in style elements
+          const styleEls = clonedDoc.querySelectorAll('style');
+          styleEls.forEach((style) => {
+            if (style.textContent && /oklch/i.test(style.textContent)) {
+              style.textContent = style.textContent.replace(/oklch\([^)]+\)/gi, '#78350f');
+            }
+          });
+        }
       });
 
       const imgData = canvas.toDataURL('image/jpeg', 0.95);

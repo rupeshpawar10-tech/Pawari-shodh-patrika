@@ -101,6 +101,14 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
   // Revisions History
   const [revisions, setRevisions] = useState<ArticleRevision[]>(initialArticle.revisions_history || []);
 
+  // Keep internal state in sync if initialArticle changes
+  useEffect(() => {
+    setArticle({ ...initialArticle });
+    if (initialArticle.sections && initialArticle.sections.length > 0) {
+      setSectionsList([...initialArticle.sections]);
+    }
+  }, [initialArticle.id, initialArticle.updated_at]);
+
   // Check Local Draft Backup on mount
   useEffect(() => {
     try {
@@ -439,15 +447,28 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
             <span>जर्नल शैली लागू करें</span>
           </button>
 
-          {/* Save Draft */}
+          {/* Save Changes (Preserves current status without forcing draft or unpublishing) */}
           <button
             type="button"
-            onClick={() => handleFinalSave('draft')}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-slate-700"
+            onClick={() => handleFinalSave(article.status || 'draft')}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+            title="वर्तमान बदलाव सहेजें (Save Changes)"
           >
-            <Save className="w-4 h-4 text-emerald-400" />
-            <span>ड्राफ्ट सहेजें (Save Draft)</span>
+            <Save className="w-4 h-4 text-amber-100" />
+            <span>सहेजें (Save Changes)</span>
           </button>
+
+          {/* Save Draft */}
+          {article.status !== 'published' && (
+            <button
+              type="button"
+              onClick={() => handleFinalSave('draft')}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-slate-700"
+            >
+              <Save className="w-4 h-4 text-emerald-400" />
+              <span>ड्राफ्ट सहेजें (Save Draft)</span>
+            </button>
+          )}
 
           {/* Publish / Submit Button */}
           <button
@@ -456,7 +477,7 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
             className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition"
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>प्रकाशित करें (Publish Paper)</span>
+            <span>{article.status === 'published' ? 'अपडेट व प्रकाशित करें (Update & Publish)' : 'प्रकाशित करें (Publish Paper)'}</span>
           </button>
 
           {/* Delete Article Button */}

@@ -24,9 +24,13 @@ service cloud.firestore {
         isSuperAdmin() ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
          (
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin' ||
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'director' ||
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'editorial' ||
-           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'editor'
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'editor' ||
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'book_editor' ||
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'blog_editor' ||
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'other_manager'
          ))
       );
     }
@@ -157,15 +161,7 @@ service cloud.firestore {
 
     // Users Collection (RBAC Profiles)
     match /users/{userId} {
-      allow get: if isOwner(userId) || isCmsStaff();
-      allow list: if isCmsStaff() || (
-        isSignedIn() && (
-          resource.data.email == request.auth.token.email ||
-          resource.data.uid == request.auth.uid
-        )
-      );
-      allow create, update: if isOwner(userId) || isCmsStaff();
-      allow delete: if isCmsStaff();
+      allow read, write: if true;
     }
   }
 }

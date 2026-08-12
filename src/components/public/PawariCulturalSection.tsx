@@ -412,31 +412,55 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
   // Helper function to reliably render the certificate DOM element to HTML5 Canvas
   const renderCertificateCanvas = async (certElement: HTMLElement): Promise<HTMLCanvasElement> => {
-    const html2canvasModule = await import('html2canvas');
+    // Wait for any images inside the certificate element to finish loading
+    const images = Array.from(certElement.querySelectorAll('img'));
+    await Promise.all(images.map(img => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise<void>(resolve => {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+        if (!img.complete) {
+          const currentSrc = img.src;
+          img.src = currentSrc;
+        }
+      });
+    }));
+
+    const html2canvasModule = await import('html2canvas-pro');
     const html2canvas = (html2canvasModule.default || html2canvasModule) as unknown as (element: HTMLElement, options?: any) => Promise<HTMLCanvasElement>;
 
     return await html2canvas(certElement, {
       scale: 2,
       useCORS: true,
-      allowTaint: false,
+      allowTaint: true,
       backgroundColor: '#FFFDF7',
       logging: false,
       scrollX: 0,
       scrollY: 0,
-      windowWidth: certElement.scrollWidth,
-      windowHeight: certElement.scrollHeight,
+      windowWidth: certElement.scrollWidth || 900,
+      windowHeight: certElement.scrollHeight || 600,
       onclone: (clonedDoc: Document) => {
-        // Strip oklch(...) colors from cloned stylesheets to prevent html2canvas color parser crash
+        // 1. Convert/clean oklch(...) colors in cloned stylesheets to avoid parser crashes
         const styleEls = clonedDoc.querySelectorAll('style');
         styleEls.forEach((style) => {
-          if (style.textContent && style.textContent.includes('oklch')) {
-            style.textContent = style.textContent.replace(/oklch\([^)]+\)/g, '#b45309');
+          if (style.textContent && /oklch/i.test(style.textContent)) {
+            style.textContent = style.textContent.replace(/oklch\([^)]+\)/gi, '#b45309');
           }
         });
+
+        // 2. Format printable-certificate-card element
         const target = clonedDoc.getElementById('printable-certificate-card');
         if (target) {
           target.style.backgroundColor = '#FFFDF7';
           target.style.color = '#0f172a';
+          
+          // Ensure crossOrigin on cloned images
+          const clonedImgs = target.querySelectorAll('img');
+          clonedImgs.forEach(img => {
+            if (img.src && !img.src.startsWith('data:')) {
+              img.crossOrigin = 'anonymous';
+            }
+          });
         }
       }
     });
@@ -451,9 +475,10 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     setIsGeneratingImage(true);
     try {
       const canvas = await renderCertificateCanvas(certElement);
-      const imageUri = canvas.toDataURL('image/png');
+      const imageUri = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
-      link.download = `Pawari_Quiz_Certificate_${(certificateData?.user_name || 'Participant').replace(/\s+/g, '_')}.png`;
+      const nameClean = (certificateData?.user_name || 'Participant').replace(/\s+/g, '_');
+      link.download = `Pawari_Quiz_Certificate_${nameClean}.png`;
       link.href = imageUri;
       document.body.appendChild(link);
       link.click();
@@ -482,25 +507,36 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       }
 
       const canvas = await renderCertificateCanvas(certElement);
-
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/png', 1.0);
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       const orientation = imgWidth >= imgHeight ? 'l' : 'p';
 
-      const pdf = new jsPDFClass(orientation, 'mm', 'a4');
+      const pdf = new jsPDFClass({
+        orientation,
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      // Fit proportionally onto strictly 1 single A4 page
-      const ratio = Math.min(pdfWidth / (imgWidth / 2), pdfHeight / (imgHeight / 2));
-      const renderWidth = (imgWidth / 2) * ratio;
-      const renderHeight = (imgHeight / 2) * ratio;
+      // Fit proportionally onto strictly 1 single A4 page with margins
+      const margin = 8;
+      const maxWidth = pdfWidth - (margin * 2);
+      const maxHeight = pdfHeight - (margin * 2);
+
+      const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
+      const renderWidth = imgWidth * ratio;
+      const renderHeight = imgHeight * ratio;
+
       const x = (pdfWidth - renderWidth) / 2;
       const y = (pdfHeight - renderHeight) / 2;
 
-      pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight);
-      pdf.save(`Pawari_Quiz_Certificate_${(certificateData?.user_name || 'Participant').replace(/\s+/g, '_')}.pdf`);
+      pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight, undefined, 'FAST');
+      const nameClean = (certificateData?.user_name || 'Participant').replace(/\s+/g, '_');
+      pdf.save(`Pawari_Quiz_Certificate_${nameClean}.pdf`);
     } catch (err: any) {
       console.error('Error generating PDF:', err);
       alert('PDF डाउनलोड करने में त्रुटि हुई: ' + (err?.message || 'पुनः प्रयास करें।'));
@@ -518,7 +554,24 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     setIsGeneratingImage(true);
     try {
       const canvas = await renderCertificateCanvas(certElement);
-      const fileName = `Pawari_Quiz_Certificate_${(certificateData?.user_name || 'Participant').replace(/\s+/g, '_')}.png`;
+      const nameClean = (certificateData?.user_name || 'Participant').replace(/\s+/g, '_');
+      const fileName = `Pawari_Quiz_Certificate_${nameClean}.png`;
+
+      const runFallbackShare = () => {
+        const imageUri = canvas.toDataURL('image/png', 1.0);
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = imageUri;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        const quizUrl = `${window.location.origin}/quiz`;
+        const shareText = `🏆 *पवारी भोयरी संस्कृति ई-प्रमाण-पत्र* 🏆\n\nमैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त कर यह ई-प्रमाण-पत्र अर्जित किया है!\n\n(मेरा प्रमाण-पत्र डाउनलोड हो गया है। इसे यहाँ संलग्न करके शेयर करें!)\n\n👉 *क्विज़ में भाग लें:* ${quizUrl}`;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+
+        alert('इमेज आपकी डिवाइस पर डाउनलोड हो गई है एवं व्हाट्सएप शेयर विंडो खोल दी गई है! कृपया डाउनलोड इमेज को संलग्न करें।');
+      };
 
       canvas.toBlob(async (blob) => {
         if (!blob) {
@@ -526,35 +579,29 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
           alert('इमेज फ़ाइल तैयार करने में असमर्थ।');
           return;
         }
-        const file = new File([blob], fileName, { type: 'image/png' });
 
-        let sharedSuccessfully = false;
+        const file = new File([blob], fileName, { type: 'image/png' });
+        const shareData = {
+          title: 'पवारी भोयरी संस्कृति ई-प्रमाण-पत्र',
+          text: `🏆 मैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ 2026 में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त कर यह ई-प्रमाण-पत्र अर्जित किया है!`,
+          files: [file]
+        };
+
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
-            await navigator.share({
-              title: 'पवारी भोयरी संस्कृति ई-प्रमाण-पत्र',
-              text: `🏆 मैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ 2026 में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त कर यह ई-प्रमाण-पत्र अर्जित किया है!`,
-              files: [file]
-            });
-            sharedSuccessfully = true;
-          } catch (shareErr) {
-            console.log('Share prompt error/canceled:', shareErr);
+            await navigator.share(shareData);
+            setIsGeneratingImage(false);
+            return;
+          } catch (shareErr: any) {
+            if (shareErr?.name === 'AbortError') {
+              setIsGeneratingImage(false);
+              return;
+            }
+            console.log('Native file share failed/fallback needed:', shareErr);
           }
         }
 
-        if (!sharedSuccessfully) {
-          // Fallback image download + WhatsApp text link share
-          const imageUri = canvas.toDataURL('image/png');
-          const link = document.createElement('a');
-          link.download = fileName;
-          link.href = imageUri;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          const shareText = `🏆 *पवारी भोयरी संस्कृति ई-प्रमाण-पत्र* 🏆\n\nमैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त किए हैं!\n\n(मेरा प्रमाण-पत्र इमेज डाउनलोड हो गया है। इसे यहाँ अटैच करके शेयर करें!)\n\n👉 *क्विज़ में भाग लें:* ${window.location.origin}/quiz`;
-          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-        }
+        runFallbackShare();
         setIsGeneratingImage(false);
       }, 'image/png');
     } catch (err: any) {

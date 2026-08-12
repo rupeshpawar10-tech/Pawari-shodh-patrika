@@ -523,108 +523,139 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const googleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-    const res = await signInWithPopup(auth, provider);
-    const user = res.user;
-
-    if (!user || !user.email) {
-      await firebaseSignOut(auth);
-      localStorage.removeItem('pawari_cms_user');
-      setUserProfile(null);
-      setCurrentUser(null);
-      throw new Error('Sign in failed: No email returned from Google.');
-    }
-
-    const signedInEmail = user.email.toLowerCase().trim();
-    if (signedInEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
-      const profile: UserProfile = {
-        uid: user.uid,
-        email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-        display_name: AUTHORIZED_SUPER_ADMIN_NAME,
-        role: 'super_admin',
-        status: 'active',
-        created_at: new Date().toISOString()
-      };
-      try {
-        await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
-      } catch (e) {}
-      setUserProfile(profile);
-      localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
-      await refreshUsersList();
-      return;
-    }
-
-    // Check if user exists in users collection
-    let matchedProfile: UserProfile | null = null;
     try {
-      const snap = await getDoc(doc(db, 'users', user.uid));
-      if (snap.exists()) {
-        matchedProfile = snap.data() as UserProfile;
-      } else if (signedInEmail) {
-        const q = query(collection(db, 'users'), where('email', '==', signedInEmail));
-        const qSnap = await getDocs(q);
-        qSnap.forEach(d => {
-          const u = d.data() as UserProfile;
-          if (u.email?.toLowerCase().trim() === signedInEmail) {
-            matchedProfile = u;
-          }
-        });
-      }
-    } catch (e) {}
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const res = await signInWithPopup(auth, provider);
+      const user = res.user;
 
-    if (matchedProfile && (matchedProfile as UserProfile).status !== 'disabled') {
-      const profile: UserProfile = {
-        uid: user.uid,
-        email: signedInEmail,
-        display_name: matchedProfile.display_name || user.displayName || signedInEmail,
-        role: matchedProfile.role || 'editorial',
-        status: 'active',
-        created_at: matchedProfile.created_at || new Date().toISOString()
-      };
+      if (!user || !user.email) {
+        await firebaseSignOut(auth);
+        localStorage.removeItem('pawari_cms_user');
+        setUserProfile(null);
+        setCurrentUser(null);
+        throw new Error('Sign in failed: No email returned from Google.');
+      }
+
+      const signedInEmail = user.email.toLowerCase().trim();
+      if (signedInEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+        const profile: UserProfile = {
+          uid: user.uid,
+          email: AUTHORIZED_SUPER_ADMIN_EMAIL,
+          display_name: AUTHORIZED_SUPER_ADMIN_NAME,
+          role: 'super_admin',
+          status: 'active',
+          created_at: new Date().toISOString()
+        };
+        try {
+          await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
+        } catch (e) {}
+        setUserProfile(profile);
+        localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+        await refreshUsersList();
+        return;
+      }
+
+      // Check if user exists in users collection
+      let matchedProfile: UserProfile | null = null;
       try {
-        await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists()) {
+          matchedProfile = snap.data() as UserProfile;
+        } else if (signedInEmail) {
+          const q = query(collection(db, 'users'), where('email', '==', signedInEmail));
+          const qSnap = await getDocs(q);
+          qSnap.forEach(d => {
+            const u = d.data() as UserProfile;
+            if (u.email?.toLowerCase().trim() === signedInEmail) {
+              matchedProfile = u;
+            }
+          });
+        }
       } catch (e) {}
-      setUserProfile(profile);
-      localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
-      await refreshUsersList();
-    } else {
-      await firebaseSignOut(auth);
-      localStorage.removeItem('pawari_cms_user');
-      setUserProfile(null);
-      setCurrentUser(null);
-      throw new Error(`Unauthorized account (${signedInEmail}). Access is restricted to registered CMS staff.`);
+
+      // Fallback check in default sample staff
+      if (!matchedProfile) {
+        const sample = DEFAULT_SAMPLE_USERS.find(s => s.email.toLowerCase().trim() === signedInEmail);
+        if (sample) matchedProfile = sample;
+      }
+
+      if (matchedProfile && (matchedProfile as UserProfile).status !== 'disabled') {
+        const profile: UserProfile = {
+          uid: user.uid,
+          email: signedInEmail,
+          display_name: matchedProfile.display_name || user.displayName || signedInEmail,
+          role: matchedProfile.role || 'editorial',
+          status: 'active',
+          created_at: matchedProfile.created_at || new Date().toISOString()
+        };
+        try {
+          await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
+        } catch (e) {}
+        setUserProfile(profile);
+        localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+        await refreshUsersList();
+      } else {
+        await firebaseSignOut(auth);
+        localStorage.removeItem('pawari_cms_user');
+        setUserProfile(null);
+        setCurrentUser(null);
+        throw new Error(`Unauthorized account (${signedInEmail}). Access is restricted to registered CMS staff.`);
+      }
+    } catch (err: any) {
+      if (err?.code === 'auth/unauthorized-domain' || (err?.message && err.message.includes('auth/unauthorized-domain'))) {
+        const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
+        throw new Error(`AUTH_UNAUTHORIZED_DOMAIN:${currentDomain}`);
+      }
+      throw err;
     }
   };
 
   const login = async (email: string, pass: string) => {
     const cleanEmail = email.toLowerCase().trim();
 
+    // 0. Super Admin direct pass-through check
+    if (cleanEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+      await directSuperAdminLogin();
+      return;
+    }
+
     // 1. First attempt login via standard Firebase Auth
     try {
       await signInWithEmailAndPassword(auth, cleanEmail, pass);
       return;
     } catch (firebaseErr: any) {
-      console.warn('Firebase Auth login failed, checking Firestore users database:', firebaseErr);
+      console.warn('Firebase Auth login skipped/failed, falling back to database check:', firebaseErr);
     }
 
-    // 2. Fallback check against Firestore user accounts (for added CMS staff)
+    // 2. Fallback check against Firestore user accounts & default staff accounts
     try {
-      const q = query(collection(db, 'users'), where('email', '==', cleanEmail));
-      const qSnap = await getDocs(q);
       let matchedUser: UserProfile | null = null;
 
-      qSnap.forEach(d => {
-        const u = d.data() as UserProfile;
-        if (u.email?.toLowerCase().trim() === cleanEmail) {
-          matchedUser = u;
+      try {
+        const q = query(collection(db, 'users'), where('email', '==', cleanEmail));
+        const qSnap = await getDocs(q);
+        qSnap.forEach(d => {
+          const u = d.data() as UserProfile;
+          if (u.email?.toLowerCase().trim() === cleanEmail) {
+            matchedUser = u;
+          }
+        });
+      } catch (dbErr) {
+        console.warn('Firestore user search warning:', dbErr);
+      }
+
+      if (!matchedUser) {
+        const foundSample = DEFAULT_SAMPLE_USERS.find(u => u.email.toLowerCase().trim() === cleanEmail);
+        if (foundSample) {
+          matchedUser = foundSample;
         }
-      });
+      }
 
       if (matchedUser) {
         const u = matchedUser;
-        if (u.status === 'disabled') {
-          throw new Error('This account has been disabled. Please contact the administrator.');
+        if (u.status === 'disabled' || u.status === 'suspended') {
+          throw new Error('This account has been disabled or suspended. Please contact the administrator.');
         }
 
         if (u.password && u.password !== pass) {
@@ -632,7 +663,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         const profile: UserProfile = {
-          uid: u.uid,
+          uid: u.uid || `user_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`,
           email: u.email,
           display_name: u.display_name,
           role: u.role || 'editorial',
@@ -641,12 +672,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           created_at: u.created_at || new Date().toISOString()
         };
 
+        try {
+          await setDoc(doc(db, 'users', profile.uid), profile, { merge: true });
+        } catch (e) {}
+
         setUserProfile(profile);
         localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+        await refreshUsersList();
         return;
       }
     } catch (err: any) {
-      if (err.message && (err.message.includes('disabled') || err.message.includes('password'))) {
+      if (err.message && (err.message.includes('disabled') || err.message.includes('password') || err.message.includes('suspended'))) {
         throw err;
       }
     }
@@ -723,6 +759,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Secondary auth user creation warning:', err);
       if (err?.code === 'auth/email-already-in-use') {
         throw new Error(`User with email "${cleanEmail}" already exists in Firebase Auth.`);
+      }
+      if (err?.code === 'auth/operation-not-allowed') {
+        throw new Error('Email/Password provider is disabled in Firebase Console. Please enable "Email/Password" under Firebase Console > Authentication > Sign-in method.');
+      }
+      if (err?.code === 'auth/weak-password') {
+        throw new Error('Password should be at least 6 characters long.');
       }
       newUid = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     }

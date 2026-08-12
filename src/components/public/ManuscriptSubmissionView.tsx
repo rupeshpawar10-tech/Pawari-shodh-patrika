@@ -24,49 +24,71 @@ export const ManuscriptSubmissionView: React.FC = () => {
 
   const [file, setFile] = useState<File | null>(null);
   const [fileUrlInput, setFileUrlInput] = useState('');
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     
-    if (!file && !fileUrlInput) {
-      alert(lang === 'hi' ? 'कृपया शोध पत्र की वर्ड (.doc/.docx) फ़ाइल अपलोड करें या ऑनलाइन लिंक दर्ज करें।' : 'Please upload the Word manuscript file or provide a direct document URL.');
+    // Field validations
+    if (!formData.authorName.trim()) {
+      setFormError(lang === 'hi' ? 'कृपया मुख्य लेखक का नाम दर्ज करें।' : 'Please enter the primary author name.');
+      return;
+    }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setFormError(lang === 'hi' ? 'कृपया मान्य ईमेल पता दर्ज करें।' : 'Please enter a valid email address.');
+      return;
+    }
+    if (!formData.title.trim()) {
+      setFormError(lang === 'hi' ? 'कृपया शोध पत्र का पूरा शीर्षक दर्ज करें।' : 'Please enter the full paper title.');
+      return;
+    }
+
+    const hasUploadedUrl = Boolean(fileUrlInput && fileUrlInput.trim());
+    const hasRawFile = Boolean(file && file.size > 0);
+
+    if (!hasUploadedUrl && !hasRawFile) {
+      setFormError(lang === 'hi' ? 'कृपया शोध पत्र की Word (.doc/.docx) या PDF फ़ाइल अपलोड करें या ऑनलाइन लिंक दर्ज करें।' : 'Please upload a Word (.doc/.docx) or PDF manuscript file or provide a direct document URL.');
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      let finalFileUrl = fileUrlInput || '';
-      if (file) {
+      let finalFileUrl = fileUrlInput.trim();
+      
+      // Upload raw file if present and not yet uploaded
+      if (file && file.size > 0 && !finalFileUrl) {
         const uploadRes = await uploadFileToStorage(file, 'submissions');
         finalFileUrl = uploadRes.url || uploadRes.fileId || uploadRes.path;
       }
 
       await addSubmission({
-        author_name: formData.authorName,
-        email: formData.email,
-        co_authors: formData.coAuthors,
-        affiliation: formData.affiliation,
-        title: formData.title,
+        author_name: formData.authorName.trim(),
+        email: formData.email.trim(),
+        co_authors: formData.coAuthors.trim(),
+        affiliation: formData.affiliation.trim(),
+        title: formData.title.trim(),
         paper_type: formData.paperType,
         category: formData.category,
-        keywords: formData.keywords,
-        doi: formData.doi,
+        keywords: formData.keywords.trim(),
+        doi: formData.doi.trim(),
         license_type: formData.licenseType,
-        abstract: formData.abstract,
-        file_name: file ? file.name : 'External Linked Paper',
+        abstract: formData.abstract.trim(),
+        file_name: uploadedFileName || (file && file.size > 0 ? file.name : (finalFileUrl ? 'Linked Document' : 'Manuscript Document')),
         file_url: finalFileUrl || undefined
       });
       setIsSubmitting(false);
       setIsSuccess(true);
-      window.scrollTo(0, 0);
-    } catch (e) {
-      console.error(e);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e: any) {
+      console.error('Submission failed:', e);
       setIsSubmitting(false);
-      alert(lang === 'hi' ? 'त्रुटि हुई। कृपया पुनः प्रयास करें।' : 'An error occurred during submission. Please try again.');
+      setFormError(e?.message || (lang === 'hi' ? 'शोध पत्र जमा करने में त्रुटि हुई। कृपया पुनः प्रयास करें।' : 'An error occurred during manuscript submission. Please try again.'));
     }
   };
 
@@ -489,30 +511,32 @@ export const ManuscriptSubmissionView: React.FC = () => {
           <div className="space-y-4 pt-4 border-t border-slate-100">
             <h3 className="text-base font-serif font-bold text-slate-900 flex items-center space-x-2">
               <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center">3</span>
-              <span>{lang === 'hi' ? 'वर्ड (.doc / .docx) पांडुलिपि फ़ाइल अपलोड करें' : 'Upload Word (.doc / .docx) Manuscript'}</span>
+              <span>{lang === 'hi' ? 'पांडुलिपि फ़ाइल अपलोड (Word या PDF)' : 'Upload Manuscript File (Word or PDF)'}</span>
             </h3>
 
             <div className="p-4 bg-amber-50/80 rounded-2xl border border-amber-200 flex items-start space-x-3 text-xs text-amber-900">
               <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
               <span>
                 {lang === 'hi' 
-                  ? 'महत्वपूर्ण: मुख्य पाठ संपादन हेतु केवल Word (.doc / .docx) फ़ाइल अपलोड करें। PDF फ़ाइल मुख्य संपादन हेतु स्वीकार नहीं की जाती है।' 
-                  : 'Important: Please upload Word (.doc / .docx) for editable text. PDF files are not accepted as primary manuscript text.'}
+                  ? 'स्वीकृत फ़ाइल प्रारूप: Word (.doc / .docx) अथवा PDF (.pdf) फ़ाइल। अधिकतम आकार: 15MB।' 
+                  : 'Accepted file formats: Word (.doc / .docx) or PDF (.pdf) documents. Maximum size limit: 15MB.'}
               </span>
             </div>
 
             <FileUploadZone
-              label={lang === 'hi' ? 'शोध पत्र Word फ़ाइल अपलोड (.doc / .docx)' : 'Manuscript Word File Upload'}
-              description={lang === 'hi' ? 'DOC, DOCX फ़ाइल अपलोड करें। अधिकतम 15MB।' : 'Upload manuscript in DOC or DOCX format (Max 15MB).'}
+              label={lang === 'hi' ? 'शोध पत्र फ़ाइल अपलोड (.doc / .docx / .pdf)' : 'Manuscript Document File Upload'}
+              description={lang === 'hi' ? 'DOC, DOCX, या PDF फ़ाइल अपलोड करें। अधिकतम 15MB।' : 'Upload manuscript in DOC, DOCX, or PDF format (Max 15MB).'}
               acceptedCategory="documents"
               maxFiles={1}
               customFolder="submissions"
               onUploadComplete={(fileItem) => {
                 setFileUrlInput(fileItem.url);
-                setFile(new File([], fileItem.name));
+                setUploadedFileName(fileItem.name);
+                setFormError(null);
               }}
               onRemoveFile={() => {
                 setFileUrlInput('');
+                setUploadedFileName('');
                 setFile(null);
               }}
             />
@@ -524,12 +548,30 @@ export const ManuscriptSubmissionView: React.FC = () => {
               <input
                 type="url"
                 value={fileUrlInput}
-                onChange={e => setFileUrlInput(e.target.value)}
+                onChange={e => {
+                  setFileUrlInput(e.target.value);
+                  setFormError(null);
+                }}
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:ring-2 focus:ring-amber-500/50 outline-none"
-                placeholder="https://docs.google.com/document/d/... or direct Word URL"
+                placeholder="https://docs.google.com/document/d/... or direct document URL"
               />
             </div>
           </div>
+
+          {/* Validation Error Banner */}
+          {formError && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start space-x-3 text-red-800 text-xs animate-shake">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div className="flex-1 font-semibold">{formError}</div>
+              <button 
+                type="button" 
+                onClick={() => setFormError(null)}
+                className="text-red-500 hover:text-red-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {/* Submit Action Bar */}
           <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -539,11 +581,11 @@ export const ManuscriptSubmissionView: React.FC = () => {
             </p>
             <button
               type="submit"
-              disabled={isSubmitting || (!file && !fileUrlInput)}
+              disabled={isSubmitting || (!fileUrlInput && (!file || file.size === 0))}
               className={`w-full sm:w-auto flex items-center justify-center space-x-2 px-8 py-3.5 rounded-xl font-bold text-sm shadow-md transition ${
-                isSubmitting || (!file && !fileUrlInput)
+                isSubmitting || (!fileUrlInput && (!file || file.size === 0))
                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
-                  : 'bg-red-950 hover:bg-red-900 text-amber-100 hover:shadow-lg'
+                  : 'bg-red-950 hover:bg-red-900 text-amber-100 hover:shadow-lg cursor-pointer'
               }`}
             >
               {isSubmitting ? (
