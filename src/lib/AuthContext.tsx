@@ -614,10 +614,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, pass: string) => {
     const cleanEmail = email.toLowerCase().trim();
 
-    // 0. Super Admin direct pass-through check
-    if (cleanEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
-      await directSuperAdminLogin();
-      return;
+    if (!cleanEmail || !pass) {
+      throw new Error('Please enter both email address and password.');
     }
 
     // 1. First attempt login via standard Firebase Auth
@@ -658,7 +656,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error('This account has been disabled or suspended. Please contact the administrator.');
         }
 
-        if (u.password && u.password !== pass) {
+        // Super Admin must log in via Google Sign-In (Gmail) unless a password was explicitly set and matches
+        if (cleanEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+          if (u.password && u.password === pass) {
+            // Password matches explicitly set password
+          } else {
+            throw new Error('Super Admin access is restricted to Google Sign-In (Gmail). Please switch to the "Google Sign-In (Gmail)" tab.');
+          }
+        } else if (u.password && u.password !== pass) {
           throw new Error('Incorrect password. Please verify your password.');
         }
 
@@ -682,7 +687,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
     } catch (err: any) {
-      if (err.message && (err.message.includes('disabled') || err.message.includes('password') || err.message.includes('suspended'))) {
+      if (err.message && (err.message.includes('disabled') || err.message.includes('password') || err.message.includes('suspended') || err.message.includes('Google Sign-In'))) {
         throw err;
       }
     }
