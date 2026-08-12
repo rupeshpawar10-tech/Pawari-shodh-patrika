@@ -744,7 +744,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           loadedArticles = articlesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Article));
         }
 
-        // Merge with local cache if local cache has custom pdf_url or newly created articles
+        // Merge with local cache if local cache has custom pdf_url or newly created/updated articles
         const cached = localStorage.getItem('local_articles_cache');
         if (cached) {
           try {
@@ -753,10 +753,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               parsed.forEach((cachedArt: Article) => {
                 const idx = loadedArticles.findIndex(a => a.id === cachedArt.id);
                 if (idx !== -1) {
-                  if (cachedArt.pdf_url && !loadedArticles[idx].pdf_url) {
-                    loadedArticles[idx].pdf_url = cachedArt.pdf_url;
-                    loadedArticles[idx].pdf_storage_path = cachedArt.pdf_storage_path || loadedArticles[idx].pdf_storage_path;
-                  }
+                  // Merge cached article updates (like published status, page numbers, title)
+                  loadedArticles[idx] = {
+                    ...loadedArticles[idx],
+                    ...cachedArt,
+                    status: cachedArt.status || loadedArticles[idx].status,
+                    pdf_url: cachedArt.pdf_url || loadedArticles[idx].pdf_url
+                  };
                 } else {
                   loadedArticles.unshift(cachedArt);
                 }

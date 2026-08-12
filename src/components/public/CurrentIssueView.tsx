@@ -22,9 +22,13 @@ export const CurrentIssueView: React.FC = () => {
 
   const currentIssue = issues.find(i => i.status === 'current') || issues[0];
 
+  const allPublished = articles.filter(a => a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted');
+
   const issueArticles = currentIssue 
-    ? articles.filter(a => a.volume === currentIssue.volume && a.issue === currentIssue.issue_number && a.status === 'published')
-    : [];
+    ? articles.filter(a => Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number) && (a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted'))
+    : allPublished;
+
+  const displayArticles = issueArticles.length > 0 ? issueArticles : allPublished;
 
   const handleArticleClick = (artId: string) => {
     setSelectedArticleId(artId);
@@ -107,12 +111,12 @@ export const CurrentIssueView: React.FC = () => {
             {lang === 'hi' ? 'अनुक्रमणिका एवं शोध पत्र सूची (Table of Contents)' : 'Table of Contents & Research Articles'}
           </h2>
           <span className="text-xs font-mono font-semibold bg-amber-100 text-amber-900 px-3 py-1 rounded-full">
-            {issueArticles.length} {lang === 'hi' ? 'शोध पत्र' : 'Papers'}
+            {displayArticles.length} {lang === 'hi' ? 'शोध पत्र' : 'Papers'}
           </span>
         </div>
 
         <div className="space-y-4">
-          {issueArticles.map((art, idx) => (
+          {displayArticles.map((art, idx) => (
             <div 
               key={art.id}
               onClick={() => handleArticleClick(art.id)}

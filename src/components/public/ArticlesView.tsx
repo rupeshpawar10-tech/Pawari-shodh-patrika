@@ -59,7 +59,7 @@ export const ArticlesView: React.FC = () => {
 
   const [shareModalArticle, setShareModalArticle] = useState<any | null>(null);
 
-  const publishedArticles = articles.filter(a => a.status === 'published');
+  const publishedArticles = articles.filter(a => a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted');
   const publishedIssues = issues.filter(i => i.status === 'published' || i.status === 'current');
 
   // Group issues by volume
@@ -83,15 +83,15 @@ export const ArticlesView: React.FC = () => {
   // Filtered articles
   const filteredArticles = publishedArticles.filter(art => {
     const query = search.toLowerCase();
-    const titleMatch = art.title_hindi.toLowerCase().includes(query) || art.title_english.toLowerCase().includes(query);
-    const authorMatch = art.authors.some(a => a.name.toLowerCase().includes(query) || a.affiliation?.toLowerCase().includes(query));
-    const keywordMatch = art.keywords.some(k => k.toLowerCase().includes(query));
-    const doiMatch = art.doi?.toLowerCase().includes(query);
+    const titleMatch = (art.title_hindi || '').toLowerCase().includes(query) || (art.title_english || '').toLowerCase().includes(query);
+    const authorMatch = (art.authors || []).some(a => (a.name || '').toLowerCase().includes(query) || (a.affiliation || '').toLowerCase().includes(query));
+    const keywordMatch = (art.keywords || []).some(k => (k || '').toLowerCase().includes(query));
+    const doiMatch = (art.doi || '').toLowerCase().includes(query);
     const matchesSearch = !query || titleMatch || authorMatch || keywordMatch || doiMatch;
 
     const matchesCategory = selectedCategory === 'all' || art.category === selectedCategory;
     const matchesLanguage = selectedLanguage === 'all' || art.language === selectedLanguage;
-    const matchesIssue = selectedIssueFilter === 'all' || `${art.volume}_${art.issue}` === selectedIssueFilter;
+    const matchesIssue = selectedIssueFilter === 'all' || `${art.volume}_${art.issue}` === selectedIssueFilter || `${Number(art.volume)}_${Number(art.issue)}` === selectedIssueFilter;
 
     return matchesSearch && matchesCategory && matchesLanguage && matchesIssue;
   });

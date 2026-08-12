@@ -70,19 +70,16 @@ export const HomeView: React.FC = () => {
   const currentIssue = issues.find(i => i.status === 'current') || issues[0];
   
   // Articles in the current issue (published)
+  const publishedArticles = articles.filter(a => a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted');
+
   const currentIssueArticles = currentIssue 
-    ? articles.filter(a => a.volume === currentIssue.volume && a.issue === currentIssue.issue_number && a.status === 'published')
-    : articles.filter(a => a.status === 'published').slice(0, 3);
+    ? articles.filter(a => Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number) && (a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted'))
+    : publishedArticles.slice(0, 3);
+
+  const displayCurrentIssueArticles = currentIssueArticles.length > 0 ? currentIssueArticles : publishedArticles.slice(0, 4);
 
   // Top 3 featured papers for current issue block
-  const featuredArticles = currentIssueArticles.length >= 3 
-    ? currentIssueArticles.slice(0, 3) 
-    : articles.filter(a => a.status === 'published').slice(0, 3);
-
-  // Latest published articles for Section 5 (3-4 items)
-  const publishedArticles = articles
-    .filter(a => a.status === 'published')
-    .slice(0, 4);
+  const featuredArticles = displayCurrentIssueArticles.slice(0, 3);
 
   const handleArticleClick = (artId: string) => {
     setSelectedArticleId(artId);

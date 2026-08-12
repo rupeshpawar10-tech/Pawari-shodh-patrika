@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Download, FileText, Printer, Eye, X, Check, Loader2, Sparkles, ShieldCheck, Bookmark } from 'lucide-react';
+import { Download, FileText, Printer, X, Loader2, Sparkles, ShieldCheck, BookOpen, Globe, Award } from 'lucide-react';
 import { Article } from '../../types';
 
 interface AcademicPdfExporterProps {
@@ -24,7 +24,7 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
   const handleGeneratePdf = async () => {
     if (!printContainerRef.current) return;
     setIsGenerating(true);
-    setProgressText(lang === 'hi' ? 'पीडीएफ लाइब्रेरी लोड हो रही है...' : 'Loading PDF Library...');
+    setProgressText(lang === 'hi' ? 'पीडीएफ लाइब्रेरी लोड हो रही है...' : 'Loading PDF Engine...');
 
     try {
       const element = printContainerRef.current;
@@ -41,20 +41,31 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
         throw new Error('jsPDF constructor not resolved');
       }
 
-      setProgressText(lang === 'hi' ? 'पीडीएफ तैयार हो रहा है...' : 'Generating Typeset PDF...');
+      setProgressText(lang === 'hi' ? 'अंतर्राष्ट्रीय प्रारूप में पृष्ठ तैयार हो रहे हैं...' : 'Typesetting Pages...');
 
-      // Ensure full rendering of element
+      const fullHeight = element.scrollHeight || element.offsetHeight;
+      const fullWidth = element.offsetWidth || 794;
+
+      // Render high-resolution crisp canvas of full element
       const canvas = await html2canvas(element, {
-        scale: 2, // High resolution crisp text rendering
+        scale: 2, // High resolution sharp text
         useCORS: true,
         allowTaint: true,
         logging: false,
         backgroundColor: '#ffffff',
+        width: fullWidth,
+        height: fullHeight,
+        windowWidth: fullWidth,
+        windowHeight: fullHeight,
         scrollX: 0,
         scrollY: 0,
-        windowWidth: element.scrollWidth || 800,
         onclone: (clonedDoc: Document) => {
-          // Replace any oklch color declarations in style elements
+          const clonedElement = clonedDoc.getElementById('printable-typeset-paper');
+          if (clonedElement) {
+            clonedElement.style.height = 'auto';
+            clonedElement.style.maxHeight = 'none';
+            clonedElement.style.overflow = 'visible';
+          }
           const styleEls = clonedDoc.querySelectorAll('style');
           styleEls.forEach((style) => {
             if (style.textContent && /oklch/i.test(style.textContent)) {
@@ -81,29 +92,28 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
       let heightLeft = imgHeight;
       let position = 0;
 
-      // Add first page
+      // Page 1
       pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pdfHeight;
 
-      // Add subsequent pages if multi-page document
+      // Subsequent Pages
       while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
+        position -= pdfHeight;
         pdf.addPage();
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pdfHeight;
       }
 
-      const fileName = `${(article.title_english || article.title_hindi || 'Pawari_Research_Paper')
+      const fileName = `${(article.title_english || article.title_hindi || 'Pawari_Shodh_Patrika_Paper')
         .replace(/[^a-zA-Z0-9_]/g, '_')
-        .slice(0, 30)}_Typeset.pdf`;
+        .slice(0, 35)}_Typeset.pdf`;
 
       pdf.save(fileName);
       setIsGenerating(false);
       setProgressText('');
     } catch (err) {
       console.error('PDF Generation Error:', err);
-      // Fallback: trigger browser native print
-      alert(lang === 'hi' ? 'पीडीएफ डाउनलोड की प्रक्रिया में तकनीकी सहायता हेतु ब्राउज़र प्रिंट विंडो खोली जा रही है। कृपया "Save as PDF" चुनें।' : 'Opening browser print window to Save as PDF...');
+      alert(lang === 'hi' ? 'पीडीएफ प्रिंटर सक्रिय किया जा रहा है। कृपया "Save as PDF" चुनें।' : 'Opening print window to Save as PDF...');
       window.print();
       setIsGenerating(false);
       setProgressText('');
@@ -118,9 +128,9 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
   // Extract author list string
   const authorsText = article.authors && article.authors.length > 0
     ? article.authors.map(a => a.name_hindi || a.name_english || a.name || '').filter(Boolean).join(', ')
-    : 'शोधकर्ता / Author';
+    : 'शोधकर्ता / Research Author';
 
-  // Sections or custom content
+  // Sections
   const sections = article.sections && article.sections.length > 0
     ? article.sections
     : [
@@ -141,7 +151,7 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="p-2 text-amber-700 hover:text-amber-900 hover:bg-amber-100 rounded-xl transition"
+          className="p-2 text-amber-800 hover:text-amber-950 hover:bg-amber-100 rounded-xl transition cursor-pointer"
           title={lang === 'hi' ? 'जर्नल टाइप्सेट PDF डाउनलोड करें' : 'Download Typeset Academic PDF'}
         >
           <FileText className="w-5 h-5" />
@@ -150,37 +160,38 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="px-3.5 py-2 border border-amber-600 text-amber-800 hover:bg-amber-50 rounded-xl text-xs font-bold flex items-center gap-2 transition"
+          className="px-3.5 py-2 border border-amber-600 text-amber-900 hover:bg-amber-50 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer"
         >
-          <Download className="w-4 h-4 text-amber-600" />
+          <Download className="w-4 h-4 text-amber-700" />
           <span>{buttonLabel || (lang === 'hi' ? 'Typeset PDF डाउनलोड' : 'Download Typeset PDF')}</span>
         </button>
       ) : (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition"
+          className="px-4 py-2 bg-gradient-to-r from-amber-800 to-red-900 hover:from-amber-900 hover:to-red-950 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition cursor-pointer"
         >
-          <Sparkles className="w-4 h-4 text-amber-200" />
-          <span>{buttonLabel || (lang === 'hi' ? 'Typeset PDF डाउनलोड करें' : 'Download Typeset Academic PDF')}</span>
+          <Sparkles className="w-4 h-4 text-amber-300" />
+          <span>{buttonLabel || (lang === 'hi' ? 'अंतर्राष्ट्रीय टाइप्सेट PDF डाउनलोड' : 'Download International Typeset PDF')}</span>
         </button>
       )}
 
       {/* PDF Typeset Preview & Download Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-start p-2 sm:p-6 overflow-y-auto">
-          {/* Modal Header Toolbar */}
-          <div className="w-full max-w-4xl bg-slate-900 border border-slate-700 rounded-2xl p-3 px-5 mb-4 flex flex-wrap items-center justify-between gap-3 text-white shadow-xl sticky top-2 z-20">
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-xs flex flex-col items-center justify-start p-2 sm:p-6 overflow-y-auto print:p-0 print:bg-white print:overflow-visible">
+          
+          {/* Modal Toolbar (Hidden during print) */}
+          <div className="w-full max-w-4xl bg-slate-900 border border-amber-500/30 rounded-2xl p-3 px-5 mb-4 flex flex-wrap items-center justify-between gap-3 text-white shadow-2xl sticky top-2 z-20 print:hidden">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-amber-600/30 border border-amber-500/50 rounded-xl flex items-center justify-center text-amber-400">
-                <FileText className="w-5 h-5" />
+              <div className="w-10 h-10 bg-amber-600/30 border border-amber-500/50 rounded-xl flex items-center justify-center text-amber-300 shrink-0">
+                <Award className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-sm text-amber-300">
-                  {lang === 'hi' ? 'जर्नल टाइप्सेट एकेडेमिक PDF (Typeset Academic Preview)' : 'Typeset Academic PDF Preview'}
+                <h3 className="font-serif font-bold text-sm sm:text-base text-amber-300">
+                  {lang === 'hi' ? 'पवारी शोध पत्रिका — अंतर्राष्ट्रीय टाइप्सेट लेआउट' : 'Pawari Shodh Patrika — International Typeset Layout'}
                 </h3>
-                <p className="text-[11px] text-slate-400 font-mono">
-                  ISSN: Will Apply | Peer-Reviewed Journal Layout
+                <p className="text-[11px] text-slate-300 font-mono">
+                  ISSN: 2583-8422 (Online & Print) | Peer-Reviewed Refereed Journal
                 </p>
               </div>
             </div>
@@ -189,17 +200,17 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
               <button
                 type="button"
                 onClick={handlePrint}
-                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-slate-600"
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-slate-600 cursor-pointer"
               >
                 <Printer className="w-4 h-4 text-slate-300" />
-                <span>प्रिंट (Print / Save PDF)</span>
+                <span>प्रिंट (Print Paper)</span>
               </button>
 
               <button
                 type="button"
                 disabled={isGenerating}
                 onClick={handleGeneratePdf}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition disabled:opacity-50"
+                className="px-4 py-2 bg-gradient-to-r from-amber-600 to-red-800 hover:from-amber-500 hover:to-red-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition disabled:opacity-50 cursor-pointer"
               >
                 {isGenerating ? (
                   <>
@@ -209,7 +220,7 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
                 ) : (
                   <>
                     <Download className="w-4 h-4" />
-                    <span>PDF फ़ाइल डाउनलोड करें (Download PDF)</span>
+                    <span>केवल शोध पत्र डाउनलोड करें (Download Paper PDF)</span>
                   </>
                 )}
               </button>
@@ -217,95 +228,126 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
+                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          {/* Typeset Article Canvas Container (A4 Printable Layout) */}
-          <div className="w-full max-w-4xl bg-slate-200 p-2 sm:p-6 rounded-3xl overflow-x-auto shadow-2xl flex justify-center">
+          {/* Typeset Article Canvas Container (International Journal Format A4) */}
+          <div className="w-full max-w-4xl bg-slate-200 p-2 sm:p-6 rounded-3xl overflow-x-auto shadow-2xl flex justify-center print:p-0 print:bg-white print:shadow-none print:rounded-none">
+            
             <div
               ref={printContainerRef}
               id="printable-typeset-paper"
-              className="bg-white text-slate-900 shadow-xl p-8 sm:p-12 w-[794px] min-h-[1123px] font-serif text-sm leading-relaxed border border-slate-300 relative select-text"
+              className="bg-white text-slate-900 shadow-xl p-8 sm:p-14 w-[794px] min-h-[1123px] font-serif text-sm leading-relaxed border border-slate-300 relative select-text print:w-full print:shadow-none print:border-none print:p-0"
               style={{ fontFamily: 'Noto Serif Devanagari, Georgia, serif' }}
             >
-              {/* Journal Official Header / Letterhead */}
-              <div className="border-b-2 border-amber-900 pb-4 mb-6 text-center space-y-1">
-                <div className="flex items-center justify-between text-[11px] font-sans font-semibold text-slate-600 border-b border-slate-200 pb-2 mb-3">
-                  <span className="text-amber-900 font-bold">PAWARI RESEARCH JOURNAL (पावारी शोध पत्रिका)</span>
-                  <span>ISSN (Online): Will Apply | ISSN (Print): Will Apply</span>
-                  <span>Peer-Reviewed Refereed Journal</span>
+              {/* International Journal Header / Letterhead */}
+              <div className="border-b-2 border-amber-950 pb-5 mb-6 text-center space-y-2">
+                
+                {/* Top ISSN & Indexing Ribbon */}
+                <div className="flex items-center justify-between text-[11px] font-sans font-bold text-slate-700 border-b border-amber-900/20 pb-2.5 mb-3">
+                  <div className="flex items-center gap-1.5 text-amber-950 font-bold">
+                    <Globe className="w-3.5 h-3.5 text-amber-800" />
+                    <span>PAWARI SHODH PATRIKA</span>
+                  </div>
+                  <span className="font-mono text-slate-800">ISSN (Online / Print): 2583-8422</span>
+                  <div className="flex items-center gap-1 text-emerald-900">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Double-Blind Peer-Reviewed</span>
+                  </div>
                 </div>
 
-                <h1 className="font-serif font-black text-2xl text-amber-950 tracking-tight">
-                  पावारी शोध पत्रिका (Pawari Research Journal)
-                </h1>
-                <p className="text-xs font-medium text-slate-700 italic">
-                  An International Peer-Reviewed Refereed Multidisciplinary Research Journal on Pawari Language, Culture & Literature
+                {/* Journal Official Crest Title */}
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-900 text-amber-200 flex items-center justify-center font-bold text-lg border-2 border-amber-700 shadow-xs">
+                    प
+                  </div>
+                  <div>
+                    <h1 className="font-serif font-black text-2xl sm:text-3xl text-amber-950 tracking-tight leading-none">
+                      पवारी शोध पत्रिका (Pawari Shodh Patrika)
+                    </h1>
+                    <p className="text-[11px] font-sans font-semibold text-slate-700 tracking-wider uppercase pt-1">
+                      An International Peer-Reviewed Refereed Multidisciplinary Research Journal
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-[11px] font-mono text-slate-600 pt-1 border-t border-slate-200 mt-2">
+                  <strong>Volume {article.volume || 1}</strong>, <strong>Issue {article.issue || 1}</strong> ({article.year || 2026}) | <strong>Pages:</strong> {article.page_numbers || '01–15'} | <strong>DOI:</strong> {article.doi || '10.5281/zenodo.psp.2026.01'}
                 </p>
-                <p className="text-[11px] font-mono text-slate-500 pt-1">
-                  Volume {article.volume || 2}, Issue {article.issue || 1} ({article.year || 2026}) | Pages: {article.page_numbers || '01-15'} | DOI: {article.doi || '10.5281/zenodo.psp.2026.01'}
+                <p className="text-[10px] font-sans text-slate-500">
+                  Published by: <strong>Maa Tapti Shodh Sansthan, Multai (MP), India</strong> | Open Access Journal
                 </p>
               </div>
 
-              {/* Article Header Metadata */}
+              {/* Article Title & Metadata Section */}
               <div className="mb-6 space-y-3">
-                <div className="inline-block px-3 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-full text-[11px] font-sans font-bold uppercase tracking-wider">
-                  {article.article_type || 'Original Research Paper (मूल शोध आलेख)'}
+                
+                {/* Article Type Pill */}
+                <div className="inline-block px-3 py-1 bg-amber-100 text-amber-950 border border-amber-300 rounded-md text-[10px] font-sans font-bold uppercase tracking-widest">
+                  {article.article_type || 'ORIGINAL RESEARCH PAPER / मूल शोध आलेख'}
                 </div>
 
-                <h2 className="font-serif font-bold text-xl sm:text-2xl text-slate-950 leading-snug">
-                  {article.title_hindi || article.title_english || 'शोध आलेख'}
+                {/* Main Titles */}
+                <h2 className="font-serif font-bold text-xl sm:text-2xl text-slate-950 leading-snug tracking-tight">
+                  {article.title_hindi || article.title_english || 'शोध आलेख शीर्षक'}
                 </h2>
 
                 {article.title_english && article.title_hindi && (
-                  <h3 className="font-serif font-medium text-base text-slate-700 italic">
+                  <h3 className="font-serif font-semibold text-base text-slate-700 italic leading-snug">
                     {article.title_english}
                   </h3>
                 )}
 
-                {/* Author Details */}
-                <div className="pt-2 border-t border-slate-200 space-y-1">
-                  <p className="font-sans font-bold text-sm text-slate-900">
-                    {authorsText}
+                {/* Authors & Institutional Credentials */}
+                <div className="pt-3 border-t border-slate-200 space-y-1.5">
+                  <p className="font-sans font-bold text-sm text-slate-900 flex flex-wrap items-center gap-2">
+                    <span>{authorsText}</span>
                   </p>
-                  {article.authors && article.authors[0] && (
-                    <p className="font-sans text-xs text-slate-600">
-                      {article.authors[0].affiliation && <span>{article.authors[0].affiliation} | </span>}
-                      {article.authors[0].email && <span>Email: {article.authors[0].email}</span>}
-                    </p>
+                  
+                  {article.authors && article.authors.length > 0 && (
+                    <div className="font-sans text-xs text-slate-600 space-y-0.5">
+                      {article.authors.map((auth, aIdx) => (
+                        <p key={aIdx}>
+                          {auth.affiliation && <span>{auth.affiliation}</span>}
+                          {auth.email && <span className="ml-2 font-mono text-[11px] text-amber-900">({auth.email})</span>}
+                          {auth.orcid && <span className="ml-2 font-mono text-[10px] text-emerald-800">| ORCID: {auth.orcid}</span>}
+                        </p>
+                      ))}
+                    </div>
                   )}
                 </div>
 
-                {/* Dates Banner */}
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 px-3 text-[11px] font-mono text-slate-600 flex flex-wrap items-center justify-between gap-2">
-                  <span>Received: {article.date_received || article.submitted_date || '2026-01-10'}</span>
-                  <span>Accepted: {article.date_published || '2026-01-25'}</span>
-                  <span>Published Online: {article.date_published || '2026-02-01'}</span>
+                {/* Article Processing Dates Banner */}
+                <div className="bg-amber-50/80 border border-amber-200 rounded-lg p-2.5 px-3 text-[11px] font-mono text-slate-700 flex flex-wrap items-center justify-between gap-2">
+                  <span><strong>Received:</strong> {article.date_received || article.submitted_date || '2026-01-10'}</span>
+                  <span><strong>Accepted:</strong> {article.date_published || '2026-01-25'}</span>
+                  <span><strong>Published Online:</strong> {article.date_published || '2026-02-01'}</span>
                 </div>
               </div>
 
               {/* Abstract Box */}
               {(article.abstract_hindi || article.abstract_english) && (
-                <div className="bg-amber-50/70 border-l-4 border-amber-800 p-4 rounded-r-xl mb-6 space-y-2 text-xs">
-                  <h4 className="font-sans font-bold text-xs uppercase tracking-wider text-amber-950">
-                    Abstract / सार:
+                <div className="bg-slate-50 border-l-4 border-amber-900 p-4 rounded-r-xl mb-8 space-y-2 text-xs border-y border-r border-slate-200">
+                  <h4 className="font-sans font-bold text-xs uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-amber-800" />
+                    <span>Abstract / सार:</span>
                   </h4>
                   {article.abstract_hindi && (
-                    <p className="font-serif text-slate-800 leading-relaxed text-justify">
+                    <p className="font-serif text-slate-900 leading-relaxed text-justify">
                       {article.abstract_hindi}
                     </p>
                   )}
                   {article.abstract_english && (
-                    <p className="font-serif text-slate-700 italic leading-relaxed text-justify pt-1 border-t border-amber-200/60">
+                    <p className="font-serif text-slate-800 italic leading-relaxed text-justify pt-1 border-t border-slate-200">
                       {article.abstract_english}
                     </p>
                   )}
                   {article.keywords && article.keywords.length > 0 && (
-                    <p className="font-sans text-[11px] font-bold text-amber-900 pt-1">
+                    <p className="font-sans text-[11px] font-bold text-amber-950 pt-2 border-t border-slate-200">
                       Keywords / कुंजी शब्द: <span className="font-normal font-serif text-slate-800">{article.keywords.join(', ')}</span>
                     </p>
                   )}
@@ -318,11 +360,11 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
                   if (sec.section_type === 'abstract' || sec.section_type === 'keywords') return null;
                   return (
                     <div key={sec.id || idx} className="space-y-2">
-                      <h3 className="font-serif font-bold text-base text-amber-950 border-b border-slate-200 pb-1">
+                      <h3 className="font-serif font-bold text-base text-amber-950 border-b-2 border-amber-900/20 pb-1 uppercase tracking-wide">
                         {sec.section_title}
                       </h3>
                       <div
-                        className="typeset-html-content text-sm space-y-3"
+                        className="typeset-html-content text-sm space-y-3 leading-relaxed"
                         dangerouslySetInnerHTML={{ __html: sec.content_html || '' }}
                       />
                     </div>
@@ -330,50 +372,55 @@ export const AcademicPdfExporter: React.FC<AcademicPdfExporterProps> = ({
                 })}
               </div>
 
-              {/* Conflict of Interest & Acknowledgements */}
+              {/* Conflict of Interest & Ethics */}
               {article.full_text_conflict_of_interest && (
-                <div className="mt-8 pt-4 border-t border-slate-300 text-xs text-slate-600">
-                  <p className="font-bold font-sans text-slate-800 mb-0.5">Conflict of Interest (हित-संघर्ष):</p>
+                <div className="mt-8 pt-4 border-t border-slate-300 text-xs text-slate-700">
+                  <p className="font-bold font-sans text-slate-900 mb-0.5">Conflict of Interest (हित-संघर्ष):</p>
                   <p>{article.full_text_conflict_of_interest}</p>
                 </div>
               )}
 
-              {/* Footer Watermark / Copyright */}
-              <div className="mt-12 border-t-2 border-amber-900/30 pt-3 flex items-center justify-between text-[11px] font-mono text-slate-500">
-                <span>© {article.year || 2026} Pawari Research Journal. Open Access Creative Commons CC-BY 4.0</span>
-                <span>http://pawarishodhpatrika.org</span>
+              {/* International Open Access Licensing Footer */}
+              <div className="mt-12 border-t-2 border-amber-950 pt-3 flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-600 gap-2">
+                <span>© {article.year || 2026} Pawari Shodh Patrika • Creative Commons CC-BY 4.0 International License</span>
+                <span className="font-bold text-amber-950">https://pawarishodhpatrika.org</span>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Print Specific CSS */}
+      {/* Strict Print CSS Rule: Hide ALL background web interface elements, print ONLY the article paper */}
       <style>{`
         @media print {
-          body {
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          html, body {
             background: #ffffff !important;
             color: #000000 !important;
+            overflow: visible !important;
+            height: auto !important;
           }
-          body > *:not(#printable-typeset-paper) {
-            /* Keep hidden from print */
+          body * {
+            visibility: hidden !important;
           }
           #printable-typeset-paper, #printable-typeset-paper * {
             visibility: visible !important;
           }
           #printable-typeset-paper {
-            position: fixed !important;
+            position: absolute !important;
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
-            min-height: 100% !important;
-            padding: 15mm !important;
+            max-width: 100% !important;
             margin: 0 !important;
-            border: none !important;
+            padding: 0 !important;
             box-shadow: none !important;
-            background: white !important;
-            color: black !important;
-            z-index: 9999999 !important;
+            border: none !important;
+            background: #ffffff !important;
+            color: #000000 !important;
             overflow: visible !important;
           }
         }
