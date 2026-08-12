@@ -3,6 +3,7 @@ import { useCms } from '../../lib/CmsContext';
 import { getUrlForView } from '../../lib/router';
 import { downloadPdf } from '../../lib/pdfUtils';
 import { SafeImage } from '../common/SafeImage';
+import { DEFAULT_PAWARI_MEMBER_AVATAR } from '../../data/seedData';
 import { SharePaperModal } from '../common/SharePaperModal';
 import { 
   BookOpen, 
@@ -1025,9 +1026,10 @@ export const HomeView: React.FC = () => {
                 >
                   <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-amber-400 shadow-xs bg-red-950 shrink-0">
                     <SafeImage
-                      src={editor.photo_url}
-                      alt={editor.name_english || editor.name_hindi}
+                      src={editor.photo_url || DEFAULT_PAWARI_MEMBER_AVATAR}
+                      alt={editor.name_english || editor.name_hindi || 'Editorial Board Member'}
                       className="w-full h-full object-cover"
+                      fallbackSrc={DEFAULT_PAWARI_MEMBER_AVATAR}
                       showFallbackIconOnFail={true}
                     />
                   </div>

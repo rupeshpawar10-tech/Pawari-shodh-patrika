@@ -7,11 +7,22 @@ import { Mail, Award, BookOpen, GraduationCap, Building, ExternalLink, ShieldChe
 export const EditorialBoardView: React.FC = () => {
   const { lang, editorialMembers } = useCms();
 
-  const sortedMembers = [...editorialMembers].sort((a, b) => a.order - b.order);
+  const sortedMembers = [...(editorialMembers || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
 
-  // Grouping by Role for academic structure
-  const chiefEditors = sortedMembers.filter(m => m.role.toLowerCase().includes('chief') || m.role.toLowerCase().includes('patron') || m.role.toLowerCase().includes('director'));
-  const associateEditors = sortedMembers.filter(m => m.role.toLowerCase().includes('associate') || m.role.toLowerCase().includes('managing') || m.role.toLowerCase().includes('editor'));
+  const getRoleStr = (m: typeof editorialMembers[0]) => (m.role || m.designation_english || m.designation_hindi || '').toLowerCase();
+
+  // Grouping by Role safely
+  const chiefEditors = sortedMembers.filter(m => {
+    const r = getRoleStr(m);
+    return r.includes('chief') || r.includes('patron') || r.includes('director') || r.includes('संरक्षक') || r.includes('संस्थापक') || r.includes('अध्यक्ष') || r.includes('निदेशक');
+  });
+
+  const associateEditors = sortedMembers.filter(m => {
+    if (chiefEditors.includes(m)) return false;
+    const r = getRoleStr(m);
+    return r.includes('associate') || r.includes('managing') || r.includes('executive') || r.includes('co-editor') || r.includes('editor') || r.includes('संपादक');
+  });
+
   const advisoryBoard = sortedMembers.filter(m => !chiefEditors.includes(m) && !associateEditors.includes(m));
 
   const renderMemberCard = (member: typeof editorialMembers[0]) => (

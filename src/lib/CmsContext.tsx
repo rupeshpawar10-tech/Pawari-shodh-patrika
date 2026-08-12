@@ -965,7 +965,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // 5. Editorial Board
       try {
-        const boardSnap = await getDocs(collection(db, 'editorial_members'));
+        let boardSnap = await getDocs(collection(db, 'editorial_members'));
+        if (boardSnap.empty) {
+          boardSnap = await getDocs(collection(db, 'editorial_board'));
+        }
         let loadedBoard: EditorialMember[] = [];
         if (!boardSnap.empty) {
           loadedBoard = boardSnap.docs.map(d => ({ id: d.id, ...d.data() } as EditorialMember));
@@ -979,10 +982,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               parsed.forEach((cachedMember: EditorialMember) => {
                 const idx = loadedBoard.findIndex(m => m.id === cachedMember.id);
                 if (idx !== -1) {
-                  // Prefer cached photo if available (data URL, storage URL, or custom photo)
-                  if (cachedMember.photo_url) {
-                    loadedBoard[idx].photo_url = cachedMember.photo_url;
-                  }
+                  // Prefer cached photo if available
+                  if (cachedMember.photo_url) loadedBoard[idx].photo_url = cachedMember.photo_url;
                   if (cachedMember.name_hindi) loadedBoard[idx].name_hindi = cachedMember.name_hindi;
                   if (cachedMember.name_english) loadedBoard[idx].name_english = cachedMember.name_english;
                   if (cachedMember.role) loadedBoard[idx].role = cachedMember.role;
@@ -995,16 +996,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         if (loadedBoard.length > 0 && isMounted) {
-          loadedBoard.sort((a, b) => a.order - b.order);
+          loadedBoard.sort((a, b) => (a.order || 0) - (b.order || 0));
           setEditorialMembers(loadedBoard);
           try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(loadedBoard)); } catch (e) {}
         } else if (isMounted) {
-          if (auth.currentUser) {
-            SAMPLE_EDITORIAL_BOARD.forEach(member => {
-              setDoc(doc(db, 'editorial_members', member.id), member).catch(() => {});
-            });
-          }
+          // Auto-seed SAMPLE_EDITORIAL_BOARD to Firestore if completely empty
+          SAMPLE_EDITORIAL_BOARD.forEach(member => {
+            const clean = JSON.parse(JSON.stringify(member));
+            setDoc(doc(db, 'editorial_members', member.id), clean).catch(() => {});
+            setDoc(doc(db, 'editorial_board', member.id), clean).catch(() => {});
+          });
           setEditorialMembers(SAMPLE_EDITORIAL_BOARD);
+          try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(SAMPLE_EDITORIAL_BOARD)); } catch (e) {}
         }
       } catch (e) {
         const cached = localStorage.getItem('local_editorial_members_cache');
@@ -1461,9 +1464,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       persistentMember.photo_url = DEFAULT_PAWARI_MEMBER_AVATAR;
     }
 
-    const updated = editorialMembers.filter(m => m.id !== persistentMember.id);
-    updated.push(persistentMember);
-    updated.sort((a, b) => a.order - b.order);
+    // Clean undefined fields so Firestore setDoc never throws an exception
+    const cleanMember: EditorialMember = JSON.parse(JSON.stringify(persistentMember));
+
+    const updated = editorialMembers.filter(m => m.id !== cleanMember.id);
+    updated.push(cleanMember);
+    updated.sort((a, b) => (a.order || 0) - (b.order || 0));
     setEditorialMembers(updated);
     try {
       localStorage.setItem('local_editorial_members_cache', JSON.stringify(updated));
@@ -1471,8 +1477,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('LocalStorage save error:', e);
     }
     try {
-      await setDoc(doc(db, 'editorial_members', persistentMember.id), persistentMember);
-      await setDoc(doc(db, 'editorial_board', persistentMember.id), persistentMember).catch(console.warn);
+      await setDoc(doc(db, 'editorial_members', cleanMember.id), cleanMember);
+      await setDoc(doc(db, 'editorial_board', cleanMember.id), cleanMember).catch(console.warn);
     } catch (e) {
       console.error('Error saving editorial member:', e);
     }
