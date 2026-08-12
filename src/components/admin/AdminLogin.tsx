@@ -99,7 +99,7 @@ export const AdminLogin: React.FC = () => {
               <ol className="list-decimal list-inside space-y-0.5 text-slate-600">
                 <li>Go to <strong>Firebase Console &gt; Authentication &gt; Settings</strong></li>
                 <li>Scroll to <strong>Authorized domains</strong></li>
-                <li>Add <code className="font-mono text-slate-900">{unauthorizedDomain}</code>, <code className="font-mono text-slate-900">localhost</code>, &amp; production domains</li>
+                <li>Add <code className="font-mono text-slate-900 font-bold">pawari-shodh-patrika.vercel.app</code>, <code className="font-mono text-slate-900 font-bold">localhost</code>, &amp; <code className="font-mono text-slate-900 font-bold">{unauthorizedDomain}</code></li>
               </ol>
             </div>
           </div>
