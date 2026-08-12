@@ -187,9 +187,9 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   ) || (editorialMembers || [])[1] || (editorialMembers || [])[0];
 
   // Filter approved items only for public display (Pending contributions require CMS approval)
-  const approvedShabdkosh = shabdkoshList.filter(s => s.status === 'approved' || (!s.status && !s.id.startsWith('contrib_')));
-  const approvedPaheli = paheliList.filter(p => p.status === 'approved' || (!p.status && !p.id.startsWith('contrib_')));
-  const approvedLokgeet = lokgeetList.filter(l => l.status === 'approved' || (!l.status && !l.id.startsWith('contrib_')));
+  const approvedShabdkosh = shabdkoshList.filter(s => s.status === 'approved' || s.status === 'published' || (!s.status && !s.id.startsWith('contrib_')));
+  const approvedPaheli = paheliList.filter(p => p.status === 'approved' || p.status === 'published' || (!p.status && !p.id.startsWith('contrib_')));
+  const approvedLokgeet = lokgeetList.filter(l => l.status === 'approved' || l.status === 'published' || (!l.status && !l.id.startsWith('contrib_')));
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');

@@ -76,9 +76,9 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
   const rawBlogs = (cmsBlogs && cmsBlogs.length > 0) ? cmsBlogs : SAMPLE_BLOGS;
   const rawWriters = (cmsWriters && cmsWriters.length > 0) ? cmsWriters : SAMPLE_WRITERS;
 
-  const booksList = rawBooks.filter(b => b.status === 'approved' || (!b.status && !b.id.startsWith('pub_') && !b.id.startsWith('contrib_')));
-  const blogsList = rawBlogs.filter(b => b.status === 'approved' || (!b.status && !b.id.startsWith('pub_') && !b.id.startsWith('contrib_')));
-  const writersList = rawWriters.filter(w => w.status === 'approved' || (!w.status));
+  const booksList = rawBooks.filter(b => b.status === 'approved' || b.status === 'published' || (!b.status && !b.id.startsWith('pub_') && !b.id.startsWith('contrib_')));
+  const blogsList = rawBlogs.filter(b => b.status === 'approved' || b.status === 'published' || (!b.status && !b.id.startsWith('pub_') && !b.id.startsWith('contrib_')));
+  const writersList = rawWriters.filter(w => w.status === 'approved' || w.status === 'published' || (!w.status));
 
   const [activeTab, setActiveTab] = useState<'all' | 'books' | 'blogs' | 'writers' | 'reviews' | 'research_papers' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz'>(initialTab);
 

@@ -58,12 +58,18 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
   onClose,
   lang = 'hi'
 }) => {
-  const { openPdfViewer } = useCms();
+  const { openPdfViewer, issues = [] } = useCms();
   const [article, setArticle] = useState<Article>({ ...initialArticle });
   const [activeStep, setActiveStep] = useState<'metadata' | 'authors' | 'abstract' | 'sections' | 'pdf' | 'history' | 'preview'>('sections');
   const [showPublishSuccessModal, setShowPublishSuccessModal] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
   
   // Section Builder State
   const [sectionsList, setSectionsList] = useState<ArticleSection[]>(() => {
@@ -326,8 +332,8 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
     notifyChange();
   };
 
-  // Submit / Publish Actions
-  const handleFinalSave = async (status: 'draft' | 'submitted' | 'published') => {
+  // Submit / Save / Publish Actions
+  const handleFinalSave = async (targetStatus?: 'draft' | 'submitted' | 'published', isExplicitPublishing: boolean = false) => {
     setSaveStatus('saving');
     setIsAutosaving(true);
 
@@ -338,11 +344,13 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
     const concSec = sectionsList.find(s => s.section_type === 'conclusion');
     const ackSec = sectionsList.find(s => s.section_type === 'acknowledgement');
 
+    const statusToSave = targetStatus !== undefined ? targetStatus : (article.status || 'draft');
+
     const updated: Article = {
       ...article,
       sections: sectionsList,
-      status: status,
-      content_mode: 'full_text',
+      status: statusToSave,
+      content_mode: article.content_mode || 'full_text',
       full_text_introduction: introSec?.content_html || article.full_text_introduction || '',
       full_text_literature_review: litSec?.content_html || article.full_text_literature_review || '',
       full_text_methodology: methSec?.content_html || article.full_text_methodology || '',
@@ -351,21 +359,27 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
       full_text_acknowledgement: ackSec?.content_html || article.full_text_acknowledgement || '',
       updated_at: new Date().toISOString()
     };
+
     setArticle(updated);
     try {
       await onSave(updated);
       try {
         localStorage.setItem('draft_article_' + updated.id, JSON.stringify(updated));
       } catch (e) {}
+
       setHasUnsavedChanges(false);
       setLastSavedTime(new Date().toLocaleTimeString('hi-IN'));
       setSaveStatus('saved');
       setIsAutosaving(false);
 
-      if (status === 'published') {
+      if (isExplicitPublishing) {
         setShowPublishSuccessModal(true);
       } else {
-        alert(lang === 'hi' ? 'शोध पत्र ड्राफ्ट सफलतापूर्वक सहेजा गया!' : 'Article draft saved successfully!');
+        if (statusToSave === 'draft') {
+          showToast(lang === 'hi' ? 'शोध पत्र ड्राफ्ट के रूप में सहेजा गया!' : 'Saved as draft!');
+        } else {
+          showToast(lang === 'hi' ? 'नवीन डेटा व परिवर्तन सहेजे गए!' : 'Changes saved successfully!');
+        }
       }
     } catch (err) {
       console.error('Save failed:', err);
@@ -376,7 +390,15 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
   };
 
   return (
-    <div className="bg-slate-100 min-h-screen p-3 sm:p-6 font-sans space-y-6">
+    <div className="bg-slate-100 min-h-screen p-3 sm:p-6 font-sans space-y-6 relative">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-emerald-300 border border-emerald-500/50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span className="text-xs font-bold font-sans">{toastMessage}</span>
+        </div>
+      )}
+
       {/* Top Header Navigation Bar */}
       <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl shadow-lg border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sticky top-2 z-30">
         <div className="flex items-center gap-3">
@@ -397,6 +419,11 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
               <span className="bg-amber-900/60 text-amber-200 px-2 py-0.5 rounded text-[11px] border border-amber-700">
                 कुल शब्द (Total Words): {totalWordCount}
               </span>
+              {article.page_numbers && (
+                <span className="bg-emerald-950/80 text-emerald-300 px-2 py-0.5 rounded text-[11px] border border-emerald-800 font-bold">
+                  Pages: {article.page_numbers}
+                </span>
+              )}
               {saveStatus === 'saving' && (
                 <span className="flex items-center gap-1 text-amber-400 bg-amber-950 px-2 py-0.5 rounded border border-amber-700 animate-pulse">
                   <Loader2 className="w-3 h-3 animate-spin" /> Saving... (सहेजा जा रहा है...)
@@ -447,37 +474,37 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
             <span>जर्नल शैली लागू करें</span>
           </button>
 
-          {/* Save Changes (Preserves current status without forcing draft or unpublishing) */}
+          {/* Save Changes Only (Saves new data without re-triggering publish status modal) */}
           <button
             type="button"
-            onClick={() => handleFinalSave(article.status || 'draft')}
+            onClick={() => handleFinalSave(article.status || 'draft', false)}
             className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
-            title="वर्तमान बदलाव सहेजें (Save Changes)"
+            title="केवल डेटा व परिवर्तन सहेजें (Save Changes Only)"
           >
             <Save className="w-4 h-4 text-amber-100" />
-            <span>सहेजें (Save Changes)</span>
+            <span>केवल सहेजें (Save)</span>
           </button>
 
-          {/* Save Draft */}
-          {article.status !== 'published' && (
-            <button
-              type="button"
-              onClick={() => handleFinalSave('draft')}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-slate-700"
-            >
-              <Save className="w-4 h-4 text-emerald-400" />
-              <span>ड्राफ्ट सहेजें (Save Draft)</span>
-            </button>
-          )}
-
-          {/* Publish / Submit Button */}
+          {/* Save Draft Button */}
           <button
             type="button"
-            onClick={() => handleFinalSave('published')}
+            onClick={() => handleFinalSave('draft', false)}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-slate-700"
+            title="ड्राफ्ट के रूप में सहेजें (Save as Draft)"
+          >
+            <Save className="w-4 h-4 text-emerald-400" />
+            <span>ड्राफ्ट सहेजें (Save Draft)</span>
+          </button>
+
+          {/* Publish / Update & Publish Button */}
+          <button
+            type="button"
+            onClick={() => handleFinalSave('published', true)}
             className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition"
+            title="प्रकाशित करें या स्थिति अपडेट करें"
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>{article.status === 'published' ? 'अपडेट व प्रकाशित करें (Update & Publish)' : 'प्रकाशित करें (Publish Paper)'}</span>
+            <span>{article.status === 'published' ? 'अपडेट व प्रकाशित करें' : 'प्रकाशित करें (Publish)'}</span>
           </button>
 
           {/* Delete Article Button */}
@@ -708,37 +735,151 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
         <div className="bg-white rounded-2xl border border-slate-300 p-6 space-y-6 shadow-xs max-w-4xl mx-auto">
           <h3 className="font-serif font-bold text-lg text-slate-900 border-b pb-3 border-slate-200 flex items-center gap-2">
             <FileText className="w-5 h-5 text-amber-600" />
-            <span>शोध पत्र शीर्षक, मेटाडेटा एवं तिथियां</span>
+            <span>शोध पत्र शीर्षक, जर्नल अंक, पृष्ठ संख्या व मेटाडेटा</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            {/* Title Hindi */}
             <div className="sm:col-span-2">
               <label className="block font-bold text-slate-800 mb-1">शोध आलेख शीर्षक (हिंदी):</label>
               <input
                 type="text"
                 value={article.title_hindi}
-                onChange={(e) => setArticle({ ...article, title_hindi: e.target.value })}
+                onChange={(e) => {
+                  setArticle({ ...article, title_hindi: e.target.value });
+                  notifyChange();
+                }}
                 placeholder="उदा. क्षत्रिय पवार गोत्र व सामाजिक-सांस्कृतिक विकास"
                 className="w-full p-3 border border-slate-300 rounded-xl font-serif text-sm font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none"
               />
             </div>
 
+            {/* Title English */}
             <div className="sm:col-span-2">
               <label className="block font-bold text-slate-800 mb-1">Article Title (English):</label>
               <input
                 type="text"
                 value={article.title_english}
-                onChange={(e) => setArticle({ ...article, title_english: e.target.value })}
+                onChange={(e) => {
+                  setArticle({ ...article, title_english: e.target.value });
+                  notifyChange();
+                }}
                 placeholder="e.g. Socio-Cultural Evolution of Pawari Dialect"
                 className="w-full p-3 border border-slate-300 rounded-xl font-serif text-sm font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none"
               />
             </div>
 
+            {/* Page Numbers Field (पृष्ठ संख्या) */}
+            <div className="sm:col-span-2 bg-amber-50/70 p-4 rounded-xl border border-amber-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-amber-950 flex items-center gap-1.5 text-xs">
+                  <BookOpen className="w-4 h-4 text-amber-700" />
+                  <span>पृष्ठ संख्या / Page Numbers (Range):</span>
+                </label>
+                {article.page_numbers && (
+                  <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded font-mono">
+                    Citation Format: pp. {article.page_numbers}
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={article.page_numbers || ''}
+                  onChange={(e) => {
+                    setArticle({ ...article, page_numbers: e.target.value });
+                    notifyChange();
+                  }}
+                  placeholder="उदा. 01–15 या 12–28"
+                  className="w-full p-3 border border-amber-300 bg-white rounded-xl font-mono text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 outline-none"
+                />
+              </div>
+              <p className="text-[11px] text-amber-800">
+                नोट: यह पृष्ठ संख्या प्रकाशित जर्नल अंक में इस लेख के आबंटित पृष्ठों (e.g. "01–15") को दर्शाती है और PDF / APA / MLA साइटेशन में प्रदर्शित होगी।
+              </p>
+            </div>
+
+            {/* Journal Issue Selection */}
+            <div className="sm:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+              <label className="block font-bold text-slate-900 text-xs">जर्नल अंक व खण्ड आवंटन (Journal Issue Allocation):</label>
+              
+              {issues.length > 0 && (
+                <div>
+                  <select
+                    value={`${article.volume}_${article.issue}`}
+                    onChange={(e) => {
+                      const selected = issues.find(i => `${i.volume}_${i.issue_number}` === e.target.value);
+                      if (selected) {
+                        setArticle({
+                          ...article,
+                          volume: selected.volume,
+                          issue: selected.issue_number,
+                          year: selected.year
+                        });
+                        notifyChange();
+                      }
+                    }}
+                    className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-800 font-semibold text-xs"
+                  >
+                    <option value="">-- प्रकाशित अंकों में से चुनें (Select Published Issue) --</option>
+                    {issues.map(iss => (
+                      <option key={iss.id} value={`${iss.volume}_${iss.issue_number}`}>
+                        Vol. {iss.volume}, Issue {iss.issue_number} ({iss.title_hindi || iss.title_english || iss.year})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Volume (खण्ड):</label>
+                  <input
+                    type="number"
+                    value={article.volume || 1}
+                    onChange={(e) => {
+                      setArticle({ ...article, volume: Number(e.target.value) });
+                      notifyChange();
+                    }}
+                    className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-800 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Issue (अंक):</label>
+                  <input
+                    type="number"
+                    value={article.issue || 1}
+                    onChange={(e) => {
+                      setArticle({ ...article, issue: Number(e.target.value) });
+                      notifyChange();
+                    }}
+                    className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-800 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Year (वर्ष):</label>
+                  <input
+                    type="number"
+                    value={article.year || new Date().getFullYear()}
+                    onChange={(e) => {
+                      setArticle({ ...article, year: Number(e.target.value) });
+                      notifyChange();
+                    }}
+                    className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-800 font-bold"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Article Type */}
             <div>
               <label className="block font-bold text-slate-800 mb-1">आलेख प्रकार (Article Type):</label>
               <select
                 value={article.article_type}
-                onChange={(e: any) => setArticle({ ...article, article_type: e.target.value })}
+                onChange={(e: any) => {
+                  setArticle({ ...article, article_type: e.target.value });
+                  notifyChange();
+                }}
                 className="w-full p-3 border border-slate-300 rounded-xl text-slate-800 font-semibold"
               >
                 <option value="Research Article">Research Article (मूल शोध आलेख)</option>
@@ -750,33 +891,92 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
               </select>
             </div>
 
+            {/* Discipline / Category */}
+            <div>
+              <label className="block font-bold text-slate-800 mb-1">विषय / श्रेणी (Category):</label>
+              <input
+                type="text"
+                value={article.category || ''}
+                onChange={(e) => {
+                  setArticle({ ...article, category: e.target.value });
+                  notifyChange();
+                }}
+                placeholder="उदा. पवारी भाषाविज्ञान व संस्कृति"
+                className="w-full p-3 border border-slate-300 rounded-xl text-slate-800 font-semibold"
+              />
+            </div>
+
+            {/* DOI Number */}
             <div>
               <label className="block font-bold text-slate-800 mb-1">DOI Number:</label>
               <input
                 type="text"
                 value={article.doi || ''}
-                onChange={(e) => setArticle({ ...article, doi: e.target.value })}
+                onChange={(e) => {
+                  setArticle({ ...article, doi: e.target.value });
+                  notifyChange();
+                }}
                 placeholder="10.5281/zenodo.psp.2026.XXXX"
                 className="w-full p-3 border border-slate-300 rounded-xl font-mono text-xs text-slate-800"
               />
             </div>
 
+            {/* Primary Language */}
+            <div>
+              <label className="block font-bold text-slate-800 mb-1">भाषा (Language):</label>
+              <select
+                value={article.language || 'Hindi'}
+                onChange={(e) => {
+                  setArticle({ ...article, language: e.target.value });
+                  notifyChange();
+                }}
+                className="w-full p-3 border border-slate-300 rounded-xl text-slate-800 font-semibold"
+              >
+                <option value="Hindi">हिंदी (Hindi)</option>
+                <option value="English">English</option>
+                <option value="Pawari">पवारी (Pawari)</option>
+                <option value="Bilingual">द्विभाषी (Bilingual)</option>
+              </select>
+            </div>
+
+            {/* Received Date */}
             <div>
               <label className="block font-bold text-slate-800 mb-1">प्राप्ति तिथि (Received Date):</label>
               <input
                 type="date"
                 value={article.date_received || ''}
-                onChange={(e) => setArticle({ ...article, date_received: e.target.value })}
+                onChange={(e) => {
+                  setArticle({ ...article, date_received: e.target.value });
+                  notifyChange();
+                }}
                 className="w-full p-3 border border-slate-300 rounded-xl text-slate-800"
               />
             </div>
 
+            {/* Accepted Date */}
             <div>
               <label className="block font-bold text-slate-800 mb-1">स्वीकृति तिथि (Accepted Date):</label>
               <input
                 type="date"
                 value={article.date_accepted || ''}
-                onChange={(e) => setArticle({ ...article, date_accepted: e.target.value })}
+                onChange={(e) => {
+                  setArticle({ ...article, date_accepted: e.target.value });
+                  notifyChange();
+                }}
+                className="w-full p-3 border border-slate-300 rounded-xl text-slate-800"
+              />
+            </div>
+
+            {/* Published Date */}
+            <div>
+              <label className="block font-bold text-slate-800 mb-1">प्रकाशन तिथि (Published Date):</label>
+              <input
+                type="date"
+                value={article.date_published || ''}
+                onChange={(e) => {
+                  setArticle({ ...article, date_published: e.target.value });
+                  notifyChange();
+                }}
                 className="w-full p-3 border border-slate-300 rounded-xl text-slate-800"
               />
             </div>
@@ -1126,7 +1326,7 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
           {/* Header */}
           <div className="border-b-2 border-amber-900 pb-6 text-center space-y-2">
             <p className="text-xs font-bold text-amber-800 uppercase tracking-widest font-sans">
-              PAWARI SHODH PATRIKA • ISNN: 2583-XXXX • VOLUME {article.volume}, ISSUE {article.issue}
+              PAWARI SHODH PATRIKA • ISSN: 2583-8422 • VOL. {article.volume || 1}, ISSUE {article.issue || 1} ({article.year || 2026}) • PAGES: {article.page_numbers || '01–15'}
             </p>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">
               {article.title_hindi || article.title_english}

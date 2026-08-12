@@ -156,7 +156,7 @@ export const ArticleDetailView: React.FC = () => {
     );
   }
 
-  const authorsText = article.authors.map(a => a.name).join(', ');
+  const authorsText = article.authors.map(a => a.name || (a as any).name_hindi || (a as any).name_english || '').filter(Boolean).join(', ');
   const journalTitle = 'Pawari Shodh Patrika';
   const doiText = article.doi || `10.5281/zenodo.psp.${article.year}.${article.id}`;
 

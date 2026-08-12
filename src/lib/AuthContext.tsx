@@ -329,22 +329,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUsersList = async () => {
     // Role & auth check: Only fetch full users collection if user is authenticated and is staff
     const currentUser = auth.currentUser;
-    if (!currentUser) {
-      return;
-    }
-
-    const email = currentUser.email?.toLowerCase().trim() || '';
-    const isSuperAdmin = email === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase();
-
     const savedUserStr = localStorage.getItem('pawari_cms_user');
-    let currentRole = userProfile?.role;
-    if (!currentRole && savedUserStr) {
+    let savedProfile: UserProfile | null = null;
+    if (savedUserStr) {
       try {
-        currentRole = JSON.parse(savedUserStr)?.role;
+        savedProfile = JSON.parse(savedUserStr);
       } catch (e) {}
     }
 
-    const isStaff = isSuperAdmin || ['super_admin', 'director', 'editorial', 'editor'].includes(currentRole || '');
+    const effectiveEmail = (currentUser?.email || userProfile?.email || savedProfile?.email || '').toLowerCase().trim();
+    if (!effectiveEmail) {
+      return;
+    }
+
+    const isSuperAdmin = effectiveEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase();
+    const currentRole = userProfile?.role || savedProfile?.role || '';
+    const isStaff = isSuperAdmin || ['super_admin', 'director', 'editorial', 'editor', 'book_editor', 'blog_editor', 'other_manager'].includes(currentRole);
+
     if (!isStaff) {
       return;
     }
@@ -404,6 +405,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const parsed = JSON.parse(savedLocalUser);
         if (parsed && parsed.email && parsed.status !== 'disabled') {
           setUserProfile(parsed);
+          refreshUsersList();
         } else {
           localStorage.removeItem('pawari_cms_user');
         }
@@ -423,21 +425,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (email === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
           try {
             const userDocRef = doc(db, 'users', user.uid);
-            const snap = await getDoc(userDocRef);
+            let snapCreatedAt = new Date().toISOString();
+            try {
+              const snap = await getDoc(userDocRef);
+              if (snap.exists() && snap.data()?.created_at) {
+                snapCreatedAt = snap.data().created_at;
+              }
+            } catch (e) {
+              console.warn('Super admin doc fetch notice:', e);
+            }
+
             const profile: UserProfile = {
               uid: user.uid,
               email: AUTHORIZED_SUPER_ADMIN_EMAIL,
               display_name: AUTHORIZED_SUPER_ADMIN_NAME,
               role: 'super_admin',
               status: 'active',
-              created_at: snap.exists() ? (snap.data().created_at || new Date().toISOString()) : new Date().toISOString()
+              created_at: snapCreatedAt
             };
-            await setDoc(userDocRef, profile, { merge: true });
+
             setUserProfile(profile);
             localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+
+            try {
+              await setDoc(userDocRef, profile, { merge: true });
+            } catch (e) {
+              console.warn('Super admin doc set notice:', e);
+            }
+
             await refreshUsersList();
           } catch (err) {
-            console.error('Error in onAuthStateChanged profile sync:', err);
+            console.warn('Notice in onAuthStateChanged profile sync:', err);
             const profile: UserProfile = {
               uid: user.uid,
               email: AUTHORIZED_SUPER_ADMIN_EMAIL,
@@ -447,6 +465,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               created_at: new Date().toISOString()
             };
             setUserProfile(profile);
+            localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
           }
         } else {
           // Check if user exists in Firestore users collection or create active user profile

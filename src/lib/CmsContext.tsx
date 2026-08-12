@@ -882,6 +882,56 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Fallback silently
       }
 
+      // 3.4 Shabdkosh
+      try {
+        const shabdkoshSnap = await getDocs(collection(db, 'shabdkosh'));
+        if (!shabdkoshSnap.empty && isMounted) {
+          const loaded = shabdkoshSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariShabdkoshItem));
+          setShabdkoshList(loaded);
+          try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(loaded)); } catch (e) {}
+        }
+      } catch (e) {}
+
+      // 3.5 Paheli
+      try {
+        const paheliSnap = await getDocs(collection(db, 'paheli'));
+        if (!paheliSnap.empty && isMounted) {
+          const loaded = paheliSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariPaheliItem));
+          setPaheliList(loaded);
+          try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(loaded)); } catch (e) {}
+        }
+      } catch (e) {}
+
+      // 3.6 Lokgeet
+      try {
+        const lokgeetSnap = await getDocs(collection(db, 'lokgeet'));
+        if (!lokgeetSnap.empty && isMounted) {
+          const loaded = lokgeetSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
+          setLokgeetList(loaded);
+          try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(loaded)); } catch (e) {}
+        }
+      } catch (e) {}
+
+      // 3.7 Quiz Questions
+      try {
+        const quizSnap = await getDocs(collection(db, 'quiz_questions'));
+        if (!quizSnap.empty && isMounted) {
+          const loaded = quizSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizQuestion));
+          setQuizQuestions(loaded);
+          try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(loaded)); } catch (e) {}
+        }
+      } catch (e) {}
+
+      // 3.8 Quiz Leaderboard
+      try {
+        const leaderSnap = await getDocs(collection(db, 'quiz_leaderboard'));
+        if (!leaderSnap.empty && isMounted) {
+          const loaded = leaderSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizLeaderboardEntry));
+          setQuizLeaderboard(loaded);
+          try { localStorage.setItem('pawari_quiz_leaderboard', JSON.stringify(loaded)); } catch (e) {}
+        }
+      } catch (e) {}
+
       // 4. Pages
       try {
         const pagesSnap = await getDocs(collection(db, 'pages'));
@@ -2014,7 +2064,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       created_at: itemData.created_at || new Date().toISOString()
     };
 
-    const targetCollection = (type === 'reviews') ? 'blogs' : (type === 'cultural_quizzes') ? 'quizQuestions' : type;
+    const targetCollection = (type === 'reviews') ? 'blogs' : (type === 'cultural_quizzes') ? 'quiz_questions' : type;
 
     if (type === 'shabdkosh') {
       const updated = [newItem as PawariShabdkoshItem, ...shabdkoshList];
@@ -2044,7 +2094,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else if (type === 'cultural_quizzes') {
       const updated = [newItem as QuizQuestion, ...quizQuestions];
       setQuizQuestions(updated);
-      try { localStorage.setItem('pawari_quiz_questions_cache', JSON.stringify(updated)); } catch (e) {}
+      try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(updated)); } catch (e) {}
     }
 
     try { await setDoc(doc(db, targetCollection, newItem.id), newItem); } catch (e) { console.error(e); }
@@ -2101,8 +2151,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else if (type === 'cultural_quizzes') {
       const updated = quizQuestions.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setQuizQuestions(updated);
-      try { localStorage.setItem('pawari_quiz_questions_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'quizQuestions', id), updatePayload); } catch (e) { console.error(e); }
+      try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(updated)); } catch (e) {}
+      try { await updateDoc(doc(db, 'quiz_questions', id), updatePayload); } catch (e) { console.error(e); }
     } else if (type === 'submissions') {
       const mappedStatus = status === 'approved' || status === 'published' ? 'accepted' : status === 'rejected' ? 'rejected' : 'pending';
       const updated = submissions.map(item => item.id === id ? { ...item, status: mappedStatus as any } : item);

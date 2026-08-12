@@ -31,7 +31,7 @@ export const PawariLokgeetView: React.FC = () => {
     setActiveView 
   } = useCms();
 
-  const approvedLokgeet = (lokgeetList || []).filter(l => l.status === 'approved' || (!l.status && !l.id.startsWith('contrib_')));
+  const approvedLokgeet = (lokgeetList || []).filter(l => l.status === 'approved' || l.status === 'published' || (!l.status && !l.id.startsWith('contrib_')));
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
