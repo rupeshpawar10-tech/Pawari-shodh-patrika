@@ -35,6 +35,8 @@ import {
   SAMPLE_QUIZ_QUESTIONS 
 } from '../../data/pawariCulturalData';
 
+import { parseRouteFromUrl, getUrlForLokgeet, getUrlForShabdkosh, getUrlForPaheli } from '../../lib/router';
+
 interface PawariCulturalSectionProps {
   initialTab?: 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz';
 }
@@ -44,7 +46,15 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const [activeTab, setActiveTab] = useState<'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz'>(initialTab);
 
   React.useEffect(() => {
-    if (initialTab) {
+    const route = parseRouteFromUrl();
+    if (route.lokgeetId) {
+      setActiveTab('lokgeet');
+    } else if (route.shabdkoshId) {
+      setActiveTab('shabdkosh');
+    } else if (route.paheliId) {
+      setActiveTab('paheli');
+      setRevealedPaheli(prev => ({ ...prev, [route.paheliId!]: true }));
+    } else if (initialTab) {
       setActiveTab(initialTab);
     }
   }, [initialTab]);
