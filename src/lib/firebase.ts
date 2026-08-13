@@ -5,10 +5,14 @@ import {
   initializeFirestore, 
   persistentLocalCache, 
   persistentMultipleTabManager,
-  memoryLocalCache
+  memoryLocalCache,
+  setLogLevel
 } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import config from '../../firebase-applet-config.json';
+
+// Silence verbose connection logs from Firestore SDK
+setLogLevel('error');
 
 export const firebaseConfig = {
   apiKey: config.apiKey,
@@ -29,16 +33,19 @@ setPersistence(auth, browserLocalPersistence).catch((err) => {
   console.warn('[Firebase Auth] Persistence configuration warning:', err);
 });
 
-// Prevent unhandled rejections from "Database is closing/hidden" or closing IndexedDB states
+// Prevent unhandled rejections from "Database is closing/hidden", offline, or unreachable backend connection errors in iframe
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (event) => {
     const reasonMsg = event.reason?.message || String(event.reason || '');
     if (
       reasonMsg.includes('closing/hidden') ||
       reasonMsg.includes('Database is closing') ||
-      reasonMsg.includes('IndexedDB')
+      reasonMsg.includes('IndexedDB') ||
+      reasonMsg.includes('Could not reach Cloud Firestore backend') ||
+      reasonMsg.includes('code=unavailable') ||
+      reasonMsg.includes('client is offline')
     ) {
-      console.warn('[Firebase/IndexedDB] Suppressed benign background closing/hidden exception:', reasonMsg);
+      console.warn('[Firebase/Firestore] Suppressed benign offline/connection retry exception:', reasonMsg);
       event.preventDefault();
       event.stopPropagation();
     }
@@ -54,7 +61,8 @@ try {
   dbInstance = initializeFirestore(app, {
     localCache: persistentLocalCache({
       tabManager: persistentMultipleTabManager()
-    })
+    }),
+    experimentalForceLongPolling: true
   }, databaseId);
 } catch (e) {
   console.warn('[Firestore] Multi-tab persistent cache failed, falling back to memory persistence:', e);
@@ -63,7 +71,8 @@ try {
       ? config.firestoreDatabaseId
       : undefined;
     dbInstance = initializeFirestore(app, {
-      localCache: memoryLocalCache()
+      localCache: memoryLocalCache(),
+      experimentalForceLongPolling: true
     }, databaseId);
   } catch (e2) {
     dbInstance = config.firestoreDatabaseId 

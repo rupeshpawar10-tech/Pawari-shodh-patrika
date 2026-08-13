@@ -165,6 +165,8 @@ interface CmsContextType {
   setSelectedBookId: (id: string | null) => void;
   selectedBlogId: string | null;
   setSelectedBlogId: (id: string | null) => void;
+  selectedWriterId: string | null;
+  setSelectedWriterId: (id: string | null) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   isNotFound: boolean;
@@ -413,6 +415,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedArticleId, setSelectedArticleIdRaw] = useState<string | null>(initialRoute.articleIdOrSlug);
   const [selectedBookId, setSelectedBookIdRaw] = useState<string | null>(initialRoute.bookId || null);
   const [selectedBlogId, setSelectedBlogIdRaw] = useState<string | null>(initialRoute.blogId || null);
+  const [selectedWriterId, setSelectedWriterIdRaw] = useState<string | null>(initialRoute.writerId || null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isNotFound, setIsNotFound] = useState<boolean>(initialRoute.isNotFound);
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('dashboard');
@@ -475,6 +478,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const setSelectedWriterId = (id: string | null) => {
+    setSelectedWriterIdRaw(id);
+    if (id) {
+      navigateTo('pawari_writers', null, null, null, null, null, false, id);
+    }
+  };
+
   useEffect(() => {
     const handlePopState = () => {
       const currentRoute = parseRouteFromUrl();
@@ -482,6 +492,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSelectedArticleIdRaw(currentRoute.articleIdOrSlug);
       if (currentRoute.bookId !== undefined) setSelectedBookIdRaw(currentRoute.bookId);
       if (currentRoute.blogId !== undefined) setSelectedBlogIdRaw(currentRoute.blogId);
+      if (currentRoute.writerId !== undefined) setSelectedWriterIdRaw(currentRoute.writerId);
       setIsNotFound(currentRoute.isNotFound);
     };
     window.addEventListener('popstate', handlePopState);
@@ -2205,6 +2216,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedBookId,
         selectedBlogId,
         setSelectedBlogId,
+        selectedWriterId,
+        setSelectedWriterId,
         searchQuery,
         setSearchQuery,
         isNotFound,

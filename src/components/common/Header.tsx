@@ -26,6 +26,34 @@ export const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [desktopDropdownOpen, setDesktopDropdownOpen] = useState(false);
   const [mobileDropdownOpen, setMobileDropdownOpen] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [scrolledDown, setScrolledDown] = useState(false);
+
+  React.useEffect(() => {
+    let lastScrollY = window.scrollY;
+    
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > 30) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+
+      // Automatically hide sticky header on mobile scroll down to provide full screen view for content
+      if (currentScrollY > 70 && currentScrollY > lastScrollY && !mobileMenuOpen) {
+        setScrolledDown(true);
+      } else if (currentScrollY < lastScrollY - 5 || currentScrollY < 30) {
+        setScrolledDown(false);
+      }
+
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [mobileMenuOpen]);
 
   const navs = settings.navigation_labels;
 
@@ -50,10 +78,14 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-white border-b border-amber-900/15 shadow-xs sticky top-0 z-40">
+    <header className={`bg-white/95 backdrop-blur-md border-b border-amber-900/15 shadow-xs sticky top-0 z-40 transition-all duration-300 ${
+      scrolledDown ? '-translate-y-full opacity-0 pointer-events-none sm:pointer-events-auto sm:opacity-100 sm:translate-y-0' : 'translate-y-0 opacity-100'
+    }`}>
       
       {/* Main Journal Branding Header */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between gap-2 sm:gap-4">
+      <div className={`max-w-7xl mx-auto px-2.5 sm:px-6 transition-all duration-200 flex items-center justify-between gap-1.5 sm:gap-4 ${
+        isScrolled ? 'py-1 sm:py-1.5' : 'py-1.5 sm:py-2.5'
+      }`}>
         
         {/* Logo + Full Journal Title */}
         <a 
@@ -64,10 +96,10 @@ export const Header: React.FC = () => {
               handleNavClick('home');
             }
           }}
-          className="flex items-center space-x-2.5 sm:space-x-3.5 cursor-pointer group select-none min-w-0 flex-1"
+          className="flex items-center space-x-2 sm:space-x-3.5 cursor-pointer group select-none min-w-0 flex-1"
         >
           {/* Emblem / Seal Logo */}
-          <div className="w-8 h-8 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-red-900 via-red-950 to-amber-900 border border-amber-500/50 p-0.5 flex items-center justify-center shadow-2xs flex-shrink-0 group-hover:scale-105 transition duration-200 overflow-hidden">
+          <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-red-900 via-red-950 to-amber-900 border border-amber-500/50 p-0.5 flex items-center justify-center shadow-2xs flex-shrink-0 group-hover:scale-105 transition duration-200 overflow-hidden">
             {settings.logo_url ? (
               <SafeImage 
                 src={settings.logo_url} 
@@ -85,12 +117,12 @@ export const Header: React.FC = () => {
             )}
           </div>
 
-          {/* Titles - Full Title Display without truncation */}
+          {/* Titles - Full Title Display properly formatted for mobile screens */}
           <div className="min-w-0 flex-1">
-            <h1 className="text-sm sm:text-2xl md:text-3xl font-serif font-bold text-red-950 tracking-tight leading-tight whitespace-normal">
+            <h1 className="text-base sm:text-2xl md:text-3xl font-serif font-extrabold sm:font-bold text-red-950 tracking-tight leading-snug whitespace-normal break-words">
               {lang === 'hi' ? settings.journal_title_hindi : settings.journal_title_english}
             </h1>
-            <p className="text-[10px] sm:text-xs md:text-sm text-slate-700 font-serif font-medium leading-tight mt-0.5">
+            <p className="text-[11px] sm:text-xs md:text-sm text-slate-700 font-serif font-medium leading-tight mt-0.5 line-clamp-1 sm:line-clamp-none">
               {lang === 'hi' ? settings.subtitle_hindi : settings.subtitle_english}
             </p>
           </div>

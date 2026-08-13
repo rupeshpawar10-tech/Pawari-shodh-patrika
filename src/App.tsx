@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './lib/AuthContext';
 import { CmsProvider, useCms } from './lib/CmsContext';
 import { Article } from './types';
 import { findArticle } from './lib/slugUtils';
+import { ArrowUp } from 'lucide-react';
 
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
@@ -152,7 +153,8 @@ const MainContent: React.FC = () => {
       i.id === issueId || 
       String(i.issue_number) === issueId || 
       `vol-${i.volume}-iss-${i.issue_number}` === issueId ||
-      `${i.volume}-${i.issue_number}` === issueId
+      `${i.volume}-${i.issue_number}` === issueId ||
+      (i.slug && i.slug.toLowerCase() === issueId.toLowerCase())
     );
     return !exists && !loadingData;
   }, [activeView, issues, loadingData]);
@@ -160,14 +162,29 @@ const MainContent: React.FC = () => {
   const isInvalidArticle = React.useMemo(() => {
     if (activeView !== 'article_detail' || !selectedArticleId) return false;
     if (!currentArticle) return !loadingData;
-    // Hide non-published articles from public visitors
-    if (!currentUser && currentArticle.status !== 'published') {
+    // Hide non-published/unapproved articles from unauthenticated public visitors
+    const publicStatuses = ['published', 'approved', 'accepted', 'in_press'];
+    if (!currentUser && !publicStatuses.includes(currentArticle.status)) {
       return true;
     }
     return false;
   }, [activeView, selectedArticleId, currentArticle, loadingData, currentUser]);
 
   const pageIs404 = isNotFound || isInvalidArticle || isInvalidIssue;
+
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 250) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Apply theme settings dynamically & update meta tags
   React.useEffect(() => {
@@ -266,6 +283,18 @@ const MainContent: React.FC = () => {
             onClose={closePdfViewer}
           />
         </React.Suspense>
+      )}
+
+      {/* Floating Back to Top Button for Mobile & Desktop Full Screen Reading */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-40 bg-red-950 text-amber-300 hover:bg-red-900 active:scale-95 p-3 rounded-full shadow-2xl border border-amber-400/40 transition-all duration-200 flex items-center justify-center group"
+          title="Scroll to Top"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
+        </button>
       )}
     </div>
   );

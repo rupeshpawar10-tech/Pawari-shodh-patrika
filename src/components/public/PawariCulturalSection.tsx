@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
+import { findShabdkosh, findPaheli } from '../../lib/slugUtils';
 import { PawariShabdkoshItem, PawariPaheliItem, PawariLokgeetItem, QuizQuestion, QuizCertificate } from '../../types';
 import { SafeImage } from '../common/SafeImage';
 import { 
@@ -35,7 +36,8 @@ import {
   Trophy,
   Medal,
   Image as ImageIcon,
-  Loader2
+  Loader2,
+  Printer
 } from 'lucide-react';
 
 interface PawariCulturalSectionProps {
@@ -207,6 +209,150 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const [selectedLokgeet, setSelectedLokgeet] = useState<PawariLokgeetItem | null>(null);
   const [copiedLokgeetId, setCopiedLokgeetId] = useState<string | null>(null);
   const [copiedLyricsId, setCopiedLyricsId] = useState<string | null>(null);
+
+  // Shabdkosh & Paheli deep linking state
+  const [selectedShabdkosh, setSelectedShabdkosh] = useState<PawariShabdkoshItem | null>(null);
+  const [copiedShabdkoshId, setCopiedShabdkoshId] = useState<string | null>(null);
+
+  const [selectedPaheli, setSelectedPaheli] = useState<PawariPaheliItem | null>(null);
+
+  // Sync Shabdkosh from URL on mount & popstate
+  React.useEffect(() => {
+    const syncShabdkoshFromUrl = () => {
+      try {
+        const pathname = decodeURIComponent(window.location.pathname.toLowerCase());
+        if (pathname.startsWith('/shabdkosh/')) {
+          const slugOrId = pathname.replace('/shabdkosh/', '').trim();
+          if (slugOrId) {
+            const found = findShabdkosh(approvedShabdkosh, slugOrId);
+            if (found) {
+              setSelectedShabdkosh(found);
+              setActiveTab('shabdkosh');
+              return;
+            }
+          }
+        } else if (pathname === '/shabdkosh' || pathname === '/pawari-shabdkosh') {
+          setActiveTab('shabdkosh');
+        }
+      } catch (e) {}
+    };
+
+    syncShabdkoshFromUrl();
+    window.addEventListener('popstate', syncShabdkoshFromUrl);
+    return () => window.removeEventListener('popstate', syncShabdkoshFromUrl);
+  }, [approvedShabdkosh]);
+
+  // Sync Paheli from URL on mount & popstate
+  React.useEffect(() => {
+    const syncPaheliFromUrl = () => {
+      try {
+        const pathname = decodeURIComponent(window.location.pathname.toLowerCase());
+        if (pathname.startsWith('/paheli/')) {
+          const slugOrId = pathname.replace('/paheli/', '').trim();
+          if (slugOrId) {
+            const found = findPaheli(approvedPaheli, slugOrId);
+            if (found) {
+              setSelectedPaheli(found);
+              setActiveTab('paheli');
+              return;
+            }
+          }
+        } else if (pathname === '/paheli' || pathname === '/pawari-paheli') {
+          setActiveTab('paheli');
+        }
+      } catch (e) {}
+    };
+
+    syncPaheliFromUrl();
+    window.addEventListener('popstate', syncPaheliFromUrl);
+    return () => window.removeEventListener('popstate', syncPaheliFromUrl);
+  }, [approvedPaheli]);
+
+  const handleOpenShabdkosh = (item: PawariShabdkoshItem, e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    setSelectedShabdkosh(item);
+    setActiveTab('shabdkosh');
+    const targetId = item.slug || item.id;
+    const targetUrl = `/shabdkosh/${targetId}`;
+    if (window.location.pathname !== targetUrl) {
+      window.history.pushState({ view: 'pawari_shabdkosh', itemSlugOrId: targetId }, '', targetUrl);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCloseShabdkosh = () => {
+    setSelectedShabdkosh(null);
+    if (window.location.pathname.startsWith('/shabdkosh/')) {
+      window.history.pushState({ view: 'pawari_shabdkosh' }, '', '/shabdkosh');
+    }
+  };
+
+  const handleCopyShabdkoshLink = (item: PawariShabdkoshItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const directUrl = `${window.location.origin}/shabdkosh/${item.slug || item.id}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(directUrl).then(() => {
+        setCopiedShabdkoshId(item.id);
+        setTimeout(() => setCopiedShabdkoshId(null), 2500);
+      });
+    } else {
+      prompt('पवारी शब्द का डायरेक्ट लिंक कॉपी करें:', directUrl);
+    }
+  };
+
+  const handleShareShabdkoshWhatsApp = (item: PawariShabdkoshItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const directUrl = `${window.location.origin}/shabdkosh/${item.slug || item.id}`;
+    const shareText = `📚 *पवारी शब्दकोश:* "${item.word_pawari}"\n${item.pronunciation_hindi ? `उच्चारण: [${item.pronunciation_hindi}]\n` : ''}हिंदी अर्थ: ${item.meaning_hindi}\n${item.example_pawari ? `वाक्य प्रयोग: "${item.example_pawari}"\n` : ''}\n📖 पवारी भाषा एवं संस्कृति शोध पत्रिका:\n${directUrl}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
+
+  const handleOpenPaheli = (item: PawariPaheliItem, e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    setSelectedPaheli(item);
+    setActiveTab('paheli');
+    const targetId = item.slug || item.id;
+    const targetUrl = `/paheli/${targetId}`;
+    if (window.location.pathname !== targetUrl) {
+      window.history.pushState({ view: 'pawari_paheli', itemSlugOrId: targetId }, '', targetUrl);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleClosePaheli = () => {
+    setSelectedPaheli(null);
+    if (window.location.pathname.startsWith('/paheli/')) {
+      window.history.pushState({ view: 'pawari_paheli' }, '', '/paheli');
+    }
+  };
+
+  const handleCopyPaheliLink = (item: PawariPaheliItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const directUrl = `${window.location.origin}/paheli/${item.slug || item.id}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(directUrl).then(() => {
+        setCopiedPaheliId(item.id);
+        setTimeout(() => setCopiedPaheliId(null), 2500);
+      });
+    } else {
+      prompt('पवारी पहेली का डायरेक्ट लिंक कॉपी करें:', directUrl);
+    }
+  };
+
+  const handleSharePaheliWhatsApp = (item: PawariPaheliItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const directUrl = `${window.location.origin}/paheli/${item.slug || item.id}`;
+    const isAnswerRevealed = !!revealedPaheli[item.id];
+    let shareText = `🧩 *पवारी पहेली (पवारी बुझौवल)* 🧩\n\n"${item.riddle_pawari}"`;
+    if (isAnswerRevealed) {
+      shareText += `\n\n✅ *उत्तर:* ${item.answer_hindi}`;
+      if (item.answer_pawari) shareText += ` (${item.answer_pawari})`;
+    } else {
+      shareText += `\n\n🤔 *उत्तर बुझिए और देखिए यहाँ:*`;
+    }
+    shareText += `\n${directUrl}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
 
   // Reset page when search or category or sort changes
   React.useEffect(() => {
@@ -510,20 +656,20 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       const imgData = canvas.toDataURL('image/png', 1.0);
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
-      const orientation = imgWidth >= imgHeight ? 'l' : 'p';
 
+      // ALWAYS STRICT A4 FORMAT: Landscape orientation (297mm x 210mm) for A4 print & PDF
       const pdf = new jsPDFClass({
-        orientation,
+        orientation: 'landscape',
         unit: 'mm',
         format: 'a4',
         compress: true
       });
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const pdfWidth = pdf.internal.pageSize.getWidth(); // Exactly 297mm
+      const pdfHeight = pdf.internal.pageSize.getHeight(); // Exactly 210mm
 
-      // Fit proportionally onto strictly 1 single A4 page with margins
-      const margin = 8;
+      // Standardized 6mm margin to fit cleanly on 1 single A4 page
+      const margin = 6;
       const maxWidth = pdfWidth - (margin * 2);
       const maxHeight = pdfHeight - (margin * 2);
 
@@ -536,7 +682,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
       pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight, undefined, 'FAST');
       const nameClean = (certificateData?.user_name || 'Participant').replace(/\s+/g, '_');
-      pdf.save(`Pawari_Quiz_Certificate_${nameClean}.pdf`);
+      pdf.save(`Pawari_Quiz_Certificate_A4_${nameClean}.pdf`);
     } catch (err: any) {
       console.error('Error generating PDF:', err);
       alert('PDF डाउनलोड करने में त्रुटि हुई: ' + (err?.message || 'पुनः प्रयास करें।'));
@@ -556,6 +702,9 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       const canvas = await renderCertificateCanvas(certElement);
       const nameClean = (certificateData?.user_name || 'Participant').replace(/\s+/g, '_');
       const fileName = `Pawari_Quiz_Certificate_${nameClean}.png`;
+      const quizUrl = `${window.location.origin}/quiz`;
+
+      const shareText = `🏆 *पवारी भोयरी लोक संस्कृति एवं साहित्य ई-प्रमाण-पत्र 2026* 🏆\n\nमैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त कर यह सम्मानजनक ई-प्रमाण-पत्र अर्जित किया है!\n\nप्रतिभागी: ${certificateData?.user_name}\nसर्टिफिकेट क्रमांक: PST-2026-QUIZ-${certificateData?.certificate_no}\n\n👉 *अपनी पवारी भाषा, लोकगीत एवं संस्कृति ज्ञान का परीक्षण करें तथा ई-सर्टिफिकेट पाएं:*\n${quizUrl}\n\n🚩 *माँ ताप्ती पवारी शोध संस्थान*`;
 
       const runFallbackShare = () => {
         const imageUri = canvas.toDataURL('image/png', 1.0);
@@ -566,11 +715,9 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
         link.click();
         document.body.removeChild(link);
 
-        const quizUrl = `${window.location.origin}/quiz`;
-        const shareText = `🏆 *पवारी भोयरी संस्कृति ई-प्रमाण-पत्र* 🏆\n\nमैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त कर यह ई-प्रमाण-पत्र अर्जित किया है!\n\n(मेरा प्रमाण-पत्र डाउनलोड हो गया है। इसे यहाँ संलग्न करके शेयर करें!)\n\n👉 *क्विज़ में भाग लें:* ${quizUrl}`;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
 
-        alert('इमेज आपकी डिवाइस पर डाउनलोड हो गई है एवं व्हाट्सएप शेयर विंडो खोल दी गई है! कृपया डाउनलोड इमेज को संलग्न करें।');
+        alert('सर्टिफिकेट इमेज डाउनलोड हो गई है एवं व्हाट्सएप शेयर विंडो खोल दी गई है! डाउनलोड इमेज को साथ में अटैच करके भेजें।');
       };
 
       canvas.toBlob(async (blob) => {
@@ -583,7 +730,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
         const file = new File([blob], fileName, { type: 'image/png' });
         const shareData = {
           title: 'पवारी भोयरी संस्कृति ई-प्रमाण-पत्र',
-          text: `🏆 मैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ 2026 में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त कर यह ई-प्रमाण-पत्र अर्जित किया है!`,
+          text: shareText,
           files: [file]
         };
 
@@ -1256,89 +1403,209 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
       {/* 1. SHABDKOSH VIEW */}
       {activeTab === 'shabdkosh' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredShabdkosh.map((item) => (
-            <div 
-              key={item.id}
-              className="bg-slate-900/80 border border-amber-900/30 hover:border-amber-500/50 rounded-2xl overflow-hidden shadow-lg transition-all flex flex-col justify-between group"
-            >
-              {item.image_url ? (
-                <div className="h-48 overflow-hidden relative bg-slate-950">
-                  <SafeImage 
-                    src={item.image_url} 
-                    alt={item.word_pawari} 
-                    loading="lazy"
-                    decoding="async"
-                    width={380}
-                    height={192}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-70" />
-                  <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-950/90 text-amber-300 border border-amber-700/50">
-                    {item.category}
-                  </span>
-                </div>
-              ) : (
-                <div className="h-28 bg-gradient-to-br from-amber-950/60 to-slate-900 flex items-center justify-center relative border-b border-amber-900/20">
-                  <BookOpen className="w-10 h-10 text-amber-600/40" />
-                  <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-950/90 text-amber-300 border border-amber-700/50">
-                    {item.category}
-                  </span>
-                </div>
-              )}
+        <div className="space-y-6">
+          {selectedShabdkosh ? (
+            <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-amber-950 border-2 border-amber-500/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-amber-100 relative animate-in fade-in duration-300">
+              {/* Top Navigation / Breadcrumb Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-900/40 pb-4">
+                <button
+                  type="button"
+                  onClick={handleCloseShabdkosh}
+                  className="px-4 py-2 bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-600/40 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                >
+                  <ArrowLeft className="w-4 h-4 text-amber-400" />
+                  <span>← शब्दकोश सूची पर लौटें (Back to List)</span>
+                </button>
 
-              <div className="p-5 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-baseline justify-between gap-2 mb-1">
-                    <h3 className="text-2xl font-black text-amber-200 font-serif tracking-wide">
-                      {item.word_pawari}
-                    </h3>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleShareShabdkoshWhatsApp(selectedShabdkosh, e)}
+                    className="px-3.5 py-2 bg-emerald-950 hover:bg-emerald-900 text-emerald-200 border border-emerald-600/50 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <Share2 className="w-4 h-4 text-emerald-400" />
+                    <span>WhatsApp</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyShabdkoshLink(selectedShabdkosh, e)}
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-red-950 rounded-xl text-xs font-extrabold transition flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span>{copiedShabdkoshId === selectedShabdkosh.id ? 'कॉपी हुआ ✓' : 'डायरेक्ट लिंक'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Direct Link Chip */}
+              <div className="bg-amber-950/60 border border-amber-800/50 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-amber-300">
+                <div className="flex items-center space-x-2 truncate">
+                  <Link2 className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="font-bold">डायरेक्ट शब्द यूआरएल:</span>
+                  <span className="text-slate-300 truncate">{window.location.origin}/shabdkosh/{selectedShabdkosh.slug || selectedShabdkosh.id}</span>
+                </div>
+              </div>
+
+              {/* Shabdkosh Word Content */}
+              <div className="flex flex-col md:flex-row gap-6 items-start">
+                {selectedShabdkosh.image_url && (
+                  <div className="w-full md:w-56 aspect-4/3 shrink-0 rounded-2xl overflow-hidden border border-amber-500/40 bg-slate-950 shadow-lg">
+                    <SafeImage
+                      src={selectedShabdkosh.image_url}
+                      alt={selectedShabdkosh.word_pawari}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-4 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-900/80 text-amber-200 border border-amber-600/40 font-mono">
+                      📚 श्रेणी: {selectedShabdkosh.category}
+                    </span>
                   </div>
 
-                  {item.pronunciation_hindi && (
-                    <p className="text-xs text-amber-400/80 mb-3 italic">
-                      उच्चारण: [{item.pronunciation_hindi}]
-                    </p>
-                  )}
-
-                  <div className="bg-slate-950/80 p-3.5 rounded-xl border border-amber-900/30 mb-3 space-y-1">
-                    <p className="text-sm font-semibold text-amber-100">
-                      <span className="text-amber-500 font-normal text-xs mr-1">हिंदी अर्थ:</span>
-                      {item.meaning_hindi}
-                    </p>
-                    {item.meaning_english && (
-                      <p className="text-xs text-slate-400">
-                        <span className="text-slate-500 mr-1">English:</span> {item.meaning_english}
+                  <div>
+                    <h2 className="text-3xl sm:text-4xl font-serif font-black text-amber-200 tracking-wide">
+                      {selectedShabdkosh.word_pawari}
+                    </h2>
+                    {selectedShabdkosh.pronunciation_hindi && (
+                      <p className="text-sm text-amber-400/90 italic mt-1">
+                        उच्चारण: [{selectedShabdkosh.pronunciation_hindi}]
                       </p>
                     )}
                   </div>
 
-                  {item.example_pawari && (
-                    <div className="text-xs text-amber-200/80 space-y-1 bg-amber-950/30 p-2.5 rounded-xl border border-amber-800/20">
-                      <p className="italic">
-                        <span className="font-semibold text-amber-400 not-italic">वाक्य प्रयोग:</span> "{item.example_pawari}"
+                  <div className="bg-slate-950/90 p-5 rounded-2xl border border-amber-900/40 space-y-2">
+                    <h4 className="text-xs font-bold uppercase font-mono text-amber-400 tracking-wider">हिंदी अर्थ</h4>
+                    <p className="text-base sm:text-lg font-semibold text-amber-100 leading-relaxed">
+                      {selectedShabdkosh.meaning_hindi}
+                    </p>
+                    {selectedShabdkosh.meaning_english && (
+                      <div className="pt-2 border-t border-slate-800">
+                        <span className="text-xs font-mono text-slate-400">English Meaning: </span>
+                        <span className="text-xs text-slate-300">{selectedShabdkosh.meaning_english}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedShabdkosh.example_pawari && (
+                    <div className="bg-amber-950/40 p-4 rounded-2xl border border-amber-800/30 space-y-1.5">
+                      <h4 className="text-xs font-bold font-mono text-amber-400 uppercase tracking-wider">वाक्य प्रयोग (Sentence Usage)</h4>
+                      <p className="text-sm italic font-serif text-amber-200">
+                        "{selectedShabdkosh.example_pawari}"
                       </p>
-                      {item.example_hindi && (
-                        <p className="text-amber-400/60 not-italic">
-                          ({item.example_hindi})
+                      {selectedShabdkosh.example_hindi && (
+                        <p className="text-xs text-amber-300/70 not-italic">
+                          हिंदी अनुवाद: ({selectedShabdkosh.example_hindi})
                         </p>
                       )}
                     </div>
                   )}
-                </div>
 
-                <div className="pt-3 border-t border-amber-900/20 text-[11px] text-amber-400/50 mt-4 flex justify-between items-center">
-                  <span>प्रस्तुति: {item.contributor_name || 'माँ ताप्ती शोध संस्थान'}</span>
-                  <span className="text-amber-500/80">पवारी संस्कृति कोश</span>
+                  <div className="pt-2 text-xs text-amber-400/60 font-mono">
+                    प्रस्तुति / योगदानकर्ता: <strong className="text-amber-300">{selectedShabdkosh.contributor_name || 'माँ ताप्ती शोध संस्थान'}</strong>
+                  </div>
                 </div>
               </div>
             </div>
-          ))}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredShabdkosh.map((item) => (
+                <div 
+                  key={item.id}
+                  onClick={(e) => handleOpenShabdkosh(item, e)}
+                  className="bg-slate-900/80 border border-amber-900/30 hover:border-amber-500/50 rounded-2xl overflow-hidden shadow-lg transition-all flex flex-col justify-between group cursor-pointer"
+                >
+                  {item.image_url ? (
+                    <div className="h-48 overflow-hidden relative bg-slate-950">
+                      <SafeImage 
+                        src={item.image_url} 
+                        alt={item.word_pawari} 
+                        loading="lazy"
+                        decoding="async"
+                        width={380}
+                        height={192}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-70" />
+                      <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-950/90 text-amber-300 border border-amber-700/50">
+                        {item.category}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="h-28 bg-gradient-to-br from-amber-950/60 to-slate-900 flex items-center justify-center relative border-b border-amber-900/20">
+                      <BookOpen className="w-10 h-10 text-amber-600/40" />
+                      <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-950/90 text-amber-300 border border-amber-700/50">
+                        {item.category}
+                      </span>
+                    </div>
+                  )}
 
-          {filteredShabdkosh.length === 0 && (
-            <div className="col-span-full py-16 text-center bg-slate-900/40 border border-amber-900/20 rounded-2xl">
-              <BookOpen className="w-12 h-12 text-amber-600/30 mx-auto mb-3" />
-              <p className="text-amber-200/70 font-medium">कोई शब्द नहीं मिला।</p>
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <div>
+                      <div className="flex items-baseline justify-between gap-2 mb-1">
+                        <h3 className="text-2xl font-black text-amber-200 font-serif tracking-wide group-hover:text-amber-300 transition">
+                          {item.word_pawari}
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyShabdkoshLink(item, e)}
+                          className="p-1.5 bg-slate-950 hover:bg-amber-900 text-amber-400 border border-amber-700/50 rounded-lg transition shrink-0"
+                          title="डायरेक्ट पेज लिंक कॉपी करें"
+                        >
+                          <Link2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {item.pronunciation_hindi && (
+                        <p className="text-xs text-amber-400/80 mb-3 italic">
+                          उच्चारण: [{item.pronunciation_hindi}]
+                        </p>
+                      )}
+
+                      <div className="bg-slate-950/80 p-3.5 rounded-xl border border-amber-900/30 mb-3 space-y-1">
+                        <p className="text-sm font-semibold text-amber-100">
+                          <span className="text-amber-500 font-normal text-xs mr-1">हिंदी अर्थ:</span>
+                          {item.meaning_hindi}
+                        </p>
+                        {item.meaning_english && (
+                          <p className="text-xs text-slate-400">
+                            <span className="text-slate-500 mr-1">English:</span> {item.meaning_english}
+                          </p>
+                        )}
+                      </div>
+
+                      {item.example_pawari && (
+                        <div className="text-xs text-amber-200/80 space-y-1 bg-amber-950/30 p-2.5 rounded-xl border border-amber-800/20">
+                          <p className="italic">
+                            <span className="font-semibold text-amber-400 not-italic">वाक्य प्रयोग:</span> "{item.example_pawari}"
+                          </p>
+                          {item.example_hindi && (
+                            <p className="text-amber-400/60 not-italic">
+                              ({item.example_hindi})
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-amber-900/20 text-[11px] text-amber-400/50 flex justify-between items-center">
+                      <span>प्रस्तुति: {item.contributor_name || 'माँ ताप्ती शोध संस्थान'}</span>
+                      <span className="text-amber-400 font-bold group-hover:underline flex items-center space-x-0.5">
+                        <span>विस्तार देखें ↗</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {filteredShabdkosh.length === 0 && (
+                <div className="col-span-full py-16 text-center bg-slate-900/40 border border-amber-900/20 rounded-2xl">
+                  <BookOpen className="w-12 h-12 text-amber-600/30 mx-auto mb-3" />
+                  <p className="text-amber-200/70 font-medium">कोई शब्द नहीं मिला।</p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1346,121 +1613,203 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
       {/* 2. PAHELI VIEW */}
       {activeTab === 'paheli' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredPaheli.map((item) => {
-            const isRevealed = revealedPaheli[item.id];
-            return (
-              <div 
-                key={item.id}
-                className="bg-slate-900/80 border border-amber-900/30 hover:border-amber-500/50 rounded-2xl overflow-hidden shadow-lg transition-all p-6 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3 border-b border-amber-900/20 pb-2">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-950 text-amber-300 border border-amber-700/50">
-                      {item.category}
-                    </span>
-                    <span className="text-xs text-amber-400/60 italic">पवारी बुझौवल</span>
-                  </div>
+        <div className="space-y-6">
+          {selectedPaheli ? (
+            <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-amber-950 border-2 border-amber-500/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-amber-100 relative animate-in fade-in duration-300">
+              {/* Top Navigation */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-900/40 pb-4">
+                <button
+                  type="button"
+                  onClick={handleClosePaheli}
+                  className="px-4 py-2 bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-600/40 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                >
+                  <ArrowLeft className="w-4 h-4 text-amber-400" />
+                  <span>← पहेली सूची पर लौटें (Back to List)</span>
+                </button>
 
-                  <div className="flex gap-4 items-start">
-                    {item.image_url && (
-                      <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 border border-amber-900/40 bg-slate-950">
-                        <SafeImage 
-                          src={item.image_url} 
-                          alt="पहेली चित्र" 
-                          loading="lazy"
-                          decoding="async"
-                          width={96}
-                          height={96}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-amber-100 font-serif leading-relaxed mb-3">
-                        "{item.riddle_pawari}"
-                      </h3>
-                    </div>
-                  </div>
-
-                  {/* Interactive Answer Reveal & Share Controls */}
-                  <div className="mt-5 pt-3 border-t border-amber-900/30 space-y-2.5">
-                    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                      <button
-                        onClick={() => togglePaheliAnswer(item.id)}
-                        className="flex-1 flex items-center justify-between px-3.5 py-2.5 bg-slate-950 hover:bg-slate-950/80 rounded-xl border border-amber-900/40 text-xs font-bold text-amber-300 transition-colors cursor-pointer"
-                      >
-                        <span>उत्तर बुझो / उत्तर देखें (Reveal)</span>
-                        {isRevealed ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-amber-400" />}
-                      </button>
-
-                      <button
-                        onClick={() => handleWhatsAppSharePaheli(item)}
-                        title="व्हाट्सएप पर शेयर करें"
-                        className="px-3 py-2.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
-                      >
-                        <Share2 className="w-4 h-4 text-emerald-400" />
-                        <span>WhatsApp</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleSharePaheli(item)}
-                        title="पहेली शेयर / कॉपी करें"
-                        className="px-3 py-2.5 bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-700/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
-                      >
-                        {copiedPaheliId === item.id ? (
-                          <>
-                            <Check className="w-4 h-4 text-emerald-400" />
-                            <span className="text-emerald-300">कॉपी हुआ!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-4 h-4 text-amber-400" />
-                            <span>शेयर</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    {isRevealed && (
-                      <div className="p-4 bg-gradient-to-r from-amber-950/60 to-slate-950 rounded-xl border border-amber-700/40 space-y-1 animate-fadeIn">
-                        <p className="text-base font-bold text-amber-200">
-                          उत्तर: {item.answer_hindi}
-                        </p>
-                        {item.answer_pawari && (
-                          <p className="text-xs text-amber-300">
-                            (पवारी: {item.answer_pawari})
-                          </p>
-                        )}
-                        {item.explanation_hindi && (
-                          <p className="text-xs text-slate-300 mt-2 border-t border-amber-800/30 pt-2">
-                            {item.explanation_hindi}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-amber-900/20 text-[11px] text-amber-400/50 mt-4 flex justify-between items-center">
-                  <span>संग्रहकर्ता: {item.contributor_name || 'माँ ताप्ती शोध संस्थान'}</span>
+                <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => handleSharePaheli(item)}
-                    className="text-amber-400/80 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors"
+                    type="button"
+                    onClick={(e) => handleSharePaheliWhatsApp(selectedPaheli, e)}
+                    className="px-3.5 py-2 bg-emerald-950 hover:bg-emerald-900 text-emerald-200 border border-emerald-600/50 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
                   >
-                    <Share2 className="w-3 h-3" />
-                    <span>शेयर करें</span>
+                    <Share2 className="w-4 h-4 text-emerald-400" />
+                    <span>WhatsApp</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyPaheliLink(selectedPaheli, e)}
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-red-950 rounded-xl text-xs font-extrabold transition flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span>{copiedPaheliId === selectedPaheli.id ? 'कॉपी हुआ ✓' : 'डायरेक्ट लिंक'}</span>
                   </button>
                 </div>
               </div>
-            );
-          })}
 
-          {filteredPaheli.length === 0 && (
-            <div className="col-span-full py-16 text-center bg-slate-900/40 border border-amber-900/20 rounded-2xl">
-              <HelpCircle className="w-12 h-12 text-amber-600/30 mx-auto mb-3" />
-              <p className="text-amber-200/70 font-medium">कोई पहेली नहीं मिली।</p>
+              {/* Direct Link Chip */}
+              <div className="bg-amber-950/60 border border-amber-800/50 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-amber-300">
+                <div className="flex items-center space-x-2 truncate">
+                  <Link2 className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="font-bold">डायरेक्ट पहेली यूआरएल:</span>
+                  <span className="text-slate-300 truncate">{window.location.origin}/paheli/{selectedPaheli.slug || selectedPaheli.id}</span>
+                </div>
+              </div>
+
+              {/* Paheli Content */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-900/80 text-amber-200 border border-amber-600/40 font-mono">
+                    🧩 {selectedPaheli.category}
+                  </span>
+                  <span className="text-xs text-amber-400/70 italic font-mono">पवारी बुझौवल</span>
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-6 items-start">
+                  {selectedPaheli.image_url && (
+                    <div className="w-full md:w-56 aspect-square shrink-0 rounded-2xl overflow-hidden border border-amber-500/40 bg-slate-950 shadow-lg">
+                      <SafeImage
+                        src={selectedPaheli.image_url}
+                        alt="पहेली चित्र"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-4 flex-1 min-w-0">
+                    <h2 className="text-2xl sm:text-3xl font-serif font-black text-amber-100 leading-relaxed">
+                      "{selectedPaheli.riddle_pawari}"
+                    </h2>
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => togglePaheliAnswer(selectedPaheli.id)}
+                        className="w-full sm:w-auto px-5 py-3 bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-500/50 rounded-2xl text-xs font-bold transition flex items-center justify-between gap-3 cursor-pointer shadow-md"
+                      >
+                        <span>उत्तर बुझो / उत्तर देखें (Reveal Answer)</span>
+                        {revealedPaheli[selectedPaheli.id] ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-amber-400" />}
+                      </button>
+
+                      {revealedPaheli[selectedPaheli.id] && (
+                        <div className="mt-4 p-4 bg-emerald-950/80 border border-emerald-500/40 rounded-2xl space-y-1 text-emerald-100 animate-in fade-in duration-200">
+                          <p className="text-xs font-bold text-emerald-400 font-mono uppercase">✅ पहेली का सही उत्तर:</p>
+                          <p className="text-lg font-serif font-black text-emerald-200">
+                            {selectedPaheli.answer_hindi} {selectedPaheli.answer_pawari ? `(${selectedPaheli.answer_pawari})` : ''}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2 text-xs text-amber-400/60 font-mono">
+                      योगदानकर्ता: <strong className="text-amber-300">{selectedPaheli.contributor_name || 'माँ ताप्ती शोध संस्थान'}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredPaheli.map((item) => {
+                const isRevealed = revealedPaheli[item.id];
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={(e) => handleOpenPaheli(item, e)}
+                    className="bg-slate-900/80 border border-amber-900/30 hover:border-amber-500/50 rounded-2xl overflow-hidden shadow-lg transition-all p-6 flex flex-col justify-between cursor-pointer group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3 border-b border-amber-900/20 pb-2">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-950 text-amber-300 border border-amber-700/50">
+                          {item.category}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={(e) => handleCopyPaheliLink(item, e)}
+                            className="p-1 bg-slate-950 hover:bg-amber-900 text-amber-400 border border-amber-700/50 rounded-lg transition"
+                            title="डायरेक्ट लिंक कॉपी करें"
+                          >
+                            <Link2 className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-xs text-amber-400/60 italic">पवारी बुझौवल</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4 items-start">
+                        {item.image_url && (
+                          <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 border border-amber-900/40 bg-slate-950">
+                            <SafeImage 
+                              src={item.image_url} 
+                              alt="पहेली चित्र" 
+                              loading="lazy"
+                              decoding="async"
+                              width={96}
+                              height={96}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-amber-100 font-serif leading-relaxed mb-3 group-hover:text-amber-300 transition">
+                            "{item.riddle_pawari}"
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* Interactive Answer Reveal & Share Controls */}
+                      <div className="mt-5 pt-3 border-t border-amber-900/30 space-y-2.5">
+                        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePaheliAnswer(item.id);
+                            }}
+                            className="flex-1 flex items-center justify-between px-3.5 py-2.5 bg-slate-950 hover:bg-slate-950/80 rounded-xl border border-amber-900/40 text-xs font-bold text-amber-300 transition-colors cursor-pointer"
+                          >
+                            <span>उत्तर बुझो / उत्तर देखें (Reveal)</span>
+                            {isRevealed ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-amber-400" />}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleSharePaheliWhatsApp(item, e)}
+                            title="व्हाट्सएप पर शेयर करें"
+                            className="px-3 py-2.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                          >
+                            <Share2 className="w-4 h-4 text-emerald-400" />
+                            <span>WhatsApp</span>
+                          </button>
+                        </div>
+
+                        {isRevealed && (
+                          <div className="p-3 bg-amber-950/80 rounded-xl border border-amber-700/50 text-xs text-amber-200 animate-in fade-in duration-200">
+                            <span className="font-bold text-amber-400">✅ उत्तर: </span>
+                            <span>{item.answer_hindi}</span>
+                            {item.answer_pawari && <span className="text-amber-300/80 ml-1">({item.answer_pawari})</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-amber-900/20 text-[11px] text-amber-400/50 mt-4 flex justify-between items-center">
+                      <span>योगदान: {item.contributor_name || 'माँ ताप्ती शोध संस्थान'}</span>
+                      <span className="text-amber-400 font-bold group-hover:underline">
+                        विस्तार देखें ↗
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {filteredPaheli.length === 0 && (
+                <div className="col-span-full py-16 text-center bg-slate-900/40 border border-amber-900/20 rounded-2xl">
+                  <HelpCircle className="w-12 h-12 text-amber-600/30 mx-auto mb-3" />
+                  <p className="text-amber-200/70 font-medium">कोई पहेली नहीं मिली।</p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -2382,21 +2731,21 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
                     <div className="flex flex-wrap justify-center gap-3 pt-2">
                       <button
-                        onClick={handleDownloadCertificateImage}
+                        onClick={handleDownloadCertificatePdf}
                         disabled={isGeneratingImage}
-                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold text-xs sm:text-sm shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-black text-xs sm:text-sm shadow-xl flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all border border-amber-300"
                       >
-                        {isGeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
-                        <span>सर्टिफिकेट HD इमेज (PNG) डाउनलोड करें</span>
+                        {isGeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-amber-950" />}
+                        <span>सर्टिफिकेट A4 Size PDF डाउनलोड करें</span>
                       </button>
 
                       <button
-                        onClick={handleDownloadCertificatePdf}
+                        onClick={handleDownloadCertificateImage}
                         disabled={isGeneratingImage}
-                        className="px-5 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                        className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-200 font-bold text-xs sm:text-sm shadow-md border border-amber-700/60 flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
                       >
-                        {isGeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                        <span>सर्टिफिकेट PDF (1 पृष्ठ) डाउनलोड करें</span>
+                        {isGeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4 text-amber-400" />}
+                        <span>HD इमेज (PNG) डाउनलोड करें</span>
                       </button>
 
                       <button
@@ -2405,15 +2754,15 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                         className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
                       >
                         {isGeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
-                        <span>सर्टिफिकेट इमेज शेयर करें</span>
+                        <span>सर्टिफिकेट इमेज + क्विज़ लिंक शेयर करें</span>
                       </button>
 
                       <button
                         onClick={handlePrintCertificate}
                         className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-700/60 text-amber-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
                       >
-                        <Download className="w-4 h-4 text-amber-400" />
-                        <span>डायरेक्ट प्रिंट</span>
+                        <Printer className="w-4 h-4 text-amber-400" />
+                        <span>A4 प्रिंट</span>
                       </button>
 
                       <button

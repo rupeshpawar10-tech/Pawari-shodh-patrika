@@ -224,6 +224,11 @@
     display: none !important;
   }
 
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
   /* Printable Certificate Specific Styling (Strict 1-Page Light Theme) */
   .printable-certificate {
     display: block !important;

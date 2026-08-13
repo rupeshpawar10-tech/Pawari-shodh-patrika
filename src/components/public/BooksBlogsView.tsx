@@ -4,6 +4,7 @@ import { fileBlobManager } from '../../lib/fileBlobManager';
 import { SafeImage } from '../common/SafeImage';
 import { SAMPLE_BOOKS, SAMPLE_BLOGS, SAMPLE_WRITERS, BookItem, BlogItem } from '../../data/booksBlogsData';
 import { PawariWriterItem } from '../../types';
+import { findBook, findBlog, findWriter } from '../../lib/slugUtils';
 import { downloadPdf } from '../../lib/pdfUtils';
 import { PawariCulturalSection } from './PawariCulturalSection';
 import { PublicContributionModal } from './PublicContributionModal';
@@ -69,7 +70,9 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
     selectedBookId,
     setSelectedBookId,
     selectedBlogId,
-    setSelectedBlogId
+    setSelectedBlogId,
+    selectedWriterId,
+    setSelectedWriterId
   } = useCms();
 
   const rawBooks = (cmsBooks && cmsBooks.length > 0) ? cmsBooks : SAMPLE_BOOKS;
@@ -100,10 +103,10 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
   const [likedBlogs, setLikedBlogs] = useState<Record<string, number>>({});
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
 
-  // Auto open from context/URL
+  // Auto open from context/URL using robust slug resolution
   React.useEffect(() => {
     if (selectedBookId) {
-      const found = booksList.find(b => b.id === selectedBookId);
+      const found = findBook(booksList, selectedBookId);
       if (found) {
         setSelectedBook(found);
         setActiveTab('books');
@@ -113,17 +116,72 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
 
   React.useEffect(() => {
     if (selectedBlogId) {
-      const found = blogsList.find(b => b.id === selectedBlogId);
+      const found = findBlog(blogsList, selectedBlogId);
       if (found) {
         setSelectedBlog(found);
-        setActiveTab('blogs');
+        if (found.category === 'पुस्तक समीक्षा' || found.is_review) {
+          setActiveTab('reviews');
+        } else {
+          setActiveTab('blogs');
+        }
       }
     }
   }, [selectedBlogId, blogsList]);
 
-  const handleCopyDirectLink = (e: React.MouseEvent, type: 'book' | 'blog', id: string) => {
+  React.useEffect(() => {
+    if (selectedWriterId) {
+      const found = findWriter(writersList, selectedWriterId);
+      if (found) {
+        setSelectedWriter(found);
+        setActiveTab('writers');
+      }
+    }
+  }, [selectedWriterId, writersList]);
+
+  const handleOpenBook = (book: BookItem) => {
+    setSelectedBook(book);
+    if (setSelectedBookId) setSelectedBookId(book.id);
+  };
+
+  const handleCloseBook = () => {
+    setSelectedBook(null);
+    if (setSelectedBookId) setSelectedBookId(null);
+    if (window.location.pathname.startsWith('/book/')) {
+      window.history.pushState({ view: 'books_blogs' }, '', '/books-literature?tab=books');
+    }
+  };
+
+  const handleOpenBlog = (blog: BlogItem) => {
+    setSelectedBlog(blog);
+    const isSam = blog.category === 'पुस्तक समीक्षा' || blog.is_review;
+    if (setSelectedBlogId) setSelectedBlogId(blog.id, isSam);
+  };
+
+  const handleCloseBlog = () => {
+    setSelectedBlog(null);
+    if (setSelectedBlogId) setSelectedBlogId(null);
+    if (window.location.pathname.startsWith('/blog/') || window.location.pathname.startsWith('/samiksha/')) {
+      window.history.pushState({ view: 'books_blogs' }, '', '/books-literature?tab=blogs');
+    }
+  };
+
+  const handleOpenWriter = (writer: PawariWriterItem) => {
+    setSelectedWriter(writer);
+    if (setSelectedWriterId) setSelectedWriterId(writer.id);
+  };
+
+  const handleCloseWriter = () => {
+    setSelectedWriter(null);
+    if (setSelectedWriterId) setSelectedWriterId(null);
+    if (window.location.pathname.startsWith('/sahityakar/') || window.location.pathname.startsWith('/writer/')) {
+      window.history.pushState({ view: 'pawari_writers' }, '', '/writers');
+    }
+  };
+
+  const handleCopyDirectLink = (e: React.MouseEvent, type: 'book' | 'blog' | 'samiksha' | 'sahityakar' | 'writer', id: string) => {
     e.stopPropagation();
-    const directUrl = `${window.location.origin}/${type}/${id}`;
+    let urlType = type === 'writer' ? 'sahityakar' : type;
+    const directUrl = `${window.location.origin}/${urlType}/${id}`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(directUrl).then(() => {
         setCopiedLinkId(`${type}-${id}`);
@@ -658,7 +716,10 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
             {filteredWriters.map((writer) => (
               <div 
                 key={writer.id}
-                onClick={() => setSelectedWriter(writer)}
+                onClick={() => {
+                  setSelectedWriter(writer);
+                  if (setSelectedWriterId) setSelectedWriterId(writer.id);
+                }}
                 className="bg-white border border-amber-900/15 hover:border-amber-500 rounded-2xl p-5 shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group space-y-4"
               >
                 <div className="space-y-3">
@@ -675,10 +736,17 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center space-x-1.5">
+                      <div className="flex items-center space-x-1.5 justify-between">
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold truncate">
                           {writer.region || 'मध्य भारत'}
                         </span>
+                        <button
+                          onClick={(e) => handleCopyDirectLink(e, 'sahityakar', writer.id)}
+                          title={lang === 'hi' ? 'साहित्यकार प्रोफाइल लिंक कॉपी करें' : 'Copy Writer Profile Link'}
+                          className="p-1 text-slate-400 hover:text-amber-800 hover:bg-amber-100 rounded-lg transition shrink-0"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                       <h3 className="text-base font-serif font-bold text-red-950 group-hover:text-amber-700 transition truncate mt-1">
                         {writer.name_hindi}
@@ -741,7 +809,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
             {filteredBooks.map((book) => (
               <div 
                 key={book.id}
-                onClick={() => setSelectedBook(book)}
+                onClick={() => handleOpenBook(book)}
                 className="bg-white border border-amber-900/15 hover:border-amber-500 rounded-2xl p-5 shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group space-y-4"
               >
                 <div className="flex gap-4 items-start">
@@ -760,13 +828,24 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
 
                   {/* Book Metadata */}
                   <div className="space-y-2 flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
-                      <span className="bg-amber-100 text-amber-950 font-bold px-2 py-0.5 rounded">
-                        {book.category}
-                      </span>
-                      <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                        {book.publication_year}
-                      </span>
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+                        <span className="bg-amber-100 text-amber-950 font-bold px-2 py-0.5 rounded">
+                          {book.category}
+                        </span>
+                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                          {book.publication_year}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopyDirectLink(e, 'book', book.id)}
+                        className="p-1 text-slate-400 hover:text-amber-800 hover:bg-amber-100 rounded-lg transition shrink-0"
+                        title={lang === 'hi' ? 'पुस्तक डायरेक्ट लिंक कॉपी करें' : 'Copy Book Direct Link'}
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
 
                     <h3 className="text-base sm:text-lg font-serif font-bold text-slate-900 group-hover:text-red-950 leading-snug">
@@ -846,7 +925,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
             {filteredBlogs.map((blog) => (
               <div 
                 key={blog.id}
-                onClick={() => setSelectedBlog(blog)}
+                onClick={() => handleOpenBlog(blog)}
                 className="bg-white border border-amber-900/15 hover:border-amber-500 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
               >
                 <div>
@@ -1073,7 +1152,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-amber-500/30 relative">
             <button
-              onClick={() => setSelectedBook(null)}
+              onClick={handleCloseBook}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800 rounded-full hover:bg-slate-100 transition"
             >
               <X className="w-5 h-5" />
@@ -1257,7 +1336,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-10 space-y-6 shadow-2xl border border-amber-500/30 relative max-h-[90vh] overflow-y-auto">
             <button
-              onClick={() => setSelectedBlog(null)}
+              onClick={handleCloseBlog}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800 rounded-full hover:bg-slate-100 transition z-10"
             >
               <X className="w-5 h-5" />
@@ -1452,7 +1531,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
               </button>
 
               <button
-                onClick={() => setSelectedBlog(null)}
+                onClick={handleCloseBlog}
                 className="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition"
               >
                 {lang === 'hi' ? 'बंद करें' : 'Close'}
@@ -1468,7 +1547,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-10 space-y-6 shadow-2xl border border-amber-500/30 relative max-h-[90vh] overflow-y-auto">
             <button
-              onClick={() => setSelectedWriter(null)}
+              onClick={handleCloseWriter}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-800 rounded-full hover:bg-slate-100 transition z-10 cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -1625,20 +1704,34 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
 
             {/* Modal Footer */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t border-slate-200">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedWriter(null);
+                    if (setSelectedWriterId) setSelectedWriterId(null);
+                    setContribDefaultTab('writers');
+                    setIsContribModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs font-serif font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <PenTool className="w-3.5 h-3.5 text-amber-800" />
+                  <span>{lang === 'hi' ? '✍️ प्रोफाइल या जानकारी अपडेट करें' : 'Update Profile Info'}</span>
+                </button>
+
+                <button
+                  onClick={(e) => handleCopyDirectLink(e, 'sahityakar', selectedWriter.id)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-mono font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-slate-600" />
+                  <span>{copiedLinkId === `sahityakar-${selectedWriter.id}` ? (lang === 'hi' ? 'URL कॉपी हो गया!' : 'Copied!') : (lang === 'hi' ? 'प्रोफाइल URL कॉपी करें' : 'Copy Profile Link')}</span>
+                </button>
+              </div>
+
               <button
                 onClick={() => {
                   setSelectedWriter(null);
-                  setContribDefaultTab('writers');
-                  setIsContribModalOpen(true);
+                  if (setSelectedWriterId) setSelectedWriterId(null);
                 }}
-                className="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs font-serif font-bold rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
-              >
-                <PenTool className="w-3.5 h-3.5 text-amber-800" />
-                <span>{lang === 'hi' ? '✍️ प्रोफाइल या जानकारी अपडेट करें' : 'Update Profile Info'}</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedWriter(null)}
                 className="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer"
               >
                 {lang === 'hi' ? 'बंद करें' : 'Close'}
