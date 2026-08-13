@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { useAuth, AUTHORIZED_SUPER_ADMIN_EMAIL } from '../../lib/AuthContext';
+import { useAuth } from '../../lib/AuthContext';
 import { useCms } from '../../lib/CmsContext';
-import { ShieldCheck, ArrowLeft, ShieldAlert, Mail, Lock, LogIn, Key, UserCheck } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, ShieldAlert, Mail, Lock, LogIn } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
-  const { googleLogin, login, directSuperAdminLogin, demoLogin } = useAuth();
+  const { googleLogin, login } = useAuth();
   const { setActiveView } = useCms();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<'email' | 'google' | 'quick'>('email');
+  const [mode, setMode] = useState<'email' | 'google'>('email');
 
   const handleEmailPasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,9 +24,9 @@ export const AdminLogin: React.FC = () => {
       console.error('Email Sign-In Error:', err);
       const code = err?.code;
       if (code === 'auth/wrong-password' || code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
-        setError('Incorrect email address or password. Try 1-Click Quick Access below if password forgotten.');
+        setError('Incorrect email address or password. Access is restricted to authorized CMS staff.');
       } else {
-        setError(err?.message || 'Login failed. Please verify your credentials.');
+        setError(err?.message || 'Authentication failed. Please verify your credentials.');
       }
     } finally {
       setLoading(false);
@@ -53,22 +53,6 @@ export const AdminLogin: React.FC = () => {
     }
   };
 
-  const handleQuickLogin = async (roleType: 'super_admin' | 'director' | 'editorial' | 'editor') => {
-    setError(null);
-    setLoading(true);
-    try {
-      if (roleType === 'super_admin') {
-        await directSuperAdminLogin();
-      } else {
-        await demoLogin(roleType);
-      }
-    } catch (err: any) {
-      setError(err?.message || 'Quick login failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-10 animate-in fade-in duration-200">
       <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 max-w-md w-full shadow-xl space-y-6">
@@ -83,11 +67,11 @@ export const AdminLogin: React.FC = () => {
               Pawari Shodh Patrika
             </h2>
             <p className="text-xs font-semibold text-amber-800 tracking-wider uppercase mt-1">
-              Admin & Staff Portal
+              Protected Admin & Staff Portal
             </p>
           </div>
           <p className="text-sm text-slate-600 font-medium leading-relaxed pt-1">
-            Sign in with your CMS credentials or Google account to access your assigned dashboard.
+            Secure login. Enter your CMS staff credentials or sign in with authorized Google account.
           </p>
         </div>
 
@@ -96,38 +80,31 @@ export const AdminLogin: React.FC = () => {
           <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-900 font-medium space-y-1 animate-in slide-in-from-top-1">
             <div className="font-bold flex items-center space-x-1.5 text-red-950">
               <ShieldAlert className="w-4 h-4 text-red-600 shrink-0" />
-              <span>Access Denied / Login Notice</span>
+              <span>Authentication Error</span>
             </div>
             <p className="leading-relaxed text-xs text-slate-700">{error}</p>
           </div>
         )}
 
         {/* Toggle Login Method */}
-        <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl text-[11px] font-bold">
+        <div className="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
           <button
             type="button"
             onClick={() => setMode('email')}
             className={`py-2 rounded-lg transition ${mode === 'email' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
           >
-            Email
+            Email & Password
           </button>
           <button
             type="button"
             onClick={() => setMode('google')}
             className={`py-2 rounded-lg transition ${mode === 'google' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
           >
-            Google
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('quick')}
-            className={`py-2 rounded-lg transition ${mode === 'quick' ? 'bg-amber-500 text-red-950 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
-          >
-            1-Click Access
+            Google Sign-In
           </button>
         </div>
 
-        {mode === 'email' && (
+        {mode === 'email' ? (
           <form onSubmit={handleEmailPasswordSignIn} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1">
@@ -165,12 +142,10 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3 px-4 bg-red-950 hover:bg-red-900 text-amber-100 font-bold rounded-xl transition shadow-xs flex items-center justify-center space-x-2 text-xs focus:ring-2 focus:ring-amber-500 active:scale-[0.99]"
             >
               <LogIn className="w-4 h-4" />
-              <span>{loading ? 'Signing in...' : 'Sign In with Email'}</span>
+              <span>{loading ? 'Authenticating...' : 'Sign In with Email'}</span>
             </button>
           </form>
-        )}
-
-        {mode === 'google' && (
+        ) : (
           <div className="space-y-3 pt-1">
             <button
               type="button"
@@ -185,53 +160,6 @@ export const AdminLogin: React.FC = () => {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
               <span>{loading ? 'Authenticating...' : 'Continue with Google'}</span>
-            </button>
-          </div>
-        )}
-
-        {mode === 'quick' && (
-          <div className="space-y-2.5">
-            <p className="text-xs text-slate-500 font-medium text-center pb-1">
-              Select your assigned staff role to log in with 1-click access:
-            </p>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('super_admin')}
-              disabled={loading}
-              className="w-full p-3 bg-red-950 hover:bg-red-900 text-amber-300 font-bold text-xs rounded-xl flex items-center justify-between shadow-md transition"
-            >
-              <div className="flex items-center space-x-2">
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
-                <span>👑 Super Admin (Prof. Rupesh Pawar)</span>
-              </div>
-              <span className="text-[10px] bg-amber-400/20 px-2 py-0.5 rounded border border-amber-400/30">Direct Access</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('director')}
-              disabled={loading}
-              className="w-full p-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-between shadow-md transition"
-            >
-              <div className="flex items-center space-x-2">
-                <UserCheck className="w-4 h-4 text-amber-400" />
-                <span>🎓 Director / Patron (Dr. Anand Pawar)</span>
-              </div>
-              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded">Patron Access</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('editorial')}
-              disabled={loading}
-              className="w-full p-3 bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 font-bold text-xs rounded-xl flex items-center justify-between transition"
-            >
-              <div className="flex items-center space-x-2">
-                <Mail className="w-4 h-4 text-amber-700" />
-                <span>✍️ Editorial Board (Dr. Meena Verma)</span>
-              </div>
-              <span className="text-[10px] bg-amber-200 px-2 py-0.5 rounded">Editor Access</span>
             </button>
           </div>
         )}
