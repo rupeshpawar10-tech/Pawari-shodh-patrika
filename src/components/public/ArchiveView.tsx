@@ -71,9 +71,9 @@ export const ArchiveView: React.FC = () => {
   }, [issues, selectedVolume, searchQuery]);
 
   const handleArticleClick = (artId: string) => {
-    setSelectedArticleId(artId);
+    const art = articles.find(a => a.id === artId);
     incrementArticleViews(artId);
-    setActiveView('article_detail');
+    setActiveView('article_detail', art?.slug || artId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -211,6 +211,10 @@ export const ArchiveView: React.FC = () => {
                     <SafeImage 
                       src={issue.cover_image_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80'}
                       alt={issue.title_english}
+                      loading="lazy"
+                      decoding="async"
+                      width={96}
+                      height={128}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -315,20 +319,24 @@ export const ArchiveView: React.FC = () => {
                             <Share2 className="w-3.5 h-3.5 text-emerald-700" />
                             <span>Share</span>
                           </button>
-                          <button
-                            onClick={(e) => handlePdfView(e, art)}
-                            className="px-2.5 py-1.5 bg-white hover:bg-red-900 hover:text-white text-slate-800 text-xs font-bold rounded-lg border border-slate-300 transition flex items-center space-x-1"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>View PDF</span>
-                          </button>
-                          <button
-                            onClick={(e) => handlePdfDownload(e, art.id, art.pdf_url || '')}
-                            className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-red-950 text-xs font-bold rounded-lg transition flex items-center space-x-1"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>PDF</span>
-                          </button>
+                          {art.pdf_url && art.pdf_url.trim() !== '' && art.pdf_url !== '#' && !art.pdf_url.includes('undefined') && (
+                            <>
+                              <button
+                                onClick={(e) => handlePdfView(e, art)}
+                                className="px-2.5 py-1.5 bg-white hover:bg-red-900 hover:text-white text-slate-800 text-xs font-bold rounded-lg border border-slate-300 transition flex items-center space-x-1"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>View PDF</span>
+                              </button>
+                              <button
+                                onClick={(e) => handlePdfDownload(e, art.id, art.pdf_url || '')}
+                                className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-red-950 text-xs font-bold rounded-lg transition flex items-center space-x-1"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                <span>PDF</span>
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}

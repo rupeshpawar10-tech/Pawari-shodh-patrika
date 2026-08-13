@@ -37,7 +37,25 @@
   --color-brand-accent: #e11d48;
 }
 
-/* Helper dynamic brand classes */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Touch active feedback */
+.touch-active:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
 .bg-brand-primary {
   background-color: var(--color-brand-primary);
 }
@@ -52,5 +70,186 @@
 
 .border-brand-primary {
   border-color: var(--color-brand-primary);
+}
+
+/* Rich Word Document Content Formatting Styles */
+.rich-word-content {
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.rich-word-content p {
+  margin-bottom: 0.75rem;
+}
+
+.rich-word-content img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto;
+  display: block;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.rich-word-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+
+.rich-word-content th,
+.rich-word-content td {
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 0.75rem;
+}
+
+.rich-word-content th {
+  background-color: #f8fafc;
+  font-weight: 700;
+}
+
+.rich-word-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.rich-word-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.rich-word-content h1,
+.rich-word-content h2,
+.rich-word-content h3,
+.rich-word-content h4,
+.rich-word-content h5,
+.rich-word-content h6 {
+  font-family: serif;
+  font-weight: 700;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.rich-word-content blockquote {
+  border-left: 4px solid #d97706;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  font-style: italic;
+  background-color: #fffbeb;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+/* Academic Journal Article Print & PDF Export Styles */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 20mm 15mm 20mm 15mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+    line-height: 1.6 !important;
+  }
+
+  header, footer, nav, aside, .print\:hidden,
+  button, .AdminQuickBar, [role="dialog"],
+  .PdfViewerModal {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  article, .article-print-container {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    background: #ffffff !important;
+  }
+
+  h1, h2, h3, h4 {
+    color: #000000 !important;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  h1 {
+    font-size: 20pt !important;
+    line-height: 1.25 !important;
+  }
+
+  h2 {
+    font-size: 14pt !important;
+    margin-top: 14pt !important;
+    margin-bottom: 6pt !important;
+    border-bottom: 1.5pt solid #000000 !important;
+  }
+
+  h3 {
+    font-size: 12pt !important;
+    margin-top: 10pt !important;
+    margin-bottom: 4pt !important;
+  }
+
+  p, li, blockquote {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    text-align: justify;
+  }
+
+  figure, table, .print-keep-together {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  a {
+    color: #000000 !important;
+    text-decoration: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  /* Printable Certificate Specific Styling (Strict 1-Page Light Theme) */
+  .printable-certificate {
+    display: block !important;
+    visibility: visible !important;
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    padding: 1rem !important;
+    background: #FFFDF7 !important;
+    color: #1e293b !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    z-index: 999999 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
 }
 

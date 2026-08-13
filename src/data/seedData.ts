@@ -10,8 +10,8 @@ export const DEFAULT_SETTINGS: JournalSettings = {
   issn_print: 'Applied For',
   publisher_hindi: 'माँ ताप्ती शोध संस्थान, मुलताई',
   publisher_english: 'Maa Tapti Research Institute, Multai',
-  frequency_hindi: 'अर्द्धवार्षिक (छमाही - जून एवं दिसंबर)',
-  frequency_english: 'Half-Yearly (June & December)',
+  frequency_hindi: 'अर्द्धवार्षिक (वर्ष में 2 अंक: जून और दिसंबर)',
+  frequency_english: 'Half-Yearly (2 Issues per Year: Published in June and December)',
   language_policy: 'Hindi / English (द्विभाषी - हिंदी एवं अंग्रेजी)',
   contact_email: 'maa.tapti.shodh.sansthan@gmail.com',
   contact_phone: '8604476649, 9975981957',
@@ -20,14 +20,14 @@ export const DEFAULT_SETTINGS: JournalSettings = {
   footer_text_hindi: '© 2025 पवारी शोध पत्रिका। सर्वाधिकार सुरक्षित। माँ ताप्ती शोध संस्थान, मुलताई द्वारा प्रकाशित।',
   footer_text_english: '© 2025 Pawari Shodh Patrika. All Rights Reserved. Published by Maa Tapti Research Institute, Multai, India.',
   call_for_papers: {
-    title_badge_english: 'Call for Papers 2025',
-    title_badge_hindi: 'शोध पत्र आमंत्रण 2025',
-    heading_english: 'Submit Manuscript for Next Issue',
-    heading_hindi: 'शोध पत्र सबमिशन हेतु आमंत्रण',
-    description_english: 'Fast-track peer review process. Zero publication fees.',
-    description_hindi: 'पीर-रिव्यू प्रक्रिया। शून्य प्रकाशन शुल्क।',
-    deadline_date: '31st May',
-    target_volume_issue: 'Vol. 1 Issue 1',
+    title_badge_english: 'Call for Papers - December 2026 Issue',
+    title_badge_hindi: 'शोध पत्र आमंत्रण - दिसंबर 2026 अंक',
+    heading_english: 'Submit Research Manuscript for December 2026 Issue',
+    heading_hindi: 'दिसंबर 2026 अंक हेतु शोध पत्र सबमिशन आमंत्रण',
+    description_english: 'Fast-track double-blind peer review process. Zero publication fees.',
+    description_hindi: 'त्वरित डबल-ब्लाइंड पीर-रिव्यू प्रक्रिया। शून्य प्रकाशन शुल्क।',
+    deadline_date: '31 October 2026',
+    target_volume_issue: 'Vol. 2 Issue 2 (December 2026)',
     is_active: true
   },
   journal_metrics: {
@@ -187,7 +187,7 @@ export const SAMPLE_ISSUES: Issue[] = [
     month: 'Jan - Jun 2026',
     cover_image_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80',
     status: 'current',
-    editorial_note_hindi: 'इस अंक में सतपुड़ा-वैनगंगा अंचल की बोलियों, लोकसाहित्य एवं सामाजिक संरचना पर आधारित 5 उत्कृष्ट पीर-रिव्यूड शोध पत्र सम्मिलित हैं।',
+    editorial_note_hindi: 'इस अंक में सतपुड़ा-ताप्ती नदी अंचल (बैतूल, छिंदवाड़ा, पांढुर्णा) की 72 गोत्र पवार समुदाय की पवारी बोली, लोकसाहित्य एवं सामाजिक संरचना पर आधारित 5 उत्कृष्ट पीर-रिव्यूड शोध पत्र सम्मिलित हैं।',
     editorial_note_english: 'This current issue features 5 peer-reviewed articles covering Central Indian dialectology, folk traditions, and sociological frameworks.',
     publication_date: '2026-06-15',
     created_at: '2026-06-01',
@@ -224,134 +224,161 @@ export const SAMPLE_ISSUES: Issue[] = [
   },
 ];
 
-// Sample public PDF data URL so the viewer renders instantly out of the box
-const SAMPLE_PDF_BLOB = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+// Sample public PDF data URL so the viewer renders instantly out of the box (CORS-free embedded PDF)
+export const SAMPLE_PDF_BLOB = 'data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iaiA8PC9UeXBlIC9DYXRhbG9nIC9QYWdlcyAyIDAgUj4+IGVuZG9iagoyIDAgb2JqIDw8L1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDE+PiBlbmRvYmoKMyAwIG9iaiA8PC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL1Jlc291cmNlcyA8PC9Gb250IDw8L0YxIDQgMCBSPj4+PiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvQ29udGVudHMgNSAwIFI+PiBlbmRvYmoKNCAwIG9iaiA8PC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYS1Cb2xkPj4gZW5kb2JqCjUgMCBvYmogPDwvTGVuZ3RoIDE4MD4+IHN0cmVhbQpCVAovRjEgMTggVGYKNDAgODAwIFRkCihQQVdBUkkgU0hPREggUEFUUklLQSAtIFJFU0VBUkNIIEFSVElDTEUpIFRqCjAgLTMwIFRkCi9GMSAxMiBUZgooUGVlci1SZXZpZXdlZCBSZWZlcmVlZCBNdWx0aWRpc2NpcGxpbmFyeSBSZXNlYXJjaCBKb3VybmFsKSBUagowIC0yNSBUZAooSVNTTjogV2lsbCBBcHBseSB8IFZvbHVtZSAyLCBJc3N1ZSAxICgyMDI2KSkgVGoKMCAtNDAgVGQKKFRoaXMgaXMgYSB2YWxpZCBlbWJlZGRlZCBhY2FkZW1pYyBQREYgZG9jdW1lbnQgZm9yIFBhd2FyaSBTaG9kaCBQYXRyaWthLikgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NT3NSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQ4IDAwMDAwIG4gCjAwMDAwMDAzMjIgMDAwMDAgbiAKdHJhaWxlciA8PC9TaXplIDYgL1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNDMzCiUlRU9G';
 
 export const SAMPLE_ARTICLES: Article[] = [
   {
     id: 'art-v1i1-001',
-    title_hindi: 'भोयर या भोयर पवार उत्पत्ति',
-    title_english: 'Origin of Bhoyar or Bhoyar Pawar Community: An Anthropological & Historical Study',
-    short_title: 'भोयर पवार उत्पत्ति सिद्धांत',
-    slug: 'bhoyar-ya-bhoyar-pawar-utpatti',
+    title_hindi: 'क्षत्रिय पवार (भोयर पवार / भोयर) जाति के गोत्र एवं उनके अपभ्रंश',
+    title_english: 'Surnames and Clan Mutations (Apabhramsha) of Kshatriya Pawar (Bhoyar Pawar) Community: An Ethno-Linguistic and Historical Study',
+    short_title: 'Kshatriya Pawar 72 Clans & Surnames Study',
+    slug: 'kshatriya-pawar-bhoyar-pawar-clans-surnames-apabhramsha',
     article_type: 'Original Research Article (मूल शोध पत्र)',
     authors: [
-      { name: 'राजेश बारंगे पवार', affiliation: 'माँ ताप्ती शोध संस्थान, मुलताई, बैतूल (मध्यप्रदेश)', email: 'rajeshbarange@gmail.com', is_corresponding: true },
-      { name: 'प्रणय चोपड़े', affiliation: 'माँ ताप्ती शोध संस्थान, मुलताई, बैतूल (मध्यप्रदेश)', email: 'pranaychopde@gmail.com' },
-      { name: 'राजेश बोबडे', affiliation: 'माँ ताप्ती शोध संस्थान, मुलताई, बैतूल (मध्यप्रदेश)', email: 'rajeshbobde@gmail.com' },
-      { name: 'वैभव पाठे', affiliation: 'माँ ताप्ती शोध संस्थान, मुलताई, बैतूल (मध्यप्रदेश)', email: 'vaibhavpathe@gmail.com' }
+      { name: 'राजेश बारंगे पंवार', affiliation: 'माँ ताप्ती शोध संस्थान, मुलताई (ज़िला बैतूल, म.प्र.)', email: 'Rajeshbarange00@gmail.com', is_corresponding: true, orcid: '0000-0002-8819-2025' },
+      { name: 'प्रणय चोपड़े', affiliation: 'शोधार्थी, पवारी भाषा व संस्कृति अध्ययन केंद्र', email: 'pranaychopde123@gmail.com' },
+      { name: 'राजेश बोबडे', affiliation: 'सह-शोधार्थी, माँ ताप्ती शोध संस्थान, मुलताई', email: 'rajeshbobade10@gmail.com' },
+      { name: 'माँ ताप्ती शोध संस्थान, मुलताई', affiliation: 'अनुसंधान एवं प्रकाशन विभाग, मुलताई (बैतूल, म.प्र.)', email: 'maa.tapti.shodh.sansthan@gmail.com' }
     ],
-    abstract_hindi: 'पवार (भोयर या भोयर पवार) जाति की उत्पत्ति के बारे में दो प्रमुख सिद्धांत प्रचलित हैं। प्रस्तुत शोध पत्र में इन दोनों सिद्धांतों का विश्लेषणात्मक अध्ययन किया गया है कि कौन-सा सिद्धांत ऐतिहासिक साक्ष्यों, मानवशास्त्रियों, विद्वानों एवं वंशावली विशेषज्ञों द्वारा सर्वाधिक प्रामाणिक एवं स्वीकार्य है।',
-    abstract_english: 'This research paper presents a comprehensive analytical study on the origin theories of the Bhoyar / Bhoyar Pawar Kshatriya community. It critically examines the two primary historical theories regarding the 72 gotras union, Malwa migrations, and genealogy records to establish the anthropological and historical foundation of the community.',
-    keywords: ['भोयर पवार उत्पत्ति (Bhoyar Pawar Origin)', '72 गोत्र संघ (72 Gotras Union)', 'परमार राजवंश (Parmar Dynasty)', 'मालवा प्रवास (Malwa Migration)', 'वंशावली इतिहास (Genealogy History)', 'क्षत्रिय परंपरा (Kshatriya Heritage)'],
-    doi: '10.5281/zenodo.10892341',
+    abstract_hindi: 'प्रस्तुत शोध पत्र में क्षत्रिय पवार (भोयर पवार / भोयर) जाति के 72 मूल गोत्रों (कुलों), उनके ऐतिहासिक प्रवासन तथा कालक्रम में हुए भाषावैज्ञानिक अपभ्रंशों का गहन अध्ययन प्रस्तुत किया गया है। 16वीं से 18वीं शताब्दी के मध्य मालवा से सतपुड़ा अंचल (बैतूल, मुलताई, छिंदवाड़ा, पांढुर्णा, वर्धा, नागपुर) में हुए प्रवासन, मराठी भाषा के व्याकरणिक प्रभाव, अंग्रेजी लिप्यंतरण तथा क्षेत्रीय उच्चारण भिन्नताओं के कारण गोत्र नामों में आए परिवर्तनों का विस्तृत एवं प्रामाणिक विश्लेषण किया गया है।',
+    abstract_english: 'This research paper provides a historical and sociolinguistic study of the 72 clans (Gotras/Surnames) of the Kshatriya Pawar (Bhoyar Pawar) community. It traces their 16th to 18th-century migration from Malwa to the Satpura plateau (Betul, Multai, Chhindwara, Pandhurna, Wardha, Nagpur) and systematically documents clan surname mutations (Apabhramsha) resulting from Marathi linguistic influence, English transliteration, and local phonetic adaptations.',
+    keywords: ['क्षत्रिय पवार (Kshatriya Pawar)', 'भोयर पवार (Bhoyar Pawar)', '72 गोत्र (72 Clan Surnames)', 'अपभ्रंश (Phonetic Mutation)', 'मालवा से सतपुड़ा प्रवासन (Malwa Migration)', 'बैतूल-मुलताई (Betul-Multai)'],
+    doi: '10.5281/zenodo.18490543',
     pdf_url: SAMPLE_PDF_BLOB,
-    pdf_storage_path: 'articles/art-v1i1-001-bhoyar-pawar-utpatti.pdf',
+    pdf_storage_path: 'articles/art-v1i1-001-kshatriya-pawar-gotra.pdf',
     volume: 1,
     issue: 1,
     year: 2025,
     month: 'Jan - Jun 2025',
-    category: 'Culture & History',
+    category: 'History & Clan Anthropology',
     language: 'Hindi',
     status: 'published',
-    page_numbers: '01–18',
+    page_numbers: '01–11',
     content_mode: 'full_text',
-    citation_text: 'बारंगे, आर., चोपड़े, पी., बोबडे, आर., एवं पाठे, वी. (2025). भोयर या भोयर पवार उत्पत्ति. पवारी शोध पत्रिका, 1(1), 01–18. https://doi.org/10.5281/zenodo.10892341',
+    citation_text: 'पंवार, आर. बी., चोपड़े, पी., बोबडे, आर., व संस्थान, म. ता. शो. (2025). क्षत्रिय पवार (भोयर पवार / भोयर) जाति के गोत्र एवं उनके अपभ्रंश. पवारी शोध पत्रिका, 1(1), 01–11. https://doi.org/10.5281/zenodo.18490543',
     date_received: '2025-01-10',
     date_revised: '2025-03-15',
     date_accepted: '2025-04-20',
     date_published: '2025-06-30',
-    full_text_introduction: `१. प्रस्तावना एवं ऐतिहासिक पृष्ठभूमि (Introduction)
-पवार (भोयर या भोयर पवार) जाति की उत्पत्ति के बारे में दो सिद्धांत हैं। यहां, हम इन दोनों का विस्तार से अध्ययन करेंगे और यह निर्धारित करेंगे कि कौन-सा सिद्धांत १००% सत्य है और मानवविज्ञानी, इतिहासकारों, विद्वानों और वंशावली विशेषज्ञों द्वारा सबसे अधिक स्वीकार किया गया है।
+    full_text_introduction: `१. प्रस्तावना (Introduction)
+क्षत्रिय पवार, जिसे पवार, भोयर या भोयर पवार के नाम से भी जाना जाता है, एक क्षत्रिय (राजपूत) जाति है। हिंदू वैदिक वर्ण व्यवस्था के अनुसार, यह जाति क्षत्रिय वर्ण में आती है। ये मूल रूप से मालवा के राजपूतों के वंशज हैं, जो राजस्थान, गुजरात, सिंध और भारत के अन्य क्षेत्रों से प्रवास करके मालवा में आकर बसे थे।
 
-१. पहला सिद्धांत (First Theory: 72 क्षत्रिय गोत्रों का संघ)
-पहले सिद्धांत के अनुसार, पवार जाति (जिसे भोयर या भोयर पवार भी कहा जाता है) क्षत्रिय (राजपूत) की विभिन्न शाखाओं और कुलों के एक संघ द्वारा बनी थी। ये क्षत्रिय मुख्य रूप से चार प्रमुख वंशों से संबंधित थे: सूर्यवंश, चंद्रवंश, अग्निवंश और ऋषिवंश। इन वंशों के विभिन्न कुलों के कई क्षत्रिय राजस्थान, गुजरात, सिंध और भारत के अन्य भागों से मालवा की ओर प्रवास कर वहां बस गए। मालवा में बसने के बाद, उन्होंने केवल उन क्षत्रियों से विवाह करना शुरू कर दिया जो उसी क्षेत्र में बस चुके थे और जिन्होंने भी अन्य क्षेत्रों से आकर मालवा को अपना निवास बनाया था।
+वर्तमान में इनका प्रमुख निवास मध्य प्रदेश के बैतूल, छिंदवाड़ा और पांढुर्णा जिलों तथा महाराष्ट्र के वर्धा और नागपुर जिलों में है। यह 72 कुलों वाला पवारों का समूह 16वीं से 18वीं शताब्दी के बीच मालवा से बैतूल में प्रवासित हुआ और वहां से धीरे-धीरे छिंदवाड़ा, पांढुर्णा, वर्धा, अमरावती, नागपुर, भोपाल, इंदौर और रायपुर-बिलासपुर जिलों में फैल गया।`,
+    full_text_literature_review: `२. साहित्य अवलोकन (Literature Review)
+पवार समाज के इतिहास और गोत्रों पर पूर्व प्रकाशित संदर्भों जैसे 'पवार कुल दर्शन' (1984, संपादक: कृष्णराव बालाजी पवार), 'पवार समाज: एक सिंहावलोकन' (1984, डॉ. ज्ञानेश्वर टेंभरे), 'पवारी' (1985, रामकिशोर टेंभरे), 'आबुदगिरी से सतपुड़ा में पंवारों का सफर' (2001, डॉ. ज्ञानेश्वर टेंभरे) तथा 'Kshatriya Pawar (72 Clan): Journey from Malwa to Satpura' (2024, राजेश बारंगे पंवार) में पवार समाज के मालवा प्रवासन और क्षेत्रीय विस्तार का उल्लेख है।`,
+    full_text_methodology: `३. भोयर पवारों के 72 गोत्रों की प्रामाणिक सूची (72 Clans Directory)
+भोयर पवारों के 72 गोत्र एवं उनके अपभ्रंश रूप इस प्रकार हैं:
 
-मालवा में परमार वंश के पतन के बाद, यह क्षेत्र मुग़ल साम्राज्य के नियंत्रण में आ गया। मुग़लों ने परमार वंश को हराकर मालवा को जल्दी ही जीत लिया, लेकिन उन्हें इस क्षेत्र पर शासन करने में काफी कठिनाई हुई। स्थानीय लोगों, उनकी जीवनशैली और मालवा की विशिष्ट परंपराओं के बारे में जानकारी की कमी के कारण, मुग़लों के लिए प्रभावी शासन कठिन था। इस अज्ञानता ने व्यापक असंतोष और अस्थिरता को जन्म दिया, क्योंकि स्थानीय लोग मुग़ल शासन की अक्षमता से बहुत परेशान थे।
+1. बारंगिया / बारंग्या / बारंगा / बारंगे
+2. बागवान / भोयर / भुईहार
+3. बोगाना / बैंगने / बोगा
+4. बरखेड़िया / बरखाड्या / बरखेड़े / बरखाड़े
+5. बारबुहारा / बारबुहारे
+6. बड़नगरिया / बड़नगरया / बड़नगरे / बन्नगरे / नागरे
+7. भादिया / भादय्या / भादया / भादे / भादेकर
+8. बोबाट / भोभाट / भोभटकर / बोभाट / बोभाटकर
+9. बोबड़ा / बोबड्या / बोबड़े / बोबाड़े
+10. बुहाड़िया / बुवाड्या / बोवाड्या / बुआड्या / भोहाड्या / बुवाड़े / बोवाड़े / बोआड़े / भोहाडे
+11. बरगाड़िया / बिरगड्या / बिरगड़े / बिरगाड़े / बिरखाड़े / वीरगाड़े / वीरखाड़े / वीरखड़े / बिडगड़े / बिसेन
+12. चोपड़िया / चोपड्या / चोपड़े / चोपड़ा / चोपाड़े
+13. चौधरी
+14. चिकानिया / चिकनया / चिकन्या / चिकान्या / चिकने / चिकाने / चनखार / चनखर / चकनार / चखनर
+15. ढुंडारिया / डंडारे / ढंडारे / डंडाले / दंडाले
+16. डालू / डाला / डहारे / डाले / डकारे
+17. देवासिया / देवास्या / देवासे
+18. देशमुख
+19. धारफोड़िया / धारपुरे / धारे / धारफोड़े
+20. ढोटा / ढोटया / धोटे / ढोटे
+21. ढोंडी
+22. ढोबारिया / ढोबारया / डोबारया / ढोबले / ढोबाले / ढोबारे / डोबले / डोबाले / डोबारे
+23. ढोलिया / ढोल्या / ढोले
+24. डिगरसिया / डिगरस्या / डिगरसे / डिगसे / डिग्रसे / दीग्रसे
+25. डोंगरदिया / डोंगरया / डोंगरदिए / डोंगरे / डोंगरदे / डोंगरकर / डोंगरदेव
+26. दुखी / दुर्वे / दुःखी / दुख्खे
+27. फरकाड़िया / फरकाड्या / फरकाड़े / फरकासे / फरखासे / फरकसे
+28. गाड़किया / गाखरे / गाकरे
+29. गागरिया / गाडगे / गागरे / आगरे / गागडे
+30. गाडरी / गाडरया / गडरे / गधड़े / गद्रे / गादड़े / गाडरे / काटोले / काटवले
+31. घागरे
+32. गिरहारिया / गिरहारया / गिरहारे / गिरारे / गिराले / गुसाई
+33. गोंदिया
+34. गोहितिया / गोहित्य / गोहिते / गोहते / गोयरे / गोहिता / गोहाटे / गोयते
+35. गोरिया / गोरया / गोरे
+36. हजारिया / हजारया / हजारे
+37. हिंगवा / हिंगवे
+38. कालभोर / कालभूत्या / कालभूत / कालभौर
+39. करदातिया / करदात्या / करदाते / दाते
+40. कड़वा / कड़वे / कड़वेकर / कडू / कडूकर
+41. कामड़ी
+42. कसाई / कासलीकर / कसारे / कासलेकर / खसारे / केसलीकर
+43. खौसी / खौसे / खवसे / खवासे / कौशिक / खवशिय / खवसकर
+44. खपरिया / खपरया / खापरे / खपरे / खपरिए
+45. खरगोसिया / खारफुसे / खुसखुसे / खरफसे / खारखुसे / खारखुसा / खरखुसे / खनखुसरे
+46. किरंजकर / करंजकर
+47. किनकर / किनेकर / किंकर
+48. कोडलिया / कोडल्या / कोडले / कोरडे
+49. लबाड़ / लबड़े
+50. लावरी
+51. लाडकिया / लाडके
+52. लोखंडिया / लोखंड्या / लोखंडे
+53. माटिया / माट्या / माटे
+54. मानमोड़िया / मानमोड्या / मानमोड़े / मानमुड़े
+55. मुनी / मुन्ने / मुने
+56. नाडीतोड़
+57. उकार / ओंकार / ओमकार
+58. पठाडिया / पठाड्या / पठाड़े / राखड़े
+59. पड़ीयार / परिहार / पराडकर / पराड़ / पड़याड़ / पड़िहाड़ / पड़ीमार / प्रतिहार
+60. पाठा / पाठे / पाठेकर / पथे
+61. पिंजारा / पिंजारया / पिंजारे / पिंजरकर / पिंजरा
+62. रावत / राऊत
+63. रबड़िया / रबड्या / रबड़े / राबड़े
+64. रमधम / रमधमे
+65. रोलकिया / रोडल्या / रोडले
+66. सरोदिया / सरोदया / सरोदे / सरोदा
+67. सवाई
+68. शेरकिया / शेरक्या / शेरके / छेरके
+69. टावरी / ठवरी / ठवरे / ठवले
+70. ठुस्सी
+71. टोपरिया / टोपल्या / टोपले
+72. उकडलिया / उकडल्या / उकडले / उधड़े / उकंडे / उकड़ते / उकले / उघड़े
 
-इस स्थिति को एक अवसर मानते हुए, कई क्षत्रिय राज्य, जो अपनी शक्ति और प्रभाव को बढ़ाना चाहते थे, मालवा के प्रशासन की जिम्मेदारी लेने के लिए आगे आए। इस क्षेत्र के रणनीतिक महत्व को समझते हुए, इन राज्यों ने अपने संभावित उत्तराधिकारियों को ज़मींदार के रूप में मालवा भेजना शुरू किया—वे व्यक्ति जो शाही परिवारों से घनिष्ठ रूप से संबंधित थे।
+# अतिरिक्त अपभ्रंश (जिनका मूल गोत्र शोध का विषय है):
+कुहिके, भुसारी, पेंधें, भोंगाड़े - यह चार गोत्र भी पवारों के 72 गोत्रों में से ही अपभ्रंश हैं, जिन पर आगे शोध जारी है।`,
+    full_text_results_discussion: `४. गोत्रों के परिवर्तन एवं अपभ्रंश के प्रमुख कारण (Results & Discussion)
+भोयर पवार जाति केवल ऊपर दिए गए 72 गोत्रों तक सीमित है। समय और स्थान परिवर्तन के साथ इनके अपभ्रंश होने के मुख्य ऐतिहासिक, भौगोलिक और भाषाई कारण निम्नलिखित हैं:
 
-इन ज़मींदारों को मालवा में शांति बहाल करने और क्षत्रिय प्रभाव स्थापित करने का कार्य सौंपा गया था। अपने भरोसेमंद रिश्तेदारों को प्रमुख प्रशासनिक पदों पर नियुक्त करके, क्षत्रिय शासकों ने मालवा में स्थिरता लाने और अपने राज्यों के लिए एक वफादार आधार बनाने की कोशिश की। विभिन्न क्षत्रिय कुलों के लोग मालवा की ओर प्रवास करने लगे, जिनमें केवल परमार कुल इस क्षेत्र का मूल निवासी था। भाटी, बदगुजर, चौहान, गहलोत, कुशवाहा, परिहार, राठौर और सिसोदिया जैसे क्षत्रिय कुल मुख्यतः राजस्थान से आए। वहीं, चावड़ा, जेठवा, झाला, सोलंकी और वाघेला जैसे कुल गुजरात से आए। इसके अतिरिक्त, भारत और सिंध के विभिन्न भागों से भी कई क्षत्रिय कुल मालवा आकर ज़मींदार के रूप में बस गए। यह प्रवास विभिन्न तरंगों में हुआ, कुछ मुग़ल शासन से पहले और कुछ उसके दौरान।`,
-    full_text_literature_review: `२. प्रवासन, मुग़ल दमन एवं गोत्र नाम परिवर्तन (Migrations & Name Alterations)
-कुछ प्रवासन राजस्थान और गुजरात में राजनीतिक अस्थिरता के कारण हुए, जबकि अन्य मुग़ल काल के दौरान उस समय हुए जब ये क्षत्रिय कुल अपना प्रभाव बढ़ाने की कोशिश कर रहे थे। इन क्षत्रिय कुलों के आगमन ने मालवा में परंपराओं, रीति-रिवाजों और युद्ध-कौशल की विविधता को बढ़ाया, जिससे क्षेत्र की सांस्कृतिक समृद्धि और बाहरी आक्रमणों के प्रति सुरक्षा मजबूत हुई। इन क्षत्रिय ज़मींदारों ने मालवा को स्थिर करने और अपने-अपने कुलों का प्रभाव स्थापित करने में अहम भूमिका निभाई। वे स्थानीय समाज में समाहित हो गए और अपने साथ अपनी परंपराएं, रीति-रिवाज और प्रशासनिक कौशल भी लाए। समय के साथ, ये क्षत्रिय नेता मालवा के प्रभावशाली व्यक्ति बन गए और क्षेत्र के सांस्कृतिक एवं राजनीतिक परिदृश्य में उनका महत्वपूर्ण योगदान रहा। उनकी उपस्थिति मालवा में क्षत्रिय पुनरुत्थान और एकता का प्रतीक बन गई, जिसने क्षेत्र के इतिहास और विरासत को आकार दिया।
+१. मालवा से सतपुड़ा क्षेत्र में माइग्रेशन:
+16वीं से 18वीं शताब्दी के मध्य मालवा से बैतूल, मुलताई, पांढुर्णा, सौसर और छिंदवाड़ा क्षेत्र में प्रवास के दौरान उच्चारण और लेखन शैली में क्षेत्रीय प्रभाव आया।
 
-हालांकि ज़मींदारी क्षत्रियों के नियंत्रण में थी, लेकिन मालवा राज्य अभी भी मुग़ल शासन के अधीन था। लेकिन मुग़लों ने मालवा के मूल निवासियों के साथ कई अत्याचार किए, उन्हें इस्लाम धर्म अपनाने या गुलाम बनने के लिए मजबूर किया। मालवा की जनता को मुग़ल शासन के तहत बहुत पीड़ा झेलनी पड़ी, जिसमें कठोर व्यवहार और भारी कर शामिल थे। समय के साथ, मालवा में बसे क्षत्रिय मुग़ल अत्याचारों से अत्यधिक नाराज हो गए। इन क्षत्रियों ने अपने सामान्य शत्रु के विरुद्ध एकजुट होना शुरू किया, छोटे-छोटे विद्रोहों से शुरुआत की।
+२. मराठी भाषा का प्रभाव:
+महाराष्ट्र के निकटवर्ती क्षेत्रों (पांढुर्णा, कारंजा, नागपुर) में मराठी व्याकरण व उच्चारण के कारण हिंदी गोत्र मराठी शैली में लिखे जाने लगे।
+उदाहरण: बारंगिया → बारंगा → बारंगे | चोपड़िया → चोपड़ा → चोपड़े
 
-अनेक कठिनाइयों के बावजूद, वे मालवा को वापस जीतने में असफल रहे, और मुग़लों ने और अधिक अत्याचार करना शुरू कर दिया। परिणामस्वरूप, इन क्षत्रियों ने अपने मूल कुल नामों को बदल दिया, जो क्षत्रिय पहचान के कारण आसानी से पहचाने जा सकते थे, और स्थानीय तथा सामान्य कुल नाम अपना लिए। चूंकि क्षत्रिय कुल नाम आसानी से पहचाने जा सकते थे, इसलिए उन्हें बदलने से मुग़लों के लिए उन्हें पहचानना कठिन हो गया। इससे क्षत्रियों को एक सीमित समय तक अपनी पहचान छिपाने में मदद मिली।
+३. अंग्रेजी में लिखने के कारण परिवर्तन:
+अंग्रेजी में लिप्यंतरण के समय वर्तनी में बदलाव आए। उदाहरण: Chopde (चोपड़े) → Chopade (चोपाड़े)।
 
-अंतर्विवाह (Endogamy) की नींव:
-समय के साथ, राजस्थान, गुजरात, सिंध और भारत के अन्य भागों से मालवा में आए क्षत्रियों ने केवल उन अन्य क्षत्रिय कुलों से विवाह संबंध स्थापित करने शुरू कर दिए, जो पहले से ही मालवा में बस चुके थे। यह प्रथा जल्द ही मालवा क्षेत्र के सभी क्षत्रिय कुलों के लिए सामान्य बन गई। इन वैवाहिक संबंधों ने विभिन्न क्षत्रिय कुलों के बीच संबंधों को मज़बूत किया, जिससे मालवा में एक सुसंगठित और एकजुट क्षत्रिय समुदाय का निर्माण हुआ। अंतरकुलीय विवाहों ने क्षत्रिय परंपराओं और रीति-रिवाजों की निरंतरता सुनिश्चित की। १६वीं शताब्दी के अंत तक, कुल मिलाकर 72 गोत्र इस जाति का हिस्सा बन चुके थे, जो सभी क्षत्रियों के सीधे वंशज थे।`,
-    full_text_methodology: `३. 72 गोत्रों का वंशानुगत वर्गीकरण एवं बेतूल (भंवरगढ़) प्रवास (Classification of 72 Gotras)
+४. भाषाई और व्याकरणिक प्रभाव:
+हिंदी के "अ" स्वर स्थान पर मराठी में "ए" या "आ" का प्रयोग हुआ (उदा. चिकाणे → चिकाने, पठाडिया → पठाड़े)।
 
-इस संघ में सूर्यवंशी, चंद्रवंशी, अग्निवंशी एवं ऋषिवंशी क्षत्रिय कुलों का वर्गीकरण:
-
-• सूर्यवंशी क्षत्रिय कुल:
-  - राठौर राजपूतों के वंशज: गाडगे, राबड़े, पिंजारे, किंकर।
-  - कुशवाहा (कछवाहा) राजपूतों के वंशज: ढोंडी, मुन्ने, कामड़ी, कोडले, कालभोर, उकडाले।
-  - गहलोत राजपूतों के वंशज: रोडले, धोटे, घागरे, पाठे, मानमोड़े, देशमुख, चौधरी, हिंगवे, गोहिते।
-  - बडगुजर राजपूतों के वंशज: गोरे।
-
-• चंद्रवंशी क्षत्रिय कुल:
-  - गौर राजपूत: गाडरे, कसाई।
-  - तोमर (तनवार) राजपूत: सरोदे, बोबडे।
-  - भाटी राजपूत: बुवाडे, बैंगने, बगवान, बरखाड़े, बीरगड़े।
-  - झाला (मकवाना) राजपूत: नाडितोड, खर्गोसिया।
-  - बल्ला राजपूत: बारबुहारे।
-  - लबाना राजपूत: भादे।
-  - उथेड़ राजपूत: कड़वे।
-  - आजाना राजपूत: रामधम।
-  - बघेल राजपूत: भोभाट, खवसे।
-  - गर्ग राजपूत: डंडारे।
-
-• अग्निवंशी क्षत्रिय कुल:
-  - परिहार (प्रतिहार) राजपूत: परिहार/पराडकर।
-  - पंवार (परमार) राजपूत: पठाड़े, माटे, फरकाडे, गाकरे, गिरहारे, लबडे, डाला, सवाई, ढोले, ओंकार, टोपले, लावरी।
-  - सोलंकी राजपूत: बारंगे, किरणजकर, दुखी, खपारिया, डोंगरडिया, दिग्रसे।
-  - चौहान राजपूत: देवासे, राउत, धारपुरे, हजारे, चिकने।
-
-• ऋषिवंशी क्षत्रिय गोत्र:
-  - जेठवा राजपूत: करदाते।
-  - कानपुरिया राजपूत: शेरके।
-  - बारोडिया राजपूत: बड़नगारे।
-  - चावड़ा राजपूत: चोपड़े, लाडके, लोखंडे।
-  - दहिमा राजपूत: ढोबले।
-  - टांक राजपूत: ठवरी, ठुसी।
-
-भंवरगढ़ किले में निवास एवं 'भोयर' नामकरण:
-कुछ दशकों बाद, ये सभी क्षत्रिय बेतूल की ओर प्रवास कर गए, जहाँ उन्होंने प्रारंभ में भंवरगढ़ किले (जिसे भोयरगढ़ किला भी कहा जाता है) में कुछ समय के लिए निवास किया। इसके परिणामस्वरूप, स्थानीय लोगों ने उन्हें 'भोयर' कहना शुरू कर दिया, जिसका अर्थ है 'जो भोयरगढ़ किले में रहते हैं।' बाद में वे धीरे-धीरे बेतूल से छिंदवाड़ा, पांढुर्ना और वर्धा जिलों में फैल गए। वहाँ बसने के बाद, उन्होंने कृषि को अपना मुख्य व्यवसाय बना लिया।`,
-    full_text_results_discussion: `४. दूसरा सिद्धांत (Second Theory: Direct Parmar Lineage)
-दूसरे सिद्धांत के अनुसार, पवार (जिसे भोयर या भोयर पवार भी कहा जाता है) एक क्षत्रिय जाति है जो मालवा के परमार (जिसे पंवार भी लिखा जाता है) राजपूतों की वंशज है। परमार राजपूत अग्निवंशी क्षत्रिय वंश से संबंधित हैं और मानते हैं कि वे अग्निदेव द्वारा उत्पन्न एक पवित्र अग्नि से जन्मे थे। किंवदंती के अनुसार, अग्निवंशी क्षत्रिय वशिष्ठ (या विश्वामित्र) ऋषि द्वारा माउंट आबू पर एक यज्ञ में उत्पन्न हुए थे। इस अग्नि से चार प्रमुख क्षत्रिय कुल उत्पन्न हुए: चौहान, परमार, सोलंकी (चालुक्य) और प्रतिहार (परिहार)। अतः पवार सीधे इन परमार राजपूतों के वंशज हैं जो अग्निवंशी वंश से आते हैं।
-
-१३वीं शताब्दी तक, यह वंश बड़े पैमाने पर बिखर गया था। १३०५ में मालवा में परमार वंश का अंत हो गया और मुग़लों ने इस क्षेत्र पर नियंत्रण कर लिया, जिससे राजपूत समुदायों के साथ कठोर व्यवहार किया गया। मुग़ल शासकों ने कई हिंदुओं पर, विशेषकर राजपूतों पर, अपना शासन थोपा और कुछ को धर्म परिवर्तन के लिए मजबूर भी किया गया। इसके परिणामस्वरूप, कई परमार राजपूतों ने मालवा को छोड़ दिया और मध्य प्रदेश के वर्तमान बेतूल क्षेत्र की ओर दक्षिण में चले गए। बेतूल में उन्होंने प्रारंभ में भंवरगढ़ किले (भोयरगढ़ किला) में थोड़े समय के लिए निवास किया, जिससे स्थानीय लोगों ने उन्हें 'भोयर' कहना शुरू कर दिया।
-
-अतः इस सिद्धांत के अनुसार, पवार केवल मालवा के परमार राजपूतों के वंशज हैं, जो मालवा से केंद्रीय प्रांतों की ओर प्रवास कर बेतूल, छिंदवाड़ा, पांढुर्ना और वर्धा जिलों में बस गए।`,
-    full_text_conclusion: `५. निष्कर्ष एवं तुलनात्मक विश्लेषण (Conclusion)
-
-पवार जाति की उत्पत्ति का पहला सिद्धांत मानवविज्ञानी, इतिहासकारों, विद्वानों और वंशावली विशेषज्ञों द्वारा व्यापक रूप से स्वीकार किया गया है और पवार समुदाय के बुजुर्गों तथा जानकार व्यक्तियों द्वारा समर्थित है। समुदाय के अधिकांश सदस्य इसे अपनी उत्पत्ति का पूर्णतः सटीक विवरण मानते हैं। यह सिद्धांत उन वंशावली विशेषज्ञों द्वारा प्रमाणित किया गया है जिनके सूक्ष्म शोध ने इस जाति के इतिहास और वंश को पीढ़ियों से संरक्षित रखा है। उनके द्वारा संकलित बाही वंशावली अभिलेख (Bahi Genealogies) पवार जाति के बारे में जानकारी के सबसे विश्वसनीय और महत्वपूर्ण स्रोत माने जाते हैं। इसके अतिरिक्त, पहला सिद्धांत मालवा के इतिहास और क्षत्रिय संघ की संरचना का अत्यंत सटीक चित्रण करता है।
-
-इसके विपरीत, उत्पत्ति का दूसरा सिद्धांत उतना व्यापक समर्थन प्राप्त नहीं कर पाया है। हालांकि इसके कुछ समर्थक हैं, लेकिन यह विद्वानों और समुदाय के सदस्यों के बीच एक बहस का विषय बना हुआ है। इस सिद्धांत में कुछ सच्चाई के तत्व हो सकते हैं, लेकिन इसके समर्थन में साक्ष्य कम प्रभावशाली हैं और पहले सिद्धांत जैसी वंशावली और ऐतिहासिक पुष्टि की कमी है।
-
-इसलिए, हमारा शोध, जिसमें काफी समय और संसाधनों का निवेश किया गया है, लगातार पहले सिद्धांत को पवार जाति की उत्पत्ति के लिए अधिक सटीक और विश्वसनीय व्याख्या मानता है। व्यापक वंशावली अभिलेख, ऐतिहासिक दस्तावेज़ और विद्वानों का समर्थन इसे उपलब्ध सबसे प्रभावशाली विवरण बनाते हैं।`,
+५. स्थान-विशेष एवं सामाजिक पहचान:
+क्षेत्रीय उच्चारण के अनुसार जैसे मुलताई में "डोंगरदिए", नागपुर में "डोंगरे", और छिंदवाड़ा में "डोंगरडे" या "डोंगरदेव" प्रचलित हुए।`,
+    full_text_conclusion: `५. निष्कर्ष एवं अध्ययन का महत्व (Conclusion)
+गोत्रों में परिवर्तन एक स्वाभाविक सामाजिक, भौगोलिक और भाषाई अनुकूलन की प्रक्रिया थी। पवार समुदाय के गोत्रों के इस विकास और अपभ्रंश को समझना न केवल उनके इतिहास को संरक्षित करने का माध्यम है, बल्कि यह उनकी सामाजिक-सांस्कृतिक यात्रा और भाषाई अनुकूलन का सशक्त प्रमाण भी है।`,
+    full_text_acknowledgement: `आभार: शोधकर्ता माँ ताप्ती शोध संस्थान, मुलताई (बैतूल) एवं पवारी साहित्य सरिता परिवार के प्रति अपना हार्दिक आभार व्यक्त करते हैं।`,
+    full_text_conflict_of_interest: 'लेखक घोषणा करते हैं कि इस शोध कार्य में किसी भी प्रकार का हित-संघर्ष (Conflict of Interest) नहीं है।',
+    full_text_funding: 'यह शोध कार्य माँ ताप्ती शोध संस्थान, मुलताई द्वारा संवर्धित एवं समर्थित है।',
     references: [
-      'प्रणय चोपड़े, भोयर (पवार/भोयर पवार): एक परिचय। स्रोत: academia.edu, rajeshbarange.blogspot.com, wikipedia.org',
-      'प्रणय चोपड़े, संघ से जाति तक: भोयर पवार जाति का निर्माण और पहचान। स्रोत: academia.edu, scholar.google.com',
-      'राजेश बारंगे, समय यात्रा: केंद्रीय भारत में पवार समुदाय की प्राचीन जड़ों की खोज। स्रोत: rajeshbarange.blogspot.com, academia.edu',
-      'राजेश बारंगे, पवार राजपूत: मालवा से केंद्रीय भारत तक का ऐतिहासिक प्रवास। स्रोत: wikipedia.org, rajeshbarange.blogspot.com',
-      'क्षत्रिय पवार (72 गोत्र) — माँ ताप्ती शोध प्रकाशन। स्रोत: archive.org, academia.edu',
-      'परमार (वंश) — विकिपीडिया।',
-      'पवारी/भोयरी बोली — विकिपीडिया।',
-      'बाही वंशावली पंजीकरण — विकिपीडिया।',
-      'के. सी. जैन, मालवा थ्रू द एजेज़: प्रारंभ से 1305 ईस्वी तक। प्रकाशक: मोतीलाल बनारसीदास, 1972।',
-      'उपेन्द्रनाथ डे, मध्यकालीन मालवा: राजनीतिक व सांस्कृतिक इतिहास (1401–1562)। प्रकाशक: मुंशी राम मनोहर लाल, 1965।',
-      'डी. सी. गांगुली, साम्राज्य के लिए संघर्ष (भारतीय विद्या भवन)।',
-      'रघुवीर सिंह, मालवा में युगान्तर। प्रकाशक: हिंदी साहित्य सम्मेलन प्रयाग।',
-      'इंदिरा गांधी राष्ट्रीय कला केंद्र (IGNCA), मालवा की सांस्कृतिक विरासत एवं पर्यटन।',
-      'विकिपीडिया, मालवा सल्तनत।',
-      'विकिपीडिया, अवलीकरा वंश।'
+      'पवार कुल दर्शन. (1984). कृष्णराव बालाजी पवार (संपादक), पवार संदेश, अंक 01. नागपुर: पवार युवक संगठन.',
+      'पवार समाज: एक सिंहावलोकन. (1984). डॉ. ज्ञानेश्वर टेंभरे, पवार संदेश, पृष्ठ 13-22.',
+      'टेंभरे, रामकिशोर. (1985). पवारी. पवार संदेश, अंक 02. नागपुर: पवार युवक संगठन.',
+      'टेंभरे, डॉ. ज्ञानेश्वर. (2001). आबुदगिरी से सतपुड़ा में पंवारों का सफर. पवार भारती, अंक 06. बालाघाट.',
+      'बारंगे, राजेश पंवार. (2024). Kshatriya Pawar (72 Clan): Journey from Malwa to Satpura. लैम्बर्ट पब्लिशिंग.',
+      'Pawar, R. B., Chopde, P., & बैतूल (म. प्र.). (2023). 36 गोत्र और 72 गोत्र पंवार में ऐतिहासिक तथ्य. पवारी साहित्य सरिता 2023, 04.'
     ],
-    views_count: 520,
-    downloads_count: 210,
-    created_at: '2025-06-01',
+    views_count: 512,
+    downloads_count: 238,
+    created_at: '2025-06-30',
     updated_at: '2025-06-30',
   },
   {
@@ -365,8 +392,8 @@ export const SAMPLE_ARTICLES: Article[] = [
       { name: 'डॉ. रामेश्वर पवार', affiliation: 'विभागाध्यक्ष, भाषाविज्ञान विभाग, शासकीय स्नातकोत्तर महाविद्यालय, बालाघाट', email: 'r.pawar@balaghat.edu.in', is_corresponding: true, orcid: '0000-0002-1823-9211' },
       { name: 'प्रो. सुनीता शिंदे', affiliation: 'सहायक प्राध्यापक, हिंदी विभाग, नागपुर विश्वविद्यालय', email: 'sunita.shinde@nagpur.ac.in', orcid: '0000-0001-5099-2810' }
     ],
-    abstract_hindi: 'प्रस्तुत शोध पत्र में मध्य भारत के सतपुड़ा एवं वैनगंगा मैदानी क्षेत्र में बोली जाने वाली पवारी बोली की ध्वन्यात्मक एवं व्याकरणिक विशेषताओं का गहन भाषावैज्ञानिक विश्लेषण प्रस्तुत किया गया है। शोध में पाया गया कि पवारी में राजस्थानी, मराठी एवं मालवी भाषा-परिवार के तत्त्वों का सुंदर समन्वय है। अध्ययन में पवारी के विशिष्ट स्वर एवं व्यंजन ध्वनियों का आरेखीय एवं तुलनात्मक विवरण दिया गया है।',
-    abstract_english: 'This research paper presents a comprehensive linguistic analysis of the phonetic and grammatical features of the Pawari dialect spoken across the Satpura and Wainganga plains of Central India. The study reveals a unique confluence of Indo-Aryan elements including Rajasthani, Marathi, and Malvi roots. The paper systematically documents the vowel inventory, phonemes, and tonal variations unique to Pawari.',
+    abstract_hindi: 'प्रस्तुत शोध पत्र में मध्य भारत के सतपुड़ा एवं माँ ताप्ती नदी घाटी क्षेत्र (बैतूल, छिंदवाड़ा, पांढुर्णा) में 72 गोत्र पवार समाज द्वारा बोली जाने वाली पवारी बोली की ध्वन्यात्मक एवं व्याकरणिक विशेषताओं का गहन भाषावैज्ञानिक विश्लेषण प्रस्तुत किया गया है। शोध में पाया गया कि पवारी में राजस्थानी, मराठी एवं मालवी भाषा-परिवार के तत्त्वों का सुंदर समन्वय है। अध्ययन में पवारी के विशिष्ट स्वर एवं व्यंजन ध्वनियों का आरेखीय एवं तुलनात्मक विवरण दिया गया है।',
+    abstract_english: 'This research paper presents a comprehensive linguistic analysis of the phonetic and grammatical features of the Pawari dialect spoken across the Satpura and Tapti River basin (Betul, Chhindwara, Pandhurna) by the 72 Clan Pawar community of Central India. The study reveals a unique confluence of Indo-Aryan elements including Rajasthani, Marathi, and Malvi roots. The paper systematically documents the vowel inventory, phonemes, and tonal variations unique to Pawari.',
     keywords: ['पवारी बोली (Pawari Dialect)', 'ध्वनिविज्ञान (Phonetics)', 'भाषाविज्ञान (Linguistics)', 'सतपुड़ा अंचल (Satpura Region)', 'मध्य भारत (Central India)'],
     doi: '10.5281/zenodo.psp.2026.0101',
     pdf_url: SAMPLE_PDF_BLOB,
@@ -386,7 +413,7 @@ export const SAMPLE_ARTICLES: Article[] = [
     date_accepted: '2026-04-18',
     date_published: '2026-06-10',
     full_text_introduction: `१. प्रस्तावना (Introduction)
-मध्य भारत का सतपुड़ा पर्वतमाला एवं वैनगंगा नदी घाटी क्षेत्र बहुसांस्कृतिक और बहुभाषी अंचल रहा है। इस क्षेत्र में बोली जाने वाली पवारी (पोवारी) बोली न केवल ऐतिहासिक दृष्टिकोण से समृद्ध है, बल्कि भाषावैज्ञानिक दृष्टि से भी अत्यंत रोचक संरचना प्रस्तुत करती है। पवार (परमार) राजवंश के धार एवं मालवा से दक्षिण-पूर्व की ओर पलायन के साथ इस बोली का बीजारोपण मध्य भारत के बालाघाट, सिवनी, गोंदिया तथा भंडारा जिलों में हुआ।
+मध्य भारत का सतपुड़ा पर्वतमाला एवं माँ ताप्ती नदी घाटी (बैतूल, छिंदवाड़ा, पांढुर्णा अंचल) बहुसांस्कृतिक और बहुभाषी अंचल रहा है। इस क्षेत्र में 72 गोत्र पवार समाज द्वारा बोली जाने वाली पवारी बोली न केवल ऐतिहासिक दृष्टिकोण से समृद्ध है, बल्कि भाषावैज्ञानिक दृष्टि से भी अत्यंत रोचक संरचना प्रस्तुत करती है। पवार (परमार) राजवंश के धार एवं मालवा से सतपुड़ा अंचल में प्रवासन के साथ इस बोली का बीजारोपण मध्य भारत के बैतूल, मुलताई, छिंदवाड़ा, पांढुर्णा तथा नागपुर-वर्धा जिलों में हुआ।
 
 प्रस्तुत अध्ययन का मुख्य उद्देश्य पवारी की ध्वन्यात्मक संरचना, इसके विशिष्ट स्वरों तथा व्यंजनों की ध्वन्यात्मक पहचान और इसके निकटवर्ती भाषा-रूपों (मराठी, मालवी, बुंदेली) के साथ इसके तुलनात्मक अध्ययन को रेखांकित करना है।`,
     full_text_literature_review: `२. साहित्य अवलोकन (Literature Review)
@@ -415,7 +442,7 @@ export const SAMPLE_ARTICLES: Article[] = [
     references: [
       'Grierson, G. A. (1908). Linguistic Survey of India (Vol. IX, Indo-Aryan Family, Central Group). Office of the Superintendent of Government Printing, Calcutta.',
       'Pawar, R. (2015). Pawari Boli Ka Bhashavaigyanik Adhyayan. Shodh Sansthan Prakashan, Bhopal.',
-      'Deshmukh, A. (2020). Folklife and Language Shift in Wainganga River Basin. Journal of Central Indian Studies, 12(2), 45-62.',
+      'Deshmukh, A. (2020). Folklife and Language Shift in Tapti River Basin (Betul & Chhindwara). Journal of Central Indian Studies, 12(2), 45-62.',
       'Verma, D. (1972). Hindi Bhasha Ka Itihas. Hindustan Academy, Allahabad.'
     ],
     custom_sections: [
@@ -423,16 +450,16 @@ export const SAMPLE_ARTICLES: Article[] = [
         id: 'cs-01',
         type: 'quote',
         title: 'पवारी बोली कहावत (Traditional Pawari Proverb)',
-        content: '"जैसी वैंगंगा की धार, वैसी पवार की वाण।" (अर्थात: जिस प्रकार वैनगंगा नदी निरंतर प्रवाहित होकर जीवन देती है, उसी प्रकार पवारी बोली अपनी सहजता और मिठास से समाज को बांधे रखती है।)'
+        content: '"जैसी ताप्ती माई की धार, वैसी पवार की वाण।" (अर्थात: जिस प्रकार माँ ताप्ती नदी निरंतर प्रवाहित होकर जीवन और उर्वरता देती है, उसी प्रकार पवारी बोली अपनी सहजता और मिठास से 72 गोत्र पवार समाज को बांधे रखती है।)'
       },
       {
         id: 'cs-fig-01',
         type: 'figure',
         title: 'Figure 1: Geographic Map of Pawari Speech Area',
-        content: 'Geographic distribution of Pawari speakers in Satpura-Wainganga basin.',
-        caption: 'चित्र १ / Figure 1: वैनगंगा नदी घाटी और सतपुड़ा अंचल में पवारी बोलीभाषी क्षेत्र का भौगोलिक मानचित्र (Geographical map highlighting primary Pawari dialect clusters).',
+        content: 'Geographic distribution of Pawari speakers in Satpura and Tapti river basin (Betul, Chhindwara, Pandhurna).',
+        caption: 'चित्र १ / Figure 1: माँ ताप्ती नदी घाटी और सतपुड़ा अंचल (बैतूल, छिंदवाड़ा, पांढुर्णा) में पवारी बोलीभाषी क्षेत्र का भौगोलिक मानचित्र (Geographical map highlighting primary Pawari dialect clusters).',
         image_url: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=1200&q=80',
-        alt_text: 'Map of Satpura and Wainganga valley showing Pawari dialect distribution across Balaghat, Seoni, Chhindwara, and Gondia.',
+        alt_text: 'Map of Satpura and Tapti valley showing Pawari dialect distribution across Betul, Chhindwara, Pandhurna, Multai, and Nagpur.',
         source_credit: 'Source: Author Fieldwork Survey & Central India Linguistic Atlas (2025)',
         figure_number: 1,
         placement: 'in_body'
@@ -457,15 +484,15 @@ export const SAMPLE_ARTICLES: Article[] = [
   },
   {
     id: 'art-002',
-    title_hindi: 'सतपुड़ा एवं वैनगंगा अंचल के लोकगीतों में पवारी संस्कृति के विविध रंग',
-    title_english: 'Diverse Shades of Pawari Culture in Folk Songs of Satpura and Wainganga Region',
+    title_hindi: 'सतपुड़ा एवं ताप्ती नदी अंचल के लोकगीतों में 72 गोत्र पवार संस्कृति के विविध रंग',
+    title_english: 'Diverse Shades of Pawari Culture in Folk Songs of Satpura and Tapti River Region',
     slug: 'diverse-shades-pawari-culture-folk-songs',
     authors: [
-      { name: 'डॉ. अनिमेश देशमुख', affiliation: 'शोध निदेशक, लोकसाहित्य केंद्र, गोंदिया', email: 'animesh.d@folklore.org', is_corresponding: true }
+      { name: 'डॉ. अनिमेश देशमुख', affiliation: 'शोध निदेशक, पवारी लोकसाहित्य अनुसंधान केंद्र, बैतूल', email: 'animesh.d@folklore.org', is_corresponding: true }
     ],
-    abstract_hindi: 'लोकगीत किसी भी समुदाय की आत्मा और सांस्कृतिक दर्पण होते हैं। पवारी समाज में जन्मोत्सव, विवाह, कृषि कार्य एवं पर्व-त्योहारों पर गाए जाने वाले लोकगीतों में जीवनदर्शन की गभीर अभिव्यक्तियाँ मिलती हैं। इस अध्ययन में बालाघाट और भंडारा जिले के 50 से अधिक पारंपरिक पवारी लोकगीतों का संकलन एवं सांस्कृतिक विश्लेषण किया गया है।',
-    abstract_english: 'Folk music acts as the cultural repository of community heritage. In the Pawari community, traditional songs associated with agricultural cycles, wedding rituals, and seasonal festivals reflect profound folk wisdom. This paper documents over 50 authentic Pawari folk songs collected across Balaghat and Bhandara districts, categorizing their social and artistic motifs.',
-    keywords: ['लोकगीत (Folk Songs)', 'पवारी संस्कृति (Pawari Culture)', 'कृषि लोकगाथा (Agricultural Folklore)', 'बालाघाट (Balaghat)', 'सांस्कृतिक अध्ययन (Cultural Studies)'],
+    abstract_hindi: 'लोकगीत किसी भी समुदाय की आत्मा और सांस्कृतिक दर्पण होते हैं। बैतूल, छिंदवाड़ा एवं पांढुर्णा क्षेत्र के 72 गोत्र पवार समाज में जन्मोत्सव, विवाह, कृषि कार्य एवं पर्व-त्योहारों (जैसे भुजरिया) पर माँ ताप्ती नदी तट पर गाए जाने वाले लोकगीतों में जीवनदर्शन की गंभीर अभिव्यक्तियाँ मिलती हैं।',
+    abstract_english: 'Folk music acts as the cultural repository of community heritage. In the 72 Clan Pawar community of Betul, Chhindwara, and Pandhurna, traditional songs associated with agricultural cycles, wedding rituals, and seasonal festivals along the Tapti river bank reflect profound folk wisdom.',
+    keywords: ['लोकगीत (Folk Songs)', 'पवारी संस्कृति (Pawari Culture)', 'ताप्ती अंचल (Tapti Region)', 'बैतूल-छिंदवाड़ा (Betul-Chhindwara)', '72 गोत्र पवार (72 Clan Pawar)'],
     doi: '10.5281/zenodo.psp.2026.0102',
     pdf_url: SAMPLE_PDF_BLOB,
     pdf_storage_path: 'articles/art-002-pawari-culture.pdf',
@@ -512,15 +539,15 @@ export const SAMPLE_ARTICLES: Article[] = [
   },
   {
     id: 'art-004',
-    title_hindi: 'पवारी लोककथाओं में पर्यावरणीय चेतना एवं वैनगंगा नदी घाटी का जैव-विविधता दर्शन',
-    title_english: 'Environmental Consciousness and Ethno-Ecological Wisdom in Pawari Folktales',
+    title_hindi: 'पवारी लोककथाओं में पर्यावरणीय चेतना एवं माँ ताप्ती नदी घाटी का जैव-विविधता दर्शन',
+    title_english: 'Environmental Consciousness and Ethno-Ecological Wisdom in Pawari Folktales of Tapti River Basin',
     slug: 'environmental-consciousness-ethno-ecological-wisdom-pawari-folktales',
     authors: [
       { name: 'सविता बिसेन', affiliation: 'शोधार्थी, पर्यावरण एवं हिंदी साहित्य विभाग, छिंदवाड़ा विश्वविद्यालय', email: 'savita.bisen@chhindwara.ac.in', is_corresponding: true }
     ],
-    abstract_hindi: 'पवारी लोककथाओं में प्रकृति, वनों, नदियों तथा वन्यजीवों के साथ मानव के घनिष्ठ संबंधों का चित्रांकन मिलता है। वैनगंगा नदी घाटी में प्रचलित पवारी दंतकथाओं के माध्यम से प्राकृतिक संसाधनों के विवेकपूर्ण उपयोग एवं संरक्षण की प्राचीन परंपरा का साक्ष्य प्राप्त होता है।',
-    abstract_english: 'Ethno-ecological narratives embedded in Indigenous folklore offer key insights into sustainable living. This study analyzes oral storytelling traditions within the Pawari speaking belts of the Wainganga river basin, illustrating ancient conservation ethics and human-nature harmony.',
-    keywords: ['पर्यावरण साहित्य (Eco-Literature)', 'लोककथाएँ (Folktales)', 'वैनगंगा नदी (Wainganga River)', 'पारिस्थितिकी (Ecology)', 'पवारी बोली (Pawari)'],
+    abstract_hindi: 'पवारी लोककथाओं में प्रकृति, वनों, नदियों तथा वन्यजीवों के साथ मानव के घनिष्ठ संबंधों का चित्रांकन मिलता है। बैतूल, मुलताई, छिंदवाड़ा तथा पांढुर्णा के माँ ताप्ती नदी अंचल में प्रचलित पवारी दंतकथाओं के माध्यम से प्राकृतिक संसाधनों के विवेकपूर्ण उपयोग एवं संरक्षण की प्राचीन परंपरा का साक्ष्य प्राप्त होता है।',
+    abstract_english: 'Ethno-ecological narratives embedded in Indigenous folklore offer key insights into sustainable living. This study analyzes oral storytelling traditions within the Pawari speaking belts of the Tapti river basin across Betul and Chhindwara, illustrating ancient conservation ethics and human-nature harmony.',
+    keywords: ['पर्यावरण साहित्य (Eco-Literature)', 'लोककथाएँ (Folktales)', 'ताप्ती नदी (Tapti River)', 'बैतूल-छिंदवाड़ा (Betul-Chhindwara)', 'पवारी बोली (Pawari)'],
     doi: '10.5281/zenodo.psp.2025.0201',
     pdf_url: SAMPLE_PDF_BLOB,
     pdf_storage_path: 'articles/art-004-eco-wisdom.pdf',
@@ -565,6 +592,30 @@ export const SAMPLE_ARTICLES: Article[] = [
     updated_at: '2025-12-20',
   },
 ];
+
+export const DEFAULT_PAWARI_MEMBER_AVATAR = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#420708"/>
+      <stop offset="50%" stop-color="#2a0506"/>
+      <stop offset="100%" stop-color="#190304"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="300" height="300" fill="url(#bg)" rx="24"/>
+  <circle cx="150" cy="150" r="140" stroke="url(#gold)" stroke-width="3" fill="none" opacity="0.6"/>
+  <!-- Scholar Silhouette -->
+  <circle cx="150" cy="110" r="46" fill="#fef3c7" opacity="0.92"/>
+  <path d="M70 235 C70 180 110 170 150 170 C190 170 230 180 230 235 Z" fill="#fef3c7" opacity="0.92"/>
+  <!-- Journal Crest Badge -->
+  <rect x="35" y="244" width="230" height="36" rx="8" fill="url(#gold)"/>
+  <text x="150" y="267" font-family="'Samskrit','Noto Serif Devanagari',serif" font-size="15" font-weight="bold" fill="#420708" text-anchor="middle">पवारी शोध पत्रिका</text>
+</svg>
+`)}`;
 
 export const SAMPLE_EDITORIAL_BOARD: EditorialMember[] = [
   {

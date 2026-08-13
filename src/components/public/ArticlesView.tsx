@@ -31,17 +31,35 @@ export const ArticlesView: React.FC = () => {
     setActiveView, 
     openPdfViewer,
     incrementArticleViews,
-    incrementArticleDownloads
+    incrementArticleDownloads,
+    searchQuery: globalSearchQuery,
+    setSearchQuery: setGlobalSearchQuery
   } = useCms();
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(globalSearchQuery || '');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
   const [selectedIssueFilter, setSelectedIssueFilter] = useState<string>('all'); // 'all' or `${volume}_${issue_number}`
-  const [activeTab, setActiveTab] = useState<'by_issue' | 'search_all'>('by_issue');
+  const [activeTab, setActiveTab] = useState<'by_issue' | 'search_all'>(globalSearchQuery ? 'search_all' : 'by_issue');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 10;
+
+  React.useEffect(() => {
+    if (globalSearchQuery !== undefined && globalSearchQuery !== search) {
+      setSearch(globalSearchQuery);
+      if (globalSearchQuery.trim()) {
+        setActiveTab('search_all');
+      }
+    }
+  }, [globalSearchQuery]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory, selectedLanguage, selectedIssueFilter, activeTab]);
+
   const [shareModalArticle, setShareModalArticle] = useState<any | null>(null);
 
-  const publishedArticles = articles.filter(a => a.status === 'published');
+  const publishedArticles = articles.filter(a => a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted');
   const publishedIssues = issues.filter(i => i.status === 'published' || i.status === 'current');
 
   // Group issues by volume
@@ -65,23 +83,30 @@ export const ArticlesView: React.FC = () => {
   // Filtered articles
   const filteredArticles = publishedArticles.filter(art => {
     const query = search.toLowerCase();
-    const titleMatch = art.title_hindi.toLowerCase().includes(query) || art.title_english.toLowerCase().includes(query);
-    const authorMatch = art.authors.some(a => a.name.toLowerCase().includes(query) || a.affiliation?.toLowerCase().includes(query));
-    const keywordMatch = art.keywords.some(k => k.toLowerCase().includes(query));
-    const doiMatch = art.doi?.toLowerCase().includes(query);
+    const titleMatch = (art.title_hindi || '').toLowerCase().includes(query) || (art.title_english || '').toLowerCase().includes(query);
+    const authorMatch = (art.authors || []).some(a => (a.name || '').toLowerCase().includes(query) || (a.affiliation || '').toLowerCase().includes(query));
+    const keywordMatch = (art.keywords || []).some(k => (k || '').toLowerCase().includes(query));
+    const doiMatch = (art.doi || '').toLowerCase().includes(query);
     const matchesSearch = !query || titleMatch || authorMatch || keywordMatch || doiMatch;
 
     const matchesCategory = selectedCategory === 'all' || art.category === selectedCategory;
     const matchesLanguage = selectedLanguage === 'all' || art.language === selectedLanguage;
-    const matchesIssue = selectedIssueFilter === 'all' || `${art.volume}_${art.issue}` === selectedIssueFilter;
+    const matchesIssue = selectedIssueFilter === 'all' || `${art.volume}_${art.issue}` === selectedIssueFilter || `${Number(art.volume)}_${Number(art.issue)}` === selectedIssueFilter;
 
     return matchesSearch && matchesCategory && matchesLanguage && matchesIssue;
   });
 
+  const totalPages = Math.ceil(filteredArticles.length / pageSize) || 1;
+  const paginatedArticles = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredArticles.slice(start, start + pageSize);
+  }, [filteredArticles, currentPage, pageSize]);
+
   const handleArticleClick = (artId: string) => {
-    setSelectedArticleId(artId);
-    incrementArticleViews(artId);
-    setActiveView('article_detail');
+    const art = articles.find(a => a.id === artId || a.slug === artId);
+    const targetId = art?.id || artId;
+    incrementArticleViews(targetId);
+    setActiveView('article_detail', art?.slug || targetId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -99,6 +124,7 @@ export const ArticlesView: React.FC = () => {
 
   const resetFilters = () => {
     setSearch('');
+    setGlobalSearchQuery('');
     setSelectedCategory('all');
     setSelectedLanguage('all');
     setSelectedIssueFilter('all');
@@ -158,18 +184,24 @@ export const ArticlesView: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Search Box */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setGlobalSearchQuery(e.target.value);
+              }}
               placeholder={lang === 'hi' ? 'शोध पत्र शीर्षक, लेखक, कीवर्ड या DOI से खोजें...' : 'Search by title, author, keyword or DOI...'}
-              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 text-slate-900 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+              className="w-full pl-10 pr-10 py-2.5 bg-slate-50 text-slate-900 text-base sm:text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-amber-500 min-h-[44px]"
             />
             {search && (
               <button 
-                onClick={() => setSearch('')} 
-                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                onClick={() => {
+                  setSearch('');
+                  setGlobalSearchQuery('');
+                }} 
+                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -181,7 +213,7 @@ export const ArticlesView: React.FC = () => {
             <select
               value={selectedIssueFilter}
               onChange={(e) => setSelectedIssueFilter(e.target.value)}
-              className="w-full p-2.5 bg-amber-50/80 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500"
+              className="w-full p-2.5 bg-amber-50/80 border border-amber-300 rounded-xl text-base sm:text-xs font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 min-h-[44px]"
             >
               <option value="all">{lang === 'hi' ? 'सभी अंक (All Volumes & Issues)' : 'All Volumes & Issues'}</option>
               {publishedIssues.map(iss => (
@@ -297,6 +329,10 @@ export const ArticlesView: React.FC = () => {
                               <SafeImage 
                                 src={iss.cover_image_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80'} 
                                 alt={iss.title_english} 
+                                loading="lazy"
+                                decoding="async"
+                                width={96}
+                                height={128}
                                 className="w-full h-full object-cover"
                               />
                             </div>
@@ -447,149 +483,183 @@ export const ArticlesView: React.FC = () => {
               <p className="text-xs">{lang === 'hi' ? 'कृपया अपनी खोज अथवा फ़िल्टर बदलकर प्रयास करें।' : 'Try modifying your search keywords or filters.'}</p>
             </div>
           ) : (
-            filteredArticles.map((art) => (
-              <div
-                key={art.id}
-                onClick={() => handleArticleClick(art.id)}
-                className="bg-white hover:bg-amber-50/50 border border-amber-900/10 hover:border-amber-400/50 rounded-2xl p-6 shadow-2xs hover:shadow-md transition cursor-pointer space-y-3 group"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-bold bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded">
-                      Vol {art.volume} Issue {art.issue} ({art.year})
-                    </span>
-                    <span className="bg-red-100 text-red-950 font-semibold px-2 py-0.5 rounded">
-                      {art.category}
-                    </span>
-                    <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                      {art.language}
-                    </span>
-                    {art.page_numbers && (
-                      <span className="bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded text-[11px]">
-                        pp. {art.page_numbers}
+            <>
+              {paginatedArticles.map((art) => (
+                <div
+                  key={art.id}
+                  onClick={() => handleArticleClick(art.id)}
+                  className="bg-white hover:bg-amber-50/50 border border-amber-900/10 hover:border-amber-400/50 rounded-2xl p-6 shadow-2xs hover:shadow-md transition cursor-pointer space-y-3 group"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-bold bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded">
+                        Vol {art.volume} Issue {art.issue} ({art.year})
                       </span>
-                    )}
-                    <span className="bg-emerald-100 text-emerald-950 font-semibold px-2 py-0.5 rounded text-[10px]">
-                      Open Access
-                    </span>
-                    {(art.content_mode === 'full_text' || art.full_text_introduction) && (
-                      <span className="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px] shadow-2xs">
-                        Full-Text Article (पूर्ण पाठ आलेख)
+                      <span className="bg-red-100 text-red-950 font-semibold px-2 py-0.5 rounded">
+                        {art.category}
                       </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center space-x-1 text-slate-500 font-mono text-[11px]">
-                    <span>DOI:</span>
-                    <a
-                      href={`https://doi.org/${art.doi || '10.5281/zenodo'}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-amber-600 hover:text-amber-700 hover:underline flex items-center space-x-0.5"
-                    >
-                      <span>{art.doi || '10.5281/zenodo'}</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-slate-900 group-hover:text-red-950 leading-snug">
-                    <a 
-                      href={getUrlForView('article_detail', art.slug || art.id)}
-                      onClick={(e) => {
-                        if (!e.metaKey && !e.ctrlKey) {
-                          e.preventDefault();
-                          handleArticleClick(art.slug || art.id);
-                        }
-                      }}
-                      className="hover:underline"
-                    >
-                      {lang === 'hi' ? art.title_hindi : art.title_english}
-                    </a>
-                  </h2>
-                  {art.title_english && art.title_hindi && (
-                    <p className="text-xs sm:text-sm font-serif italic text-slate-600">
-                      {lang === 'hi' ? art.title_english : art.title_hindi}
-                    </p>
-                  )}
-                </div>
-
-                <p className="text-xs sm:text-sm font-semibold text-slate-800">
-                  {art.authors.map(a => `${a.name}${a.affiliation ? ` (${a.affiliation})` : ''}`).join('; ')}
-                </p>
-
-                <p className="text-xs sm:text-sm text-slate-600 line-clamp-3 leading-relaxed">
-                  {lang === 'hi' ? art.abstract_hindi : art.abstract_english}
-                </p>
-
-                {art.keywords && art.keywords.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {art.keywords.map((kw, i) => (
-                      <span key={i} className="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full font-mono border border-slate-200/60">
-                        #{kw}
+                      <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                        {art.language}
                       </span>
-                    ))}
-                  </div>
-                )}
+                      {art.page_numbers && (
+                        <span className="bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded text-[11px]">
+                          pp. {art.page_numbers}
+                        </span>
+                      )}
+                      <span className="bg-emerald-100 text-emerald-950 font-semibold px-2 py-0.5 rounded text-[10px]">
+                        Open Access
+                      </span>
+                      {(art.content_mode === 'full_text' || art.full_text_introduction) && (
+                        <span className="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px] shadow-2xs">
+                          Full-Text Article (पूर्ण पाठ आलेख)
+                        </span>
+                      )}
+                    </div>
 
-                <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center space-x-4">
-                    <a 
-                      href={getUrlForView('article_detail', art.slug || art.id)}
-                      onClick={(e) => {
-                        if (!e.metaKey && !e.ctrlKey) {
-                          e.preventDefault();
-                          handleArticleClick(art.slug || art.id);
-                        }
-                      }}
-                      className="text-red-900 font-bold hover:underline"
-                    >
-                      {lang === 'hi' ? 'पूर्ण शोध पत्र एवं विवरण →' : 'Read Full Manuscript →'}
-                    </a>
-                    <div className="flex items-center space-x-3 text-slate-400 font-mono text-[11px]">
-                      <span className="flex items-center space-x-1" title="Views">
-                        <Eye className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{art.views_count || 0} views</span>
-                      </span>
-                      <span className="flex items-center space-x-1" title="Downloads">
-                        <Download className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{art.downloads_count || 0} downloads</span>
-                      </span>
+                    <div className="flex items-center space-x-1 text-slate-500 font-mono text-[11px]">
+                      <span>DOI:</span>
+                      <a
+                        href={`https://doi.org/${art.doi || '10.5281/zenodo'}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-amber-600 hover:text-amber-700 hover:underline flex items-center space-x-0.5"
+                      >
+                        <span>{art.doi || '10.5281/zenodo'}</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShareModalArticle(art);
-                      }}
-                      className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition flex items-center space-x-1 shadow-2xs"
-                    >
-                      <Share2 className="w-3.5 h-3.5 text-emerald-200" />
-                      <span>{lang === 'hi' ? 'शेयर' : 'Share'}</span>
-                    </button>
-                    <button
-                      onClick={(e) => handlePdfView(e, art)}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-red-900 hover:text-white text-slate-800 text-xs font-bold rounded-lg border border-slate-300 transition flex items-center space-x-1"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>View PDF</span>
-                    </button>
-                    <button
-                      onClick={(e) => handlePdfDownload(e, art.id, art.pdf_url || '')}
-                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-red-950 text-xs font-bold rounded-lg transition flex items-center space-x-1 shadow-2xs"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download</span>
-                    </button>
+                  <div className="space-y-1">
+                    <h2 className="text-lg sm:text-xl font-serif font-bold text-slate-900 group-hover:text-red-950 leading-snug">
+                      <a 
+                        href={getUrlForView('article_detail', art.slug || art.id)}
+                        onClick={(e) => {
+                          if (!e.metaKey && !e.ctrlKey) {
+                            e.preventDefault();
+                            handleArticleClick(art.slug || art.id);
+                          }
+                        }}
+                        className="hover:underline"
+                      >
+                        {lang === 'hi' ? art.title_hindi : art.title_english}
+                      </a>
+                    </h2>
+                    {art.title_english && art.title_hindi && (
+                      <p className="text-xs sm:text-sm font-serif italic text-slate-600">
+                        {lang === 'hi' ? art.title_english : art.title_hindi}
+                      </p>
+                    )}
                   </div>
-                </div>
 
-              </div>
-            ))
+                  <p className="text-xs sm:text-sm font-semibold text-slate-800">
+                    {art.authors.map(a => `${a.name}${a.affiliation ? ` (${a.affiliation})` : ''}`).join('; ')}
+                  </p>
+
+                  <p className="text-xs sm:text-sm text-slate-600 line-clamp-3 leading-relaxed">
+                    {lang === 'hi' ? art.abstract_hindi : art.abstract_english}
+                  </p>
+
+                  {art.keywords && art.keywords.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {art.keywords.map((kw, i) => (
+                        <span key={i} className="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full font-mono border border-slate-200/60">
+                          #{kw}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center space-x-4">
+                      <a 
+                        href={getUrlForView('article_detail', art.slug || art.id)}
+                        onClick={(e) => {
+                          if (!e.metaKey && !e.ctrlKey) {
+                            e.preventDefault();
+                            handleArticleClick(art.slug || art.id);
+                          }
+                        }}
+                        className="text-red-900 font-bold hover:underline"
+                      >
+                        {lang === 'hi' ? 'पूर्ण शोध पत्र एवं विवरण →' : 'Read Full Manuscript →'}
+                      </a>
+                      <div className="flex items-center space-x-3 text-slate-400 font-mono text-[11px]">
+                        <span className="flex items-center space-x-1" title="Views">
+                          <Eye className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{art.views_count || 0} views</span>
+                        </span>
+                        <span className="flex items-center space-x-1" title="Downloads">
+                          <Download className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{art.downloads_count || 0} downloads</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShareModalArticle(art);
+                        }}
+                        className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition flex items-center space-x-1 shadow-2xs"
+                      >
+                        <Share2 className="w-3.5 h-3.5 text-emerald-200" />
+                        <span>{lang === 'hi' ? 'शेयर' : 'Share'}</span>
+                      </button>
+                      {art.pdf_url && art.pdf_url.trim() !== '' && art.pdf_url !== '#' && !art.pdf_url.includes('undefined') && (
+                        <>
+                          <button
+                            onClick={(e) => handlePdfView(e, art)}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-red-900 hover:text-white text-slate-800 text-xs font-bold rounded-lg border border-slate-300 transition flex items-center space-x-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>View PDF</span>
+                          </button>
+                          <button
+                            onClick={(e) => handlePdfDownload(e, art.id, art.pdf_url || '')}
+                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-red-950 text-xs font-bold rounded-lg transition flex items-center space-x-1 shadow-2xs"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              ))}
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-6 border-t border-slate-200">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => {
+                      setCurrentPage(p => Math.max(1, p - 1));
+                      window.scrollTo({ top: 300, behavior: 'smooth' });
+                    }}
+                    className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-700 disabled:opacity-40 hover:bg-slate-50 transition cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    ← {lang === 'hi' ? 'पिछला पृष्ठ' : 'Previous'}
+                  </button>
+                  <span className="text-xs font-mono text-slate-600">
+                    {lang === 'hi' ? `पृष्ठ ${currentPage} का ${totalPages}` : `Page ${currentPage} of ${totalPages}`} ({filteredArticles.length} {lang === 'hi' ? 'आलेख' : 'articles'})
+                  </span>
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => {
+                      setCurrentPage(p => Math.min(totalPages, p + 1));
+                      window.scrollTo({ top: 300, behavior: 'smooth' });
+                    }}
+                    className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-700 disabled:opacity-40 hover:bg-slate-50 transition cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {lang === 'hi' ? 'अगला पृष्ठ' : 'Next'} →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

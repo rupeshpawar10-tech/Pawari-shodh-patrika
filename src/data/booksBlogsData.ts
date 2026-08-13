@@ -1,3 +1,14 @@
+import { PawariWriterItem } from '../types';
+
+export interface AttachedItem {
+  id?: string;
+  title: string;
+  type: 'book' | 'blog' | 'article' | 'pdf' | 'external';
+  url?: string;
+  targetId?: string;
+  description?: string;
+}
+
 export interface BookItem {
   id: string;
   title_hindi: string;
@@ -16,6 +27,15 @@ export interface BookItem {
   table_of_contents_hindi?: string[];
   sample_pdf_url?: string;
   is_featured?: boolean;
+  slug?: string;
+  status?: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'published' | 'rejected' | string;
+  editorial_comments?: string;
+  contributor_name?: string;
+  contributor_email?: string;
+  submitted_at?: string;
+  attached_items?: AttachedItem[];
+  attached_books?: string[];
+  attached_blogs?: string[];
 }
 
 export interface BlogItem {
@@ -36,6 +56,16 @@ export interface BlogItem {
   content_english: string;
   tags: string[];
   likes_count?: number;
+  slug?: string;
+  is_review?: boolean;
+  status?: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'published' | 'rejected' | string;
+  editorial_comments?: string;
+  contributor_name?: string;
+  contributor_email?: string;
+  submitted_at?: string;
+  attached_items?: AttachedItem[];
+  attached_books?: string[];
+  attached_blogs?: string[];
 }
 
 export const SAMPLE_BOOKS: BookItem[] = [
@@ -60,6 +90,29 @@ export const SAMPLE_BOOKS: BookItem[] = [
       'अध्याय 3: पवारी लोकगीत: प्रकार एवं सामाजिक चेतना',
       'अध्याय 4: पवारी लोककथाएं एवं मौखिक परंपराएं',
       'अध्याय 5: पवारी शब्दावली एवं अन्य बोलियों से संबंध'
+    ],
+    attached_items: [
+      {
+        id: 'att-b1-1',
+        title: 'संलग्न ब्लॉग: पवारी बोली का उद्भव और ऐतिहासिक प्रसार आलेख',
+        type: 'blog',
+        targetId: 'blog-1',
+        description: 'डॉ. कैलाश पवार द्वारा रचित पवारी बोली की ऐतिहासिक पृष्ठभूमि पर विशेष वैचारिक लेख।'
+      },
+      {
+        id: 'att-b1-2',
+        title: 'संलग्न ग्रन्थ: पवारी-हिंदी-अंग्रेजी बृहत् त्रिभाषीय शब्दकोश',
+        type: 'book',
+        targetId: 'book-3',
+        description: '15,000 से अधिक पवारी प्रविष्टियों वाला अधिकृत शब्दकोश ग्रन्थ।'
+      },
+      {
+        id: 'att-b1-3',
+        title: 'माँ ताप्ती शोध संस्थान ई-पुस्तकालय पोर्टल',
+        type: 'external',
+        url: 'https://pawari-shodh-patrika.vercel.app/books-literature',
+        description: 'संस्थान के अधिकृत डिजिटल पुस्तकालय का नया पेज डायरेक्ट लिंक।'
+      }
     ]
   },
   {
@@ -82,6 +135,22 @@ export const SAMPLE_BOOKS: BookItem[] = [
       'अध्याय 2: मुलताई अंचल के प्रमुख लोक पर्व एवं मेले',
       'अध्याय 3: लोकवाद्य, लोकनृत्य एवं नाट्य परंपराएं',
       'अध्याय 4: जनजातीय संस्कृति एवं पवारी लोक समन्वय'
+    ],
+    attached_items: [
+      {
+        id: 'att-b2-1',
+        title: 'संलग्न ब्लॉग: ताप्ती नदी तट की लोक परंपराएं एवं भुजरिया पर्व',
+        type: 'blog',
+        targetId: 'blog-2',
+        description: 'डॉ. अनिता मालवीय द्वारा मुलताई अंचल की लोक चेतना पर विस्तृत आलेख।'
+      },
+      {
+        id: 'att-b2-2',
+        title: 'संलग्न ग्रन्थ: पवारी लोकगाथाएं और मौखिक परंपरा',
+        type: 'book',
+        targetId: 'book-4',
+        description: 'रामनाथ पवार द्वारा संकलित पवारी बीरगाथाएं एवं भक्ति लोकगीत।'
+      }
     ]
   },
   {
@@ -104,6 +173,22 @@ export const SAMPLE_BOOKS: BookItem[] = [
       'भाग 2: शब्दकोश (पवारी से हिंदी एवं अंग्रेजी)',
       'भाग 3: पवारी मुहावरे एवं कहावतें',
       'भाग 4: पारिभाषिक लोक-शब्दावली'
+    ],
+    attached_items: [
+      {
+        id: 'att-b3-1',
+        title: 'संलग्न मॉड्यूल: ऑनलाइन डिजिटल पवारी शब्दकोश (Shabdkosh)',
+        type: 'external',
+        url: 'https://pawari-shodh-patrika.vercel.app/shabdkosh',
+        description: 'खोज योग्य पवारी ऑनलाइन डिजिटल शब्दकोश पेज का डायरेक्ट लिंक।'
+      },
+      {
+        id: 'att-b3-2',
+        title: 'संलग्न ग्रन्थ: पवारी बोली एवं लोकसाहित्य का प्रामाणिक इतिहास',
+        type: 'book',
+        targetId: 'book-1',
+        description: 'भाषाशास्त्रीय अध्ययन हेतु संदर्भ ग्रन्थ।'
+      }
     ]
   },
   {
@@ -125,6 +210,22 @@ export const SAMPLE_BOOKS: BookItem[] = [
       'अध्याय 1: लोकगाथा का स्वरूप और वर्गीकरण',
       'अध्याय 2: पवारी आल्हा एवं बीरगाथाएं',
       'अध्याय 3: भक्ति एवं सामाजिक लोकगाथाएं'
+    ],
+    attached_items: [
+      {
+        id: 'att-b4-1',
+        title: 'संलग्न ब्लॉग: डिजिटल युग में मौखिक लोकसाहित्य का संरक्षण',
+        type: 'blog',
+        targetId: 'blog-3',
+        description: 'प्रो. रामेश्वर शर्मा द्वारा मौखिक लोकगाथाओं के आर्काइविंग पर विशेष लेख।'
+      },
+      {
+        id: 'att-b4-2',
+        title: 'संलग्न मॉड्यूल: पवारी लोकगीत संग्रह (Lokgeet Section)',
+        type: 'external',
+        url: 'https://pawari-shodh-patrika.vercel.app/lokgeet',
+        description: 'ऑडियो व पवारी बोल के साथ लोकगीतों का संग्रह।'
+      }
     ]
   }
 ];
@@ -160,7 +261,30 @@ export const SAMPLE_BLOGS: BlogItem[] = [
 Pawari dialect represents the cultural identity of a vast belt in Central India. Historically, as Parmar/Pawar communities migrated from Malwa towards South-East MP and Vidarbha, Pawari naturally integrated features of Malvi, Bundeli, and Marathi.
     `,
     tags: ['पवारी बोली', 'भाषाविज्ञान', 'मालवी-मराठी संगम', 'बैतूल-छिंदवाड़ा'],
-    likes_count: 42
+    likes_count: 42,
+    attached_items: [
+      {
+        id: 'att-bl1-1',
+        title: 'संलग्न मूल ग्रन्थ: पवारी बोली एवं लोकसाहित्य का प्रामाणिक इतिहास',
+        type: 'book',
+        targetId: 'book-1',
+        description: 'डॉ. कैलाश पवार द्वारा लिखित 384 पृष्ठों का प्रामाणिक शोध ग्रन्थ।'
+      },
+      {
+        id: 'att-bl1-2',
+        title: 'संलग्न ग्रन्थ: पवारी-हिंदी-अंग्रेजी बृहत् शब्दकोश',
+        type: 'book',
+        targetId: 'book-3',
+        description: '15,000 पवारी शब्दों का प्रामाणिक कोष ग्रन्थ।'
+      },
+      {
+        id: 'att-bl1-3',
+        title: 'माँ ताप्ती शोध पत्रिका - अंक संग्रह लिंक',
+        type: 'external',
+        url: 'https://pawari-shodh-patrika.vercel.app/archives',
+        description: 'पत्रिका के समस्त प्रकाशित पीयर-रिव्यूड अंकों का डायरेक्ट लिंक।'
+      }
+    ]
   },
   {
     id: 'blog-2',
@@ -187,7 +311,23 @@ Pawari dialect represents the cultural identity of a vast belt in Central India.
 River Tapti originates at Multai. In the Pawari society of this region, Tapti holds the revered status of Mother. During Bhadrapada festivals, Wheat sprouts (Bhujariya) are immersed with devotional Pawari folk songs.
     `,
     tags: ['ताप्ती नदी', 'मुलताई', 'लोक उत्सव', 'भुजरिया', 'पवारी संस्कृति'],
-    likes_count: 38
+    likes_count: 38,
+    attached_items: [
+      {
+        id: 'att-bl2-1',
+        title: 'संलग्न ग्रन्थ: मध्य भारत की लोकसंस्कृति और ताप्ती अंचल',
+        type: 'book',
+        targetId: 'book-2',
+        description: 'डॉ. अनिता मालवीय द्वारा ताप्ती घाटी संस्कृति पर रचित शोध ग्रन्थ।'
+      },
+      {
+        id: 'att-bl2-2',
+        title: 'संलग्न लोकगीत संग्रह: ताप्ती माँ की पवारी स्तुति गीत',
+        type: 'external',
+        url: 'https://pawari-shodh-patrika.vercel.app/lokgeet',
+        description: 'पवारी लोकगीत एवं ऑडियो पोर्टल लिंक।'
+      }
+    ]
   },
   {
     id: 'blog-3',
@@ -215,7 +355,16 @@ River Tapti originates at Multai. In the Pawari society of this region, Tapti ho
 Creating open-access audio archives and publishing annotated folk manuscripts ensures that regional dialects like Pawari reach researchers worldwide.
     `,
     tags: ['डिजिटल मानविकी', 'लोक साहित्य', 'संरक्षण', 'ऑडियो रिकॉर्डिंग'],
-    likes_count: 51
+    likes_count: 51,
+    attached_items: [
+      {
+        id: 'att-bl3-1',
+        title: 'संलग्न ग्रन्थ: पवारी लोकगाथाएं और मौखिक परंपरा',
+        type: 'book',
+        targetId: 'book-4',
+        description: 'रामनाथ पवार "सरस" द्वारा संकलित प्राचीन पवारी लोकगाथाएं।'
+      }
+    ]
   },
   {
     id: 'blog-4',
@@ -239,6 +388,107 @@ Creating open-access audio archives and publishing annotated folk manuscripts en
 Suresh Deshmukh’s work provides an indispensable guide for understanding Pawari and Satpura folk rituals. Highly recommended for researchers of mythology and anthropology.
     `,
     tags: ['पुस्तक समीक्षा', 'सतपुड़ा लोकदेवता', 'अनुष्ठान', 'संस्कृति'],
-    likes_count: 29
+    likes_count: 29,
+    attached_items: [
+      {
+        id: 'att-bl4-1',
+        title: 'संलग्न ग्रन्थ: मध्य भारत की लोकसंस्कृति और ताप्ती अंचल',
+        type: 'book',
+        targetId: 'book-2',
+        description: 'ताप्ती एवं सतपुड़ा अंचल की संस्कृति पर विशेष ग्रन्थ।'
+      }
+    ]
   }
 ];
+
+export const SAMPLE_WRITERS: PawariWriterItem[] = [
+  {
+    id: 'writer-1',
+    name_hindi: 'डॉ. कैलाश पवार',
+    name_english: 'Dr. Kailash Pawar',
+    photo_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80',
+    designation_hindi: 'वरिष्ठ पवारी भाषाविद् एवं शोधकर्ता',
+    designation_english: 'Senior Pawari Linguist & Scholar',
+    location_hindi: 'मुलताई (जिला बैतूल, म.प्र.)',
+    location_english: 'Multai (Betul District, M.P.)',
+    specialization_hindi: 'पवारी भाषाविज्ञान, ध्वनिविज्ञान एवं लोकसाहित्य',
+    bio_hindi: 'डॉ. कैलाश पवार माँ ताप्ती शोध संस्थान, मुलताई के अध्यक्ष एवं पवारी भाषा व लोकसाहित्य के अग्रणी शोधकर्ता हैं। इन्होंने पवारी बोली के ध्वनिविज्ञान, व्याकरण, एवं शब्दकोश पर विगत 25 वर्षों में गहन शोध कार्य किया है। इनके संपादन में अनेक प्रामाणिक ग्रंथ एवं शोध पत्रिकाएं प्रकाशित हुई हैं।',
+    bio_english: 'Dr. Kailash Pawar is the President of Maa Tapti Shodh Sansthan, Multai, and a pioneering researcher of Pawari language and folklore.',
+    awards_hindi: ['माँ ताप्ती साहित्य रत्न सम्मान (2024)', 'मध्य प्रदेश लोकसंस्कृति शोध पुरस्कार', 'सतपुड़ा भाषा गौरव उपाधि'],
+    published_books: ['पवारी बोली एवं लोकसाहित्य का प्रामाणिक इतिहास', 'पवारी-हिंदी-अंग्रेजी शब्दकोश'],
+    published_blogs: ['पवारी बोली का उद्भव और ऐतिहासिक प्रसार', 'पवारी लोकगीत और ताप्ती अंचल'],
+    contact_email: 'dr.kailashpawar@pawarishodh.org',
+    contact_phone: '+91 94250 12345',
+    website_url: 'https://pawarishodh.org/scholars/dr-kailash-pawar',
+    social_links: {
+      facebook: 'https://facebook.com/pawarishodh',
+      youtube: 'https://youtube.com/@pawarishodh',
+      wikipedia: 'https://hi.wikipedia.org'
+    },
+    is_featured: true,
+    status: 'approved',
+    created_at: '2026-01-10T00:00:00.000Z'
+  },
+  {
+    id: 'writer-2',
+    name_hindi: 'प्रो. रामेश्वर शर्मा',
+    name_english: 'Prof. Rameshwar Sharma',
+    photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
+    designation_hindi: 'लोकसंस्कृतिविद् एवं साहित्यकार',
+    designation_english: 'Folklorist & Eminent Literary Scholar',
+    location_hindi: 'छिंदवाड़ा एवं नागपुर (अंचल)',
+    location_english: 'Chhindwara & Nagpur Region',
+    specialization_hindi: 'मध्य भारत का लोकसाहित्य एवं लोकगीत',
+    bio_hindi: 'प्रो. रामेश्वर शर्मा सतपुड़ा एवं वर्धा-नागपुर सीमावर्ती अंचल के मूर्धन्य लोकसंस्कृतिविद हैं। इन्होंने पवारी लोकगीतों, विवाह गीतों एवं लोककथाओं का व्यापक क्षेत्रीय संकलन तथा वैज्ञानिक विश्लेषण किया है।',
+    bio_english: 'Prof. Rameshwar Sharma is a renowned folklorist specializing in Central Indian oral literature.',
+    awards_hindi: ['सतपुड़ा साहित्य गौरव (2023)', 'लोककला संवर्धन पुरस्कार'],
+    published_books: ['सतपुड़ा अंचल के पवारी लोकगीत एवं कथाएं', 'पवारी लोकगाथाएं और मौखिक परंपरा'],
+    published_blogs: ['डिजिटल युग में पवारी लोकसाहित्य का दस्तावेजीकरण'],
+    contact_email: 'rameshwar.sharma@pawarishodh.org',
+    is_featured: true,
+    status: 'approved',
+    created_at: '2026-01-12T00:00:00.000Z'
+  },
+  {
+    id: 'writer-3',
+    name_hindi: 'डॉ. अनिता मालवीय',
+    name_english: 'Dr. Anita Malviya',
+    photo_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&auto=format&fit=crop&q=80',
+    designation_hindi: 'पवारी कवयित्री एवं लेखिका',
+    designation_english: 'Pawari Poetess & Author',
+    location_hindi: 'बैतूल (म.प्र.)',
+    location_english: 'Betul (M.P.)',
+    specialization_hindi: 'पवारी काव्य सृजन एवं नारी लोक चेतना',
+    bio_hindi: 'डॉ. अनिता मालवीय पवारी भाषा में आधुनिक काव्य सृजन करने वाली प्रमुख रचनाकार हैं। इनकी रचनाएं पवारी समाज में नारी चेतना, पर्यावरण संरक्षण और लोक उत्सवों को समर्पित हैं।',
+    bio_english: 'Dr. Anita Malviya is a prominent Pawari poetess creating modern literature rooted in folk tradition.',
+    awards_hindi: ['पवारी काव्य श्री सम्मान (2025)', 'महिला साहित्य सर्जना पुरस्कार'],
+    published_books: ['पवारी काव्य धारा: लोक चेतना के स्वर'],
+    published_blogs: ['पवारी लोकोत्सवों में मातृशक्तियों की भूमिका'],
+    contact_email: 'anita.malviya@pawarishodh.org',
+    is_featured: true,
+    status: 'approved',
+    created_at: '2026-01-15T00:00:00.000Z'
+  },
+  {
+    id: 'writer-4',
+    name_hindi: 'श्री सुरेश देशमुख',
+    name_english: 'Shri Suresh Deshmukh',
+    photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
+    designation_hindi: 'पवारी लोकसाहित्यकार एवं संस्कृति-अनुसंधानकर्ता',
+    designation_english: 'Pawari Folklorist & Cultural Researcher',
+    location_hindi: 'सिवनी (म.प्र.)',
+    location_english: 'Seoni (M.P.)',
+    specialization_hindi: 'पवारी कहावतें, पहेलियाँ एवं लोकदेवता अनुष्ठान',
+    bio_hindi: 'श्री सुरेश देशमुख सिवनी-छिंदवाड़ा क्षेत्र में पवारी लोक मुहावरों, कहावतों एवं पहेलियों के अग्रणी संकलनकर्ता हैं। इनके निरंतर प्रयासों से पवारी बोली के लुप्तप्राय शब्दों को नया जीवन मिला है।',
+    bio_english: 'Shri Suresh Deshmukh is an esteemed author collecting Pawari riddles and proverbs.',
+    awards_hindi: ['पवारी लोकसेवा सम्मान', 'सतपुड़ा शोध रत्न'],
+    published_books: ['पवारी लोक कहावतें एवं बुझौवल', 'सतपुड़ा के लोकदेवता और अनुष्ठान'],
+    published_blogs: ['सतपुड़ा की पवारी कहावतों में सामाजिक दर्शन'],
+    contact_email: 'suresh.deshmukh@pawarishodh.org',
+    is_featured: false,
+    status: 'approved',
+    created_at: '2026-01-20T00:00:00.000Z'
+  }
+];
+
+

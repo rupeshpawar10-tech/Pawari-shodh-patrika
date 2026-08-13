@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { EditorialMember } from '../../types';
+import { DEFAULT_PAWARI_MEMBER_AVATAR } from '../../data/seedData';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { SafeImage } from '../common/SafeImage';
-import { Users, Plus, Edit3, Trash2, Upload, X, ShieldAlert, Tag, Settings, CheckCircle2 } from 'lucide-react';
+import { Users, Plus, Edit3, Trash2, Upload, X, ShieldAlert, Tag, Settings, CheckCircle2, GraduationCap } from 'lucide-react';
 
 const DEFAULT_REQUIRED_ROLES = [
   'Patron',
@@ -96,7 +97,7 @@ export const EditorialBoardManager: React.FC = () => {
       affiliation_english: '',
       designation_hindi: '',
       designation_english: '',
-      photo_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+      photo_url: DEFAULT_PAWARI_MEMBER_AVATAR,
       email: '',
       research_areas: ['Linguistics'],
       order: editorialMembers.length + 1
@@ -130,21 +131,53 @@ export const EditorialBoardManager: React.FC = () => {
     const rawFile = e.target.files?.[0];
     if (!rawFile || !editingMember) return;
 
-    // 1. Instant local FileReader preview
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        setEditingMember(prev => prev ? { ...prev, photo_url: dataUrl } : null);
-      }
-    };
-    reader.readAsDataURL(rawFile);
-
     setUploadingPhoto(true);
     setPhotoError(null);
     setUploadSuccess(false);
+
     try {
-      // Compress the image first for avatars to prevent large base64 strings
+      // 1. Create a compressed Base64 Data URL (~20KB) as instant permanent fallback
+      const compressedDataUrl = await new Promise<string>((resolve) => {
+        const readerComp = new FileReader();
+        readerComp.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+            const maxDim = 300;
+            if (width > height) {
+              if (width > maxDim) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              }
+            } else {
+              if (height > maxDim) {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.82));
+            } else {
+              resolve((event.target?.result as string) || '');
+            }
+          };
+          img.onerror = () => resolve((event.target?.result as string) || '');
+          img.src = (event.target?.result as string) || '';
+        };
+        readerComp.onerror = () => resolve('');
+        readerComp.readAsDataURL(rawFile);
+      });
+
+      if (compressedDataUrl) {
+        setEditingMember(prev => prev ? { ...prev, photo_url: compressedDataUrl } : null);
+      }
+
+      // 2. Also prepare File object for Firebase Storage
       const compressedFile = await new Promise<File>((resolve) => {
         const readerComp = new FileReader();
         readerComp.onload = (event) => {
@@ -175,31 +208,28 @@ export const EditorialBoardManager: React.FC = () => {
                 } else {
                   resolve(rawFile);
                 }
-              }, 'image/jpeg', 0.8);
+              }, 'image/jpeg', 0.82);
             } else {
               resolve(rawFile);
             }
           };
           img.onerror = () => resolve(rawFile);
-          if (event.target?.result) {
-            img.src = event.target.result as string;
-          } else {
-            resolve(rawFile);
-          }
+          img.src = (event.target?.result as string) || '';
         };
         readerComp.onerror = () => resolve(rawFile);
         readerComp.readAsDataURL(rawFile);
       });
 
+      // 3. Upload to Firebase Storage
       const res = await uploadFileToStorage(compressedFile, 'editorial_photos');
-      if (res && res.url) {
+      if (res && res.url && (res.url.startsWith('http://') || res.url.startsWith('https://')) && !res.url.startsWith('blob:')) {
         setEditingMember(prev => prev ? { ...prev, photo_url: res.url } : null);
-        setUploadSuccess(true);
-        setTimeout(() => setUploadSuccess(false), 4000);
       }
+      setUploadSuccess(true);
+      setTimeout(() => setUploadSuccess(false), 4000);
     } catch (err: any) {
       console.error('Photo upload failed:', err);
-      // Even on storage error, local preview is kept so user can save
+      // Persistent compressed Data URL is kept as fallback
       setUploadSuccess(true);
     } finally {
       setUploadingPhoto(false);
@@ -256,10 +286,10 @@ export const EditorialBoardManager: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-amber-500/40 flex-shrink-0 bg-slate-100 shadow-2xs">
                   <SafeImage
-                    src={mem.photo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'}
-                    alt={mem.name_english}
+                    src={mem.photo_url || DEFAULT_PAWARI_MEMBER_AVATAR}
+                    alt={mem.name_english || mem.name_hindi || 'Editorial Member'}
                     className="w-full h-full object-cover"
-                    fallbackSrc="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
+                    fallbackSrc={DEFAULT_PAWARI_MEMBER_AVATAR}
                   />
                 </div>
                 <div>
@@ -271,7 +301,31 @@ export const EditorialBoardManager: React.FC = () => {
                 </div>
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed">{mem.affiliation_english}</p>
+              <p className="text-xs font-semibold text-slate-800">{mem.name_hindi}</p>
+              <p className="text-xs text-red-900 font-medium">{mem.designation_hindi || mem.designation_english}</p>
+              <p className="text-xs text-slate-600 leading-relaxed">{mem.affiliation_hindi || mem.affiliation_english}</p>
+
+              {/* Research Areas & Subject Areas Tags */}
+              {((mem.research_areas && mem.research_areas.length > 0) || (mem.subject_areas && mem.subject_areas.length > 0)) && (
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] font-mono font-bold text-amber-950 uppercase tracking-wider mb-1">
+                    Research Interests & Subject Areas:
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {[...(mem.research_areas || []), ...(mem.subject_areas || [])].map((area, idx) => (
+                      <span key={idx} className="text-[10px] bg-amber-50 text-amber-900 px-2 py-0.5 rounded font-medium border border-amber-200">
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(mem.bio_hindi || mem.bio_english) && (
+                <p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded border border-slate-200">
+                  "{mem.bio_hindi || mem.bio_english}"
+                </p>
+              )}
             </div>
 
             <div className="pt-3 border-t flex items-center justify-between text-xs">
@@ -411,23 +465,119 @@ export const EditorialBoardManager: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Designation (English)</label>
-                  <input type="text" value={editingMember.designation_english || ''} onChange={e => setEditingMember({ ...editingMember, designation_english: e.target.value })} className="w-full p-2 border rounded" />
+                  <label className="block font-bold text-slate-700 mb-1">Designation (Hindi / पदनाम हिंदी)</label>
+                  <input type="text" placeholder="उदा. मुख्य संपादक, सह-प्राध्यापक" value={editingMember.designation_hindi || ''} onChange={e => setEditingMember({ ...editingMember, designation_hindi: e.target.value })} className="w-full p-2 border rounded" />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Display Order</label>
-                  <input type="number" value={editingMember.order} onChange={e => setEditingMember({ ...editingMember, order: Number(e.target.value) })} className="w-full p-2 border rounded" />
+                  <label className="block font-bold text-slate-700 mb-1">Designation (English)</label>
+                  <input type="text" placeholder="e.g. Chief Editor, Associate Professor" value={editingMember.designation_english || ''} onChange={e => setEditingMember({ ...editingMember, designation_english: e.target.value })} className="w-full p-2 border rounded" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Affiliation (English)</label>
-                  <input type="text" value={editingMember.affiliation_english || ''} onChange={e => setEditingMember({ ...editingMember, affiliation_english: e.target.value })} className="w-full p-2 border rounded" />
+                  <label className="block font-bold text-slate-700 mb-1">Affiliation (Hindi / संस्थान हिंदी)</label>
+                  <input type="text" placeholder="उदा. भाषाविज्ञान विभाग, विश्वविद्यालय" value={editingMember.affiliation_hindi || ''} onChange={e => setEditingMember({ ...editingMember, affiliation_hindi: e.target.value })} className="w-full p-2 border rounded" />
                 </div>
                 <div>
+                  <label className="block font-bold text-slate-700 mb-1">Affiliation (English)</label>
+                  <input type="text" placeholder="e.g. Department of Linguistics, Central University" value={editingMember.affiliation_english || ''} onChange={e => setEditingMember({ ...editingMember, affiliation_english: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="block font-bold text-slate-700 mb-1">Email</label>
-                  <input type="email" value={editingMember.email || ''} onChange={e => setEditingMember({ ...editingMember, email: e.target.value })} className="w-full p-2 border rounded" />
+                  <input type="email" placeholder="editor@pawarishodh.org" value={editingMember.email || ''} onChange={e => setEditingMember({ ...editingMember, email: e.target.value })} className="w-full p-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Display Order (क्रम संख्या)</label>
+                  <input type="number" value={editingMember.order} onChange={e => setEditingMember({ ...editingMember, order: Number(e.target.value) })} className="w-full p-2 border rounded" />
+                </div>
+              </div>
+
+              {/* Research Interests & Subject Areas Fields */}
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center space-x-1.5 text-amber-950 font-bold text-xs uppercase tracking-wider">
+                  <GraduationCap className="w-4 h-4 text-amber-700" />
+                  <span>Research Interests & Subject Areas (शोध क्षेत्र एवं विषय क्षेत्र)</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Research Interests / Expertise Areas (शोध क्षेत्र - Comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. पवारी लोकसाहित्य, भाषाविज्ञान, Comparative Literature, Phonetics"
+                    value={(editingMember.research_areas || []).join(', ')}
+                    onChange={e => {
+                      const raw = e.target.value;
+                      const arr = raw.split(',').map(s => s.trimStart());
+                      setEditingMember({ ...editingMember, research_areas: arr });
+                    }}
+                    className="w-full p-2 border border-slate-300 rounded bg-white text-xs font-medium"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">Separate multiple topics with commas (,)</p>
+                  {editingMember.research_areas && editingMember.research_areas.filter(Boolean).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {editingMember.research_areas.filter(Boolean).map((area, i) => (
+                        <span key={i} className="text-[10px] bg-amber-100 text-amber-950 px-2 py-0.5 rounded font-medium border border-amber-300">
+                          {area.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Subject Areas / Specializations (विषय क्षेत्र - Comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Cultural Anthropology, Dialectology, Sociolinguistics"
+                    value={(editingMember.subject_areas || []).join(', ')}
+                    onChange={e => {
+                      const raw = e.target.value;
+                      const arr = raw.split(',').map(s => s.trimStart());
+                      setEditingMember({ ...editingMember, subject_areas: arr });
+                    }}
+                    className="w-full p-2 border border-slate-300 rounded bg-white text-xs font-medium"
+                  />
+                  {editingMember.subject_areas && editingMember.subject_areas.filter(Boolean).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {editingMember.subject_areas.filter(Boolean).map((subj, i) => (
+                        <span key={i} className="text-[10px] bg-red-100 text-red-950 px-2 py-0.5 rounded font-medium border border-red-300">
+                          {subj.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bio / Profile Summary */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Short Profile / Bio (हिंदी)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="संक्षिप्त विवरण / परिचय..."
+                    value={editingMember.bio_hindi || ''}
+                    onChange={e => setEditingMember({ ...editingMember, bio_hindi: e.target.value })}
+                    className="w-full p-2 border rounded text-xs bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Short Profile / Bio (English)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Short summary/bio..."
+                    value={editingMember.bio_english || ''}
+                    onChange={e => setEditingMember({ ...editingMember, bio_english: e.target.value })}
+                    className="w-full p-2 border rounded text-xs bg-white"
+                  />
                 </div>
               </div>
 
@@ -440,10 +590,10 @@ export const EditorialBoardManager: React.FC = () => {
                   {/* Photo Preview Circle - Always visible */}
                   <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-amber-500/60 flex-shrink-0 bg-slate-200 shadow-xs relative">
                     <SafeImage
-                      src={editingMember.photo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'}
+                      src={editingMember.photo_url || DEFAULT_PAWARI_MEMBER_AVATAR}
                       alt="Member photo preview"
                       className="w-full h-full object-cover"
-                      fallbackSrc="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
+                      fallbackSrc={DEFAULT_PAWARI_MEMBER_AVATAR}
                     />
                     {uploadingPhoto && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -460,13 +610,21 @@ export const EditorialBoardManager: React.FC = () => {
                         <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" disabled={uploadingPhoto} />
                       </label>
 
+                      <button
+                        type="button"
+                        onClick={() => setEditingMember({ ...editingMember, photo_url: DEFAULT_PAWARI_MEMBER_AVATAR })}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition text-xs shadow-2xs flex items-center gap-1"
+                      >
+                        <span>🏛️ पवारी शोध पत्रिका डिफ़ॉल्ट एम्बलेम (Default Emblem)</span>
+                      </button>
+
                       {editingMember.photo_url && (
                         <button
                           type="button"
-                          onClick={() => setEditingMember({ ...editingMember, photo_url: '' })}
+                          onClick={() => setEditingMember({ ...editingMember, photo_url: DEFAULT_PAWARI_MEMBER_AVATAR })}
                           className="text-xs text-red-700 hover:text-red-900 hover:underline font-bold px-2 py-1 bg-red-50 rounded border border-red-200"
                         >
-                          Remove Photo
+                          Reset to Default
                         </button>
                       )}
                     </div>
@@ -527,10 +685,10 @@ export const EditorialBoardManager: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setEditingMember({ ...editingMember, photo_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80' })}
-                      className="px-2 py-0.5 bg-slate-100 hover:bg-amber-100 text-slate-700 rounded border font-mono"
+                      onClick={() => setEditingMember({ ...editingMember, photo_url: DEFAULT_PAWARI_MEMBER_AVATAR })}
+                      className="px-2 py-0.5 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold rounded border border-amber-400 font-mono"
                     >
-                      Female 2
+                      Patrika Logo
                     </button>
                   </div>
                 </div>
