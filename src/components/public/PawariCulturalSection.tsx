@@ -28,6 +28,13 @@ import {
   Copy
 } from 'lucide-react';
 
+import { 
+  SAMPLE_SHABDKOSH, 
+  SAMPLE_PAHELI, 
+  SAMPLE_LOKGEET, 
+  SAMPLE_QUIZ_QUESTIONS 
+} from '../../data/pawariCulturalData';
+
 interface PawariCulturalSectionProps {
   initialTab?: 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz';
 }
@@ -36,10 +43,22 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const { shabdkoshList, paheliList, lokgeetList, quizQuestions, submitPublicContribution, uploadFileToStorage } = useCms();
   const [activeTab, setActiveTab] = useState<'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz'>(initialTab);
 
-  // Filter approved items only for public display (Pending contributions require CMS approval)
-  const approvedShabdkosh = shabdkoshList.filter(s => s.status === 'approved' || (!s.status && !s.id.startsWith('contrib_')));
-  const approvedPaheli = paheliList.filter(p => p.status === 'approved' || (!p.status && !p.id.startsWith('contrib_')));
-  const approvedLokgeet = lokgeetList.filter(l => l.status === 'approved' || (!l.status && !l.id.startsWith('contrib_')));
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  // Fallback to sample cultural data if Firestore collection is fresh or empty
+  const rawShabdkosh = (shabdkoshList && shabdkoshList.length > 0) ? shabdkoshList : SAMPLE_SHABDKOSH;
+  const rawPaheli = (paheliList && paheliList.length > 0) ? paheliList : SAMPLE_PAHELI;
+  const rawLokgeet = (lokgeetList && lokgeetList.length > 0) ? lokgeetList : SAMPLE_LOKGEET;
+  const rawQuizQuestions = (quizQuestions && quizQuestions.length > 0) ? quizQuestions : SAMPLE_QUIZ_QUESTIONS;
+
+  // Filter approved items only for public display
+  const approvedShabdkosh = rawShabdkosh.filter(s => s.status === 'approved' || (!s.status && !s.id.startsWith('contrib_')));
+  const approvedPaheli = rawPaheli.filter(p => p.status === 'approved' || (!p.status && !p.id.startsWith('contrib_')));
+  const approvedLokgeet = rawLokgeet.filter(l => l.status === 'approved' || (!l.status && !l.id.startsWith('contrib_')));
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -282,8 +301,8 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     const pool: QuizQuestion[] = [];
 
     // A. Master Quiz Questions List
-    if (quizQuestions && quizQuestions.length > 0) {
-      pool.push(...quizQuestions);
+    if (rawQuizQuestions && rawQuizQuestions.length > 0) {
+      pool.push(...rawQuizQuestions);
     }
 
     // B. Generate Dynamic Questions from Approved Shabdkosh
