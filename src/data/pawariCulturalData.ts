@@ -4468,7 +4468,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-3',
     question_pawari: '"एक थार मा मोती भरा, सब का सिर पर औंधा धरा" - या पहेली का सही उत्तर का है?',
     question_hindi: 'उपरोक्त पवारी पहेली का सही उत्तर क्या है?',
-    options: ['थाली और मोती (Plate & Pearls)', 'आकाश और तारे (Sky & Stars)', 'पेड़ और फल (Tree & Fruits)', 'बादल और बारिश (Cloud & Rain)'],
+    options: ['थाली और मोती', 'आकाश और तारे (Sky & Stars)', 'पेड़ और फल', 'बादल और बारिश'],
     correct_option_index: 1,
     explanation: 'यह पहेली रात के तारों से भरे विशाल आसमान का आलंकारिक वर्णन करती है। (पवारी पहेलियाँ)',
     section_type: 'paheli'
@@ -4477,7 +4477,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-4',
     question_pawari: 'पवारी लोक संस्कृति मा "भुजरिया" उत्सव किस पावन नदी के तट पर विशेष रूप से मनाया जाता है?',
     question_hindi: 'पवारी संस्कृति में भुजरिया पर्व किस पावन नदी के उद्गम व तट पर प्रसिद्ध है?',
-    options: ['नर्मदा नदी (Narmada River)', 'ताप्ती नदी (Tapti River)', 'गंगा नदी (Ganga River)', 'गोदावरी नदी (Godavari River)'],
+    options: ['नर्मदा नदी', 'ताप्ती नदी (Tapti River)', 'गंगा नदी', 'गोदावरी नदी'],
     correct_option_index: 1,
     explanation: 'मुलताई (बैतूल) स्थित माँ ताप्ती नदी के तट पर भुजरिया पर्व पवारी लोक संस्कृति का गौरव है।',
     section_type: 'lokgeet'
@@ -4495,7 +4495,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-6',
     question_pawari: 'पवारी लोकगीत मा "बधावा" किस अवसर पर गाया जाता है?',
     question_hindi: 'पवारी लोकगीत में "बधावा" किस अवसर पर गाया जाता है?',
-    options: ['शोक के समय (Time of Sorrow)', 'शुभ मांगलिक एवं जन्मोत्सव/पर्व पर (Auspicious Occasions / Birth)', 'केवल वर्षा काल में (Only in Rainy Season)', 'युद्ध के समय (Time of War)'],
+    options: ['शोक के समय', 'शुभ मांगलिक एवं जन्मोत्सव/पर्व पर', 'केवल वर्षा काल में', 'युद्ध के समय'],
     correct_option_index: 1,
     explanation: 'शुभ अवसरों, जन्मोत्सव एवं पर्वों पर गाया जाने वाला बधाई/मंगल गीत "बधावा" कहलाता है।',
     section_type: 'lokgeet'
@@ -4504,7 +4504,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-7',
     question_pawari: '"एक हाथ की ककड़ी, नौ हाथ का बीज" - या पवारी पहेली का सही उत्तर का है?',
     question_hindi: '"एक हाथ की ककड़ी, नौ हाथ का बीज" पहेली का सही उत्तर क्या है?',
-    options: ['सुई और धागा (Needle & Thread)', 'पेड़ और पत्ती (Tree & Leaf)', 'धनुष और बाण (Bow & Arrow)', 'हल और बैल (Plough & Bull)'],
+    options: ['सुई और धागा (Needle & Thread)', 'पेड़ और पत्ती', 'धनुष और बाण', 'हल और बैल'],
     correct_option_index: 0,
     explanation: 'सिलाई में प्रयुक्त छोटी सुई और उसमें पिरोये लंबे धागे की यह प्रसिद्ध पवारी बुझौवल है। (पवारी पहेलियाँ पुस्तक)',
     section_type: 'paheli'
@@ -4513,7 +4513,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-8',
     question_pawari: '"काली गाय कांट मा चरै, पानी पिये त मर जावै" - या पवारी पहेली का सही उत्तर का है?',
     question_hindi: 'यह पवारी पहेली किस प्राकृतिक तत्व की प्रतीक है?',
-    options: ['आग / अग्नि (Fire)', 'पानी / जल (Water)', 'हवा / पवन (Air / Wind)', 'बर्फ (Ice / Snow)'],
+    options: ['आग / अग्नि (Fire)', 'पानी / जल', 'हवा / पवन', 'बर्फ'],
     correct_option_index: 0,
     explanation: 'आग लकड़ी/कांट खाकर जलती है परंतु पानी पड़ते ही बुझ जाती है।',
     section_type: 'paheli'
@@ -4522,7 +4522,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-9',
     question_pawari: '"बत्तिस पहरेदार के बिच मा, मीठी बात सुनाय" - पवारी पहेली मा "बत्तिस पहरेदार" काकर प्रतीक है?',
     question_hindi: 'उपरोक्त पवारी पहेली में "बत्तिस पहरेदार" किसका प्रतीक है?',
-    options: ['बत्तीस दांत (32 Teeth)', 'बत्तीस गाँव (32 Villages)', 'बत्तीस सिपाही (32 Soldiers)', 'बत्तीस पेड़ (32 Trees)'],
+    options: ['बत्तीस दांत (32 Teeth)', 'बत्तीस गाँव', 'बत्तीस सिपाही', 'बत्तीस पेड़'],
     correct_option_index: 0,
     explanation: 'पवारी लोक पहेली में 32 दांतों को जीभ की सुरक्षा करने वाले सैनिक/पहरेदार माना गया है।',
     section_type: 'paheli'
@@ -4531,7 +4531,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-10',
     question_pawari: '"चार पैर छै हाथ, दो सिर एक पूंछ" - या पवारी पहेली किस दृश्य का वर्णन करती है?',
     question_hindi: 'यह पहेली पवारी अंचल के किस ग्रामीण दृश्य को दर्शाती है?',
-    options: ['हल जोतता किसान और बैल (Farmer with Bullocks)', 'मेले का नर्तक (Dancer)', 'नाव चलाता मल्लाह (Boatman)', 'कुम्हार का चाक (Potter Wheel)'],
+    options: ['हल जोतता किसान और बैल (Farmer with Bullocks)', 'मेले का नर्तक', 'नाव चलाता मल्लाह', 'कुम्हार का चाक'],
     correct_option_index: 0,
     explanation: 'किसान के हाथ-पैर और दो बैलों के पैर व पूंछ को मिलाकर खेत जुताई का पवारी लोक गणित दर्शाया गया है।',
     section_type: 'paheli'
@@ -4540,7 +4540,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-11',
     question_pawari: '"कटोरी मा कटोरी, बेटा बाप से भी गोरा" - या पहेली का सही जवाब का है?',
     question_hindi: '"कटोरी मा कटोरी, बेटा बाप से भी गोरा" पहेली का सही उत्तर क्या है?',
-    options: ['नारियल (Coconut)', 'अंडा (Egg)', 'दूध और मलाई (Milk & Cream)', 'सफेद मिठाई (White Sweet)'],
+    options: ['नारियल (Coconut)', 'अंडा', 'दूध और मलाई', 'सफेद मिठाई'],
     correct_option_index: 0,
     explanation: 'नारियल के भूरे आवरण के भीतर से निकलने वाले धवल सफेद खोपरे और मीठे जल के लिए यह पहेली विख्यात है।',
     section_type: 'paheli'
@@ -4549,7 +4549,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-12',
     question_pawari: '"एक पेट मा सौ-सौ संतान, खोल के देखो त ज्ञान ही ज्ञान" - या पहेली का सही उत्तर का है?',
     question_hindi: 'उपरोक्त पवारी पहेली का सही उत्तर क्या है?',
-    options: ['पुस्तक / किताब (Book)', 'तिजोरी (Safe / Vault)', 'अलमारी (Cupboard)', 'स्कूल (School)'],
+    options: ['पुस्तक / किताब (Book)', 'तिजोरी', 'अलमारी', 'स्कूल'],
     correct_option_index: 0,
     explanation: 'पुस्तक के पन्नों को संतान और उससे मिलने वाली सीख को ज्ञान का खजाना कहा गया है।',
     section_type: 'paheli'
@@ -4558,7 +4558,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-13',
     question_pawari: '"धूप मा जन्मे, छांव मा मुरझावे" - यह पहेली पवारी लोक जीवन मा किसका प्रतीक है?',
     question_hindi: 'यह पहेली पवारी किसान व मजदूर के किस अमूल्य श्रम जल की प्रतीक है?',
-    options: ['पसीना (Sweat)', 'छाछ / लस्सी (Buttermilk / Lassi)', 'ताप्ती नदी जल (Tapti River Water)', 'वर्षा जल (Rain Water)'],
+    options: ['पसीना (Sweat)', 'छाछ / लस्सी', 'ताप्ती नदी जल', 'वर्षा जल'],
     correct_option_index: 0,
     explanation: 'कड़ी धूप व परिश्रम में बहने वाला पसीना छांव और हवा मिलते ही सूख जाता है।',
     section_type: 'paheli'
@@ -4567,7 +4567,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-14',
     question_pawari: '"छोटा सा सिपाही, ओकी लाल-लाल टोपी..." पहेली का सही उत्तर का है?',
     question_hindi: 'इस पवारी पहेली का सही उत्तर क्या है?',
-    options: ['माचिस की तीली (Matchstick)', 'लाल मिर्च (Red Chili)', 'छोटा दीया (Small Lamp)', 'गुलाब का फूल (Rose Flower)'],
+    options: ['माचिस की तीली (Matchstick)', 'लाल मिर्च', 'छोटा दीया', 'गुलाब का फूल'],
     correct_option_index: 0,
     explanation: 'माचिस की तीली का लाल सिरा सिपाही की टोपी जैसा प्रतीत होता है जो रगड़ते ही जल उठता है।',
     section_type: 'paheli'
@@ -4576,7 +4576,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-15',
     question_pawari: '"खाल का भीतर बाल, बाल का भीतर दाना..." पवारी पहेली का सही उत्तर का है?',
     question_hindi: 'मक्के/भुट्टे पर आधारित इस पवारी पहेली का उत्तर क्या है?',
-    options: ['भुट्टा / मक्का (Corn / Maize)', 'गेहूँ (Wheat)', 'चना (Chickpea)', 'सोयाबीन (Soybean)'],
+    options: ['भुट्टा / मक्का (Corn)', 'गेहूँ', 'चना', 'सोयाबीन'],
     correct_option_index: 0,
     explanation: 'मक्के के छिलके (खाल), बाल और भीतर के दानों का पवारी पहेलियाँ पुस्तक में वर्णन है।',
     section_type: 'paheli'
@@ -4585,7 +4585,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-16',
     question_pawari: '"एक थाली म दो अंडा, एक गरम एक ठंडा" - पवारी पहेली मा गरम और ठंडा अंडा काकर प्रतीक है?',
     question_hindi: 'इस पहेली में गरम व ठंडा अंडा किसके प्रतीक हैं?',
-    options: ['सूरज और चंद्रमा (Sun & Moon)', 'आग और पानी (Fire & Water)', 'दिन और रात (Day & Night)', 'रोटी और तवा (Roti & Tawa)'],
+    options: ['सूरज और चंद्रमा (Sun & Moon)', 'आग और पानी', 'दिन और रात', 'रोटी और तवा'],
     correct_option_index: 0,
     explanation: 'आकाश रूपी थाली में सूर्य (ताप/गरम) तथा चंद्रमा (शीतलता/ठंडा) को दो अंडों का रूपक दिया गया है।',
     section_type: 'paheli'
@@ -4594,7 +4594,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-17',
     question_pawari: '"एक डाक्टर रात म आवय, बिन पूछ्या सुई लगावय" - या व्यंग्यात्मक पहेली का उत्तर का है?',
     question_hindi: 'रात को बिन पूछे सुई लगाने वाले "डाक्टर" रूपी कीट की पहेली का उत्तर क्या है?',
-    options: ['मच्छर (Mosquito)', 'मधुमक्खी (Honeybee)', 'चींटी (Ant)', 'बिच्छू (Scorpion)'],
+    options: ['मच्छर (Mosquito)', 'मधुमक्खी', 'चींटी', 'बिच्छू'],
     correct_option_index: 0,
     explanation: 'रात में काटने वाले मच्छर को पवारी बुझौवल में बिन पूछे सुई लगाने वाला डॉक्टर कहा गया है।',
     section_type: 'paheli'
@@ -4603,7 +4603,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-18',
     question_pawari: '"सब कुई चली गया, बुढऊ दादा लटक गया" - यह पवारी पहेली किस सुरक्षा उपकरण की है?',
     question_hindi: 'सबके जाने के बाद किवाड़ पर लटकने वाले इस उपकरण की पहेली का उत्तर क्या है?',
-    options: ['ताला (Lock)', 'सांकल (Latch / Chain)', 'दीपक (Lamp)', 'घंटी (Bell)'],
+    options: ['ताला (Lock)', 'सांकल', 'दीपक', 'घंटी'],
     correct_option_index: 0,
     explanation: 'सबके चले जाने पर दरवाजे की सुरक्षा हेतु लटकने वाले ताले की पवारी लोक उपमा है।',
     section_type: 'paheli'
@@ -4612,7 +4612,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-19',
     question_pawari: '"काली गाय, कलेजा खाय, छूटय बछरू लंका जाय" - या पवारी पहेली का सही उत्तर का है?',
     question_hindi: 'यह पवारी पहेली किस आग्नेयास्त्र और उसकी गोली को दर्शाती है?',
-    options: ['बंदूक और गोली (Gun & Bullet)', 'धनुष बाण (Bow & Arrow)', 'तोप (Cannon)', 'तलवार (Sword)'],
+    options: ['बंदूक और गोली (Gun & Bullet)', 'धनुष बाण', 'तोप', 'तलवार'],
     correct_option_index: 0,
     explanation: 'काली बंदूक और उससे तीव्र सनसनाहट के साथ निकलने वाली गोली (बछरू) का अद्भुत काव्यात्मक रूपक।',
     section_type: 'paheli'
@@ -4621,7 +4621,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-20',
     question_pawari: '"गोल-गोल चकरी म गल्ली गल्ली रस" - यह पवारी पहेली किस प्रसिद्ध मिठाई की है?',
     question_hindi: 'चाशनी में डूबी गोल-गोल घुमावदार पवारी पहेली का सही उत्तर क्या है?',
-    options: ['जलेबी (Jalebi)', 'गुलाब जामुन (Gulab Jamun)', 'इमरती (Imarti)', 'पेड़ा (Peda)'],
+    options: ['जलेबी (Jalebi)', 'गुलाब जामुन', 'इमरती', 'पेड़ा'],
     correct_option_index: 0,
     explanation: 'गोल-गोल जलेबी की पंक्तियों व गलियों में भरी रसदार चाशनी पर रची गई मिठाई पहेली।',
     section_type: 'paheli'
@@ -4630,7 +4630,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-21',
     question_pawari: '"गर्मी मा जेका से घबराते, जाड़े मा ओका हम खाते" - या पवारी पहेली का सही उत्तर का है?',
     question_hindi: 'सर्दियों में सुखद और गर्मियों में घबराहट देने वाली धूप/सूर्य ताप की पहेली का सही उत्तर क्या है?',
-    options: ['धूप / सूर्य प्रकाश (Sunlight)', 'चाय (Tea)', 'आग (Fire)', 'कंबल (Blanket)'],
+    options: ['धूप / सूर्य प्रकाश (Sunlight)', 'चाय', 'आग', 'कंबल'],
     correct_option_index: 0,
     explanation: 'शीतकाल में अति प्रिय और ग्रीष्मकाल में प्रचंड लगने वाली धूप का पवारी लोक वर्णन है।',
     section_type: 'paheli'
@@ -4639,7 +4639,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-22',
     question_pawari: '"खुली रात म जन्म लेत, हरी घास प सोती" - यह पवारी पहेली किसकी है?',
     question_hindi: 'हरी घास पर प्रातःकाल मोती जैसी चमकने वाली इस बूंद की पहेली का उत्तर क्या है?',
-    options: ['ओस की बूँद (Dew Drop)', 'वर्षा की बूँद (Rain Drop)', 'ओला (Hailstone)', 'मोती (Pearl)'],
+    options: ['ओस की बूँद (Dew Drop)', 'वर्षा की बूँद', 'ओला', 'मोती'],
     correct_option_index: 0,
     explanation: 'प्रातःकाल हरी घास पर सुशोभित ओस की पारदर्शी बूंदों का यह पवारी काव्य रूपक है।',
     section_type: 'paheli'
@@ -4648,7 +4648,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-23',
     question_pawari: '"छिलका न डंठल, सफेद-सफेद होय" - या पवारी पहेली का उत्तर का है?',
     question_hindi: 'बिना छिलके और बिना डंठल के आकाश से गिरने वाले सफ़ेद हिम गोलक क्या कहलाते हैं?',
-    options: ['ओला / बर्फ (Hailstone / Ice)', 'रसगुल्ला (Rasgulla)', 'नारियल (Coconut)', 'अंडा (Egg)'],
+    options: ['ओला / बर्फ (Hailstone)', 'रसगुल्ला', 'नारियल', 'अंडा'],
     correct_option_index: 0,
     explanation: 'आकाश से गिरने वाले प्राकृतिक सफ़ेद बर्फीले ओलों की यह पवारी बुझौवल है।',
     section_type: 'paheli'
@@ -4657,7 +4657,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-24',
     question_pawari: '"घास-पात खाकर मैं जीती, पानी पीते ही मर जाती" - यह पवारी पहेली किसकी है?',
     question_hindi: 'सूखे ईंधन से प्रज्वलित होने वाली और जल डालते ही बुझने वाली इस पहेली का उत्तर क्या है?',
-    options: ['आग / अग्नि (Fire)', 'बिजली (Electricity)', 'धूप (Sunlight)', 'हवा (Air)'],
+    options: ['आग / अग्नि (Fire)', 'बिजली', 'धूप', 'हवा'],
     correct_option_index: 0,
     explanation: 'ईंधन/घास से धधकने वाली आग जल के संस्पर्श से तुरंत बुझ जाती है।',
     section_type: 'paheli'
@@ -4666,7 +4666,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-25',
     question_pawari: '"लिया काला, वापरा तो लाल। फेंका सफेद" - यह पवारी पहेली किस घरेलू ईंधन की है?',
     question_hindi: 'उपयोग के पूर्व काला, जलते समय लाल और बुझने पर राख बनने वाली वस्तु क्या है?',
-    options: ['कोयला (Coal)', 'लकड़ी (Wood)', 'माचिस (Matchbox)', 'लोहा (Iron)'],
+    options: ['कोयला (Coal)', 'लकड़ी', 'माचिस', 'लोहा'],
     correct_option_index: 0,
     explanation: 'काले कोयले का प्रज्वलित होकर दहकना और जलने के बाद सफ़ेद राख में बदल जाना।',
     section_type: 'paheli'
@@ -4675,7 +4675,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-26',
     question_pawari: '"पानी मेरा बाप, पानी मेरा बेटा" - या पवारी पहेली का सही उत्तर का है?',
     question_hindi: 'जल से वाष्प बनकर बनने वाले और पुनः जल बरसाने वाले इस प्राकृतिक तत्त्व का नाम क्या है?',
-    options: ['बादल / मेघ (Cloud)', 'नदी (River)', 'समुद्र (Sea / Ocean)', 'झरना (Waterfall)'],
+    options: ['बादल / मेघ (Cloud)', 'नदी', 'समुद्र', 'झरना'],
     correct_option_index: 0,
     explanation: 'जल से वाष्प रूप में बादल का निर्माण और बादल से वर्षा द्वारा पुनः जल प्राप्ति चक्र।',
     section_type: 'paheli'
@@ -4684,7 +4684,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-27',
     question_pawari: '"इक नारी का मैला रंग, सदा रहे पीय के संग" - यह पवारी पहेली किसकी है?',
     question_hindi: 'धूप में सदैव साथ चलने वाली और छांव में गायब हो जाने वाली काया का क्या नाम है?',
-    options: ['परछाई (Shadow)', 'साड़ी (Saree)', 'साइकिल (Bicycle)', 'लाठी (Stick)'],
+    options: ['परछाई (Shadow)', 'साड़ी', 'साइकिल', 'लाठी'],
     correct_option_index: 0,
     explanation: 'मनुष्य की परछाई धूप में निरंतर साथ रहती है और अंधकार में दिखाई नहीं देती।',
     section_type: 'paheli'
@@ -4693,7 +4693,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-28',
     question_pawari: '"बारह शाखा पेड़ की, बावन उसके फूल" - यह पवारी पहेली किस काल गणना की है?',
     question_hindi: '12 महीने, 52 सप्ताह और 7 दिनों की गणना वाली इस पहेली का उत्तर क्या है?',
-    options: ['वर्ष, सप्ताह और दिन (Year, Weeks & Days)', 'घड़ी (Clock)', 'कैलेंडर (Calendar)', 'माह (Month)'],
+    options: ['वर्ष, सप्ताह और दिन (Year & Days)', 'घड़ी', 'कैलेंडर', 'माह'],
     correct_option_index: 0,
     explanation: 'एक वर्ष के 12 महीने (शाखा), 52 सप्ताह (फूल) एवं 7 दिन (पंखुड़ी) का काव्यात्मक संकलन।',
     section_type: 'paheli'
@@ -4702,7 +4702,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-29',
     question_pawari: '"सोने की वह चीज है, बिके हाट बाजार। पॉव भी उसके चार हैं" - यह पवारी पहेली किसकी है?',
     question_hindi: 'विश्राम व निद्रा के उपयोग में आने वाली चार पैरों वाली वस्तु की पहेली का उत्तर क्या है?',
-    options: ['खाट / चारपाई (Cot / Charpoy)', 'मेज (Table)', 'कुर्सी (Chair)', 'बक्सा (Trunk / Box)'],
+    options: ['खाट / चारपाई (Cot / Charpoy)', 'मेज', 'कुर्सी', 'बक्सा'],
     correct_option_index: 0,
     explanation: 'सोने (शयन) के काम आने वाली चार पैरों वाली खाट/चारपाई की पवारी लोक उपमा।',
     section_type: 'paheli'
@@ -4711,7 +4711,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-30',
     question_pawari: '"काला घोड़ा, सफेद सवारी, एक के बाद एक की बारी" - यह पवारी रसोई पहेली का सही उत्तर का है?',
     question_hindi: 'काले लोहे के तवे पर पकती सफ़ेद रोटी के सजीव दृश्य की पहेली का क्या उत्तर है?',
-    options: ['तवा और रोटी (Tawa & Roti)', 'कढ़ाई और पूड़ी (Kadhai & Poori)', 'चूल्हा और आग (Stove & Fire)', 'थाली और कटोरी (Plate & Bowl)'],
+    options: ['तवा और रोटी (Tawa & Roti)', 'कढ़ाई और पूड़ी', 'चूल्हा और आग', 'थाली और कटोरी'],
     correct_option_index: 0,
     explanation: 'काले तवे पर सफ़ेद रोटियों के बारी-बारी से सिकने का पवारी रसोई चित्रण।',
     section_type: 'paheli'
@@ -4720,7 +4720,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-31',
     question_pawari: '"दूध का पोता, दही का बच्चा" - या पवारी पहेली का सही उत्तर का है?',
     question_hindi: 'दही को मथकर तैयार किए जाने वाले शीतल पेय की इस पारिवारिक पहेली का उत्तर क्या है?',
-    options: ['छाछ / मठा (Buttermilk)', 'पनीर (Cottage Cheese)', 'मावा (Mawa)', 'घी (Ghee / Clarified Butter)'],
+    options: ['छाछ / मठा (Buttermilk)', 'पनीर', 'मावा', 'घी'],
     correct_option_index: 0,
     explanation: 'दूध से दही और दही से मथकर प्राप्त स्वादिष्ट छाछ/मठे का पवारी संबंध निरूपण।',
     section_type: 'paheli'
@@ -4729,7 +4729,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-32',
     question_pawari: '"कॉटे बीच पैदा हुए, शबरी देती प्रेम से" - यह पौराणिक पवारी पहेली किस फल की है?',
     question_hindi: 'कांटेदार झाड़ी में लगने वाले शबरी के प्रिय बेरों की पहेली का उत्तर क्या है?',
-    options: ['बेर (Jujube / Ber)', 'अमरूद (Guava)', 'जामुन (Black Plum)', 'आम (Mango)'],
+    options: ['बेर (Jujube / Ber)', 'अमरूद', 'जामुन', 'आम'],
     correct_option_index: 0,
     explanation: 'भक्त शबरी द्वारा प्रभु राम को अर्पित किए गए मीठे बेरों की यह भक्तिपरक पवारी पहेली है।',
     section_type: 'paheli'
@@ -4738,7 +4738,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-33',
     question_pawari: '"छोटे से सूरदास, कपड़े पहने सौ पचास" - यह पवारी पहेली किस सब्जी की है?',
     question_hindi: 'अनेक परतों वाली और काटते समय अश्रु लाने वाली किस कंद सब्जी की यह पहेली है?',
-    options: ['प्याज (Onion)', 'आलू (Potato)', 'लहसुन (Garlic)', 'अदरक (Ginger)'],
+    options: ['प्याज (Onion)', 'आलू', 'लहसुन', 'अदरक'],
     correct_option_index: 0,
     explanation: 'प्याज (कांदा) की अनेक परतों और काटते समय आँखों में पानी लाने की स्वाभाविक प्रवृत्ति।',
     section_type: 'paheli'
@@ -4747,7 +4747,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-34',
     question_pawari: '"जला तो सबके मन भाया, बूझा तो कुछ काम न आया" - यह पवारी पहेली किसकी है?',
     question_hindi: 'रात को दीप पर्व पर लौ जलाकर उजाला बिखेरने वाले मिट्टी के पात्र का नाम क्या है?',
-    options: ['दीपक / दीया (Earthen Lamp)', 'मोमबत्ती (Candle)', 'लालटेन (Lantern)', 'टॉर्च (Torch)'],
+    options: ['दीपक / दीया (Earthen Lamp)', 'मोमबत्ती', 'लालटेन', 'टॉर्च'],
     correct_option_index: 0,
     explanation: 'दीपावली एवं मांगलिक अवसरों पर जलने वाले पारंपरिक मिट्टी के दीये का वर्णन।',
     section_type: 'paheli'
@@ -4756,7 +4756,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-35',
     question_pawari: '"आगे घेरा पीछे घेरा, जंजीर बँधी पाँवों में" - या पवारी पहेली का सही उत्तर का है?',
     question_hindi: 'दो पहियों और चैन-पैडल वाली सुगम सवारी वाहन की पहेली का सही उत्तर क्या है?',
-    options: ['साइकिल (Bicycle)', 'मोटरसाइकिल (Motorcycle)', 'गाड़ी (Car)', 'रिक्शा (Rickshaw)'],
+    options: ['साइकिल (Bicycle)', 'मोटरसाइकिल', 'गाड़ी', 'रिक्शा'],
     correct_option_index: 0,
     explanation: 'दो पहियों (घेरा) और चैन-पैडल से चलने वाली जनप्रिय साइकिल की पवारी बुझौवल।',
     section_type: 'paheli'
@@ -4765,7 +4765,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-36',
     question_pawari: '"हाथ म् हिरवो, मुंढा म् लाल" - यह पवारी स्वादिष्ठ पहेली किसकी है?',
     question_hindi: 'हरा पत्ता जिसे मुख में चबाने पर लाल रंग की लाली आती है, उसका नाम क्या है?',
-    options: ['पान का बीड़ा (Betel Leaf / Pan)', 'मिर्ची (Chili)', 'टमाटर (Tomato)', 'सेब (Apple)'],
+    options: ['पान का बीड़ा (Betel Leaf / Pan)', 'मिर्ची', 'टमाटर', 'सेब'],
     correct_option_index: 0,
     explanation: 'हरे पान के पत्ते में चूना-कत्था मिलाकर चबाने पर मुख में आने वाली लाल रंगत।',
     section_type: 'paheli'
@@ -4774,7 +4774,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-37',
     question_pawari: '"तन हिरवो, मुंढा लाल, मीठी बोली बोले पक्षी" - या पवारी पहेली का उत्तर का है?',
     question_hindi: 'हरे पंख और लाल चोंच वाले सुरीले पक्षी की इस पवारी पहेली का उत्तर क्या है?',
-    options: ['तोता / मिट्ठू (Parrot)', 'मैना (Myna)', 'कोयल (Cuckoo)', 'मोर (Peacock)'],
+    options: ['तोता / मिट्ठू (Parrot)', 'मैना', 'कोयल', 'मोर'],
     correct_option_index: 0,
     explanation: 'हरे शरीर और लाल चोंच वाले तोते (सुआ/मिट्ठू) की पवारी लोक पहचान।',
     section_type: 'paheli'
@@ -4783,7 +4783,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-38',
     question_pawari: '"फूल ऊप्पर, फल भीतर लगय, ओ म् सी तेल निकलय" - यह किस तिलहनी फसल की पहेली है?',
     question_hindi: 'भूमि के अंदर फलने वाली और स्वादिष्ट तेल देने वाली किस फसल की यह पहेली है?',
-    options: ['मूंगफली (Groundnut / Peanut)', 'सोयाबीन (Soybean)', 'सरसों (Mustard)', 'तिल (Sesame)'],
+    options: ['मूंगफली (Groundnut)', 'सोयाबीन', 'सरसों', 'तिल'],
     correct_option_index: 0,
     explanation: 'जमीन के भीतर पकने वाली पौष्टिक तिलहनी मूंगफली (मूँगा) का पवारी कृषि निरूपण।',
     section_type: 'paheli'
@@ -4792,7 +4792,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-39',
     question_pawari: '"बिना सुई चोरी सिली, फुलगी लगी हजार" - यह पवारी पहेली किस प्राकृतिक आवरण की है?',
     question_hindi: 'सांप द्वारा आवधिक रूप से उतारे जाने वाले निष्प्राण आवरण को क्या कहते हैं?',
-    options: ['सांप की केंचुली (Snake Skin / Slough)', 'छाल (Tree Bark)', 'पंख (Feather)', 'खोल (Shell)'],
+    options: ['सांप की केंचुली (Snake Skin)', 'छाल', 'पंख', 'खोल'],
     correct_option_index: 0,
     explanation: 'सांप की बिना सिलाई के निर्मित पारदर्शी केंचुली का प्राकृतिक कौतुक।',
     section_type: 'paheli'
@@ -4801,7 +4801,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-40',
     question_pawari: '"लाल फूल गुलाब को झिलमिल जिगाय, न माली घर उपजय न राजा घर जाय" - या पवारी पहेली का सही उत्तर का है?',
     question_hindi: 'नभोमंडल में उदित होने वाले स्वर्णिम प्रकाशपुंज की इस पवारी पहेली का उत्तर क्या है?',
-    options: ['सूरज / भानु (Sun)', 'चंद्रमा (Moon)', 'तारा (Star)', 'दीपक (Lamp)'],
+    options: ['सूरज / भानु (Sun)', 'चंद्रमा', 'तारा', 'दीपक'],
     correct_option_index: 0,
     explanation: 'आकाश रूपी विशाल गगन में प्रतिदिन उदित होने वाले चमकते सूर्य की महिमा।',
     section_type: 'paheli'
@@ -4810,7 +4810,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-41',
     question_pawari: '"माय चबरी, बेटी झाबरी" - या पवारी पहेली का उत्तर का है?',
     question_hindi: 'झाड़ी में पकने वाले स्वादिष्ट लाल-पीले फल की पहेली का उत्तर क्या है?',
-    options: ['बेर / बोर (Ber / Jujube)', 'जामुन (Black Plum)', 'आम (Mango)', 'अंगूर (Grapes)'],
+    options: ['बेर / बोर (Ber)', 'जामुन', 'आम', 'अंगूर'],
     correct_option_index: 0,
     explanation: 'झाड़ी (चबरी मां) और उसमें फलने वाले बेरों (झाबरी बेटी) की पवारी उपमा। (चिहनन की काहयनी)',
     section_type: 'paheli'
@@ -4819,7 +4819,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-42',
     question_pawari: '"एक कुआ म घाट हजार, घाट-घाट प चौकीदार" - यह पवारी पहेली किसकी है?',
     question_hindi: 'रात्रि में मच्छरों से रक्षा करने वाले जालीदार आवरण की पहेली का उत्तर क्या है?',
-    options: ['मच्छरदानी (Mosquito Net)', 'चादर (Bedsheet)', 'पर्दा (Curtain)', 'कंबल (Blanket)'],
+    options: ['मच्छरदानी (Mosquito Net)', 'चादर', 'पर्दा', 'कंबल'],
     correct_option_index: 0,
     explanation: 'मच्छरदानी की जाली और हजारों छेदों का पवारी रूपक। (चिहनन की काहयनी)',
     section_type: 'paheli'
@@ -4828,7 +4828,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-43',
     question_pawari: '"फूँक सी बूझत नी, माचिस सी जलत नी" - या पवारी पहेली का उत्तर का है?',
     question_hindi: 'बटन दबाते ही जलने वाले रोशनी के साधन का उत्तर क्या है?',
-    options: ['बिजली का बल्ब (Electric Bulb)', 'मोमबत्ती (Candle)', 'दीपक (Earthen Lamp)', 'मशाल (Torchlight)'],
+    options: ['बिजली का बल्ब (Electric Bulb)', 'मोमबत्ती', 'दीपक', 'मशाल'],
     correct_option_index: 0,
     explanation: 'बिजली से जलने वाले आधुनिक बल्ब पर रची गई पवारी लोक पहेली। (चिहनन की काहयनी)',
     section_type: 'paheli'
@@ -4837,7 +4837,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-44',
     question_pawari: '"दादा अऊर पोता एक रात म् जन्मय" - यह पवारी रसोई पहेली किसकी है?',
     question_hindi: 'दूध से रातों-रात जमने वाले स्वादिष्ट खाद्य पदार्थ की पहेली का उत्तर क्या है?',
-    options: ['दूध और दही (Milk & Curd)', 'मक्खन और घी (Butter & Ghee)', 'मठा और लस्सी (Buttermilk & Lassi)', 'पनीर और खोया (Cheese & Khoya)'],
+    options: ['दूध और दही (Milk & Curd)', 'मक्खन और घी', 'मठा और लस्सी', 'पनीर और खोया'],
     correct_option_index: 0,
     explanation: 'दूध (दादा) और उसी से रात भर में बनने वाले दही (पोता) की उत्पत्ति पहेली। (चिहनन की काहयनी)',
     section_type: 'paheli'
@@ -4846,7 +4846,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-45',
     question_pawari: '"नी राजा का राज म्, नी माली का बाग म्, फोड़्हे ते गुठली नी" - यह पवारी पहेली किसकी है?',
     question_hindi: 'आकाश से गिरने वाले बिना गुठली के बर्फ के गोलों का उत्तर क्या है?',
-    options: ['ओला / बर्फ (Hailstone)', 'ओस (Dew)', 'बारिश (Rain)', 'कोहरा (Fog / Mist)'],
+    options: ['ओला / बर्फ (Hailstone)', 'ओस', 'बारिश', 'कोहरा'],
     correct_option_index: 0,
     explanation: 'आकाश से बिन उपवन के गिरने वाले ओलों (गार) की पवारी पहेली। (चिहनन की काहयनी)',
     section_type: 'paheli'
@@ -4855,7 +4855,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-46',
     question_pawari: '"काकी का दो कान, काका बिना कान" - यह रसोई के किन दो बर्तनों की पहेली है?',
     question_hindi: 'दो हत्थे वाली कड़ाही और बिना हत्थे के समतल बर्तन की पहेली का उत्तर क्या है?',
-    options: ['कढ़ाई और तवा (Kadhai & Tawa)', 'पतीला और लोटा (Pot & Vessel)', 'थाली और कटोरी (Plate & Bowl)', 'चम्मच और कड़छी (Spoon & Ladle)'],
+    options: ['कढ़ाई और तवा (Kadhai & Tawa)', 'पतीला और लोटा', 'थाली और कटोरी', 'चम्मच और कड़छी'],
     correct_option_index: 0,
     explanation: 'कढ़ाई के दो हत्थों (कान) और समतल तवे के बिना कान होने का पवारी रसोई हास्य रूपक।',
     section_type: 'paheli'
@@ -4864,7 +4864,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-47',
     question_pawari: '"बाप-बेटा को एकच् नाम, नाती को पर दूसरो नाम" - पवारी अंचल का यह कौन सा अमोल पेड़ है?',
     question_hindi: 'पवारी वनों के किस पवित्र वृक्ष के फूल, फल और टोरी का यह वर्णन है?',
-    options: ['महुआ का वृक्ष व टोरी (Mahua Tree & Tori)', 'सागौन (Teak Tree)', 'आम (Mango Tree)', 'नीम (Neem Tree)'],
+    options: ['महुआ का वृक्ष व टोरी (Mahua Tree & Tori)', 'सागौन', 'आम', 'नीम'],
     correct_option_index: 0,
     explanation: 'महुआ वृक्ष (बाप-बेटा) तथा उसके फल से प्राप्त बीज/टोरी (नाती) की पवारी वानस्पतिक पहेली।',
     section_type: 'paheli'
@@ -4873,7 +4873,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-48',
     question_pawari: '"ठाटी भर पइसा, तोसी मोंजाय नी मसी" - या पवारी पहेली का उत्तर का है?',
     question_hindi: 'रात्रि के विशाल नभोमंडल में चमकते अनगिनत नक्षत्रों की पहेली का सही उत्तर क्या है?',
-    options: ['आकाश और अनगिनत तारे (Sky & Countless Stars)', 'सूरज और बादल (Sun & Clouds)', 'चंद्रमा और किरणें (Moon & Rays)', 'बिजली और बादल (Lightning & Clouds)'],
+    options: ['आकाश और अनगिनत तारे (Sky & Stars)', 'सूरज और बादल', 'चंद्रमा और किरणें', 'बिजली और बादल'],
     correct_option_index: 0,
     explanation: 'आकाश रूपी विशाल बर्तन में बिखरे तारों रूपी सिक्कों का काव्यात्मक वर्णन।',
     section_type: 'paheli'
@@ -4882,7 +4882,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-49',
     question_pawari: '"ओंधो कुआं भोंडो पानी, ओ म् नाचय दुर्गा रानी" - यह किस पारंपरिक उपकरण की पहेली है?',
     question_hindi: 'मटके में दही बिलोकर मक्खन निकालने वाली पारंपरिक लकड़ी की फिरकी को क्या कहते हैं?',
-    options: ['मथानी / रई (Butter Churner / Mathani)', 'चम्मच (Spoon)', 'बेलन (Rolling Pin)', 'चक्की (Grinding Stone)'],
+    options: ['मथानी / रई (Butter Churner / Mathani)', 'चम्मच', 'बेलन', 'चक्की'],
     correct_option_index: 0,
     explanation: 'मटके में मठे के भीतर नाचती मथानी (दुर्गा रानी) का सजीव लोक बिंब।',
     section_type: 'paheli'
@@ -4891,7 +4891,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-50',
     question_pawari: '"चार भाई चार रंग, धरम् जा ख् एक रंग" - यह किस पारंपरिक स्वादिष्ठ व्यसन की पहेली है?',
     question_hindi: 'पान, चूना, कत्था व सुपारी के मिश्रण से मुख में बनने वाले लाल रंगत बीड़े को क्या कहते हैं?',
-    options: ['पान का बीड़ा (Betel Leaf Quadruple Combo)', 'इलायची (Cardamom)', 'लौंग (Clove)', 'सुपारी (Betel Nut)'],
+    options: ['पान का बीड़ा (Betel Leaf Quadruple Combo)', 'इलायची', 'लौंग', 'सुपारी'],
     correct_option_index: 0,
     explanation: 'चार भिन्न रंगद्रव्यों के संसर्ग से लाल रंग बनने की पवारी लोक कला।',
     section_type: 'paheli'
@@ -4900,7 +4900,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-51',
     question_pawari: '"नंद बाबा की, नौ लाख गाय। रात म् चरय, दिन म् लुक जाय" - या पवारी पहेली का उत्तर का है?',
     question_hindi: 'रात को दिखाई देने वाले और दिन के प्रकाश में छिपने वाले तारों का उत्तर क्या है?',
-    options: ['आकाश के तारे (Stars in the Sky)', 'बादल (Clouds)', 'पक्षियों का झुंड (Flock of Birds)', 'जुगनू (Fireflies)'],
+    options: ['आकाश के तारे (Stars)', 'बादल', 'पक्षियों का झुंड', 'जुगनू'],
     correct_option_index: 0,
     explanation: 'रात्रि में नभोमंडल में चमकने वाले और दिन में छिपने वाले तारों की पौराणिक उपमा।',
     section_type: 'paheli'
@@ -4909,7 +4909,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-52',
     question_pawari: '"लड़ी म् लड़ी, सोना की लड़ी। टूट गयो ते, भूजन की पड़ी" - यह किस फसल की पहेली है?',
     question_hindi: 'बरसात में अलाव पर सेककर खाए जाने वाले सुनहरे दानों के अन्न का नाम क्या है?',
-    options: ['मक्का / भुट्टा (Corn / Maize Cob)', 'गेहूँ (Wheat)', 'धान (Paddy / Rice)', 'चना (Chickpea)'],
+    options: ['मक्का / भुट्टा (Corn Cob)', 'गेहूँ', 'धान', 'चना'],
     correct_option_index: 0,
     explanation: 'मक्के के भुट्टे के सुनहरे दानों की लड़ी और सेककर खाए जाने की पवारी पहेली।',
     section_type: 'paheli'
@@ -4918,7 +4918,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-53',
     question_pawari: '"मारनो भी एक नेंग हय" - पवारी विवाह उत्सव में यह कौन सी मांगलिक रस्म है?',
     question_hindi: 'पवारी विवाह में द्वार पर स्थापित तोरण पर छड़ी से स्पर्श करने की शुभ रस्म क्या है?',
-    options: ['तोरण मारना (Toran Striking Ritual)', 'वरमाला (Garland Ceremony)', 'हल्दी (Haldi Ceremony)', 'फेरे (Wedding Pheras)'],
+    options: ['तोरण मारना (Toran Striking Ritual)', 'वरमाला', 'हल्दी', 'फेरे'],
     correct_option_index: 0,
     explanation: 'पवारी विवाह परंपरा में वर द्वारा द्वार पर स्थापित तोरण पर प्रहार कर प्रवेश करने की मांगलिक रस्म।',
     section_type: 'paheli'
@@ -4927,7 +4927,7 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-54',
     question_pawari: '"एक सींग की गाय, बारा कोस जाय" - यह अनाज पीसने वाले किस उपकरण की पहेली है?',
     question_hindi: 'दो गोल पत्थरों से बनी हाथ की अन्न पीसने वाली चक्की का पवारी नाम क्या है?',
-    options: ['घट्ठी / पत्थर चक्की (Hand Flour Mill / Ghatti)', 'ओखली (Mortar)', 'सिलबट्टा (Grinding Stone)', 'मशीन (Machine)'],
+    options: ['घट्ठी / पत्थर चक्की (Hand Flour Mill)', 'ओखली', 'सिलबट्टा', 'मशीन'],
     correct_option_index: 0,
     explanation: 'एक लकड़ी के हत्थे (सींग) को घुमाकर मणों अनाज पीसने वाली पारंपरिक घट्ठी।',
     section_type: 'paheli'
@@ -4936,63 +4936,82 @@ export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'quiz-55',
     question_pawari: '"सिर म् कलगी, पंख म् चंदा। गरजय बादर, नाचय बंदा" - यह किस सुंदर पक्षी की पहेली है?',
     question_hindi: 'वर्षा की आहट पाते ही सुंदर पंख फैलाकर नाचने वाले राष्ट्रीय पक्षी का नाम क्या है?',
-    options: ['मोर (Peacock)', 'तोता (Parrot)', 'हंस (Swan)', 'गरुड़ (Eagle)'],
+    options: ['मोर (Peacock)', 'तोता', 'हंस', 'गरुड़'],
     correct_option_index: 0,
     explanation: 'सिर पर कलगी और पंखों पर चंद्र आकृतियों वाले राष्ट्रीय पक्षी मोर की पवारी स्तुति।',
     section_type: 'paheli'
   }
 ];
 
-export const SAMPLE_QUIZ_LEADERBOARD = [
+export const SAMPLE_LOKGEET: PawariLokgeetItem[] = [
   {
-    id: 'lead-1',
-    user_name: 'रामेश्वर पवार (छिंदवाड़ा)',
-    quiz_score: 10,
-    total_questions: 10,
-    percentage: 100,
-    issued_date: '10 अगस्त 2026',
-    certificate_no: 'PST-2026-QUIZ-882109',
-    user_photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+    id: 'lok-01',
+    title_pawari: 'सतपुड़ा की पवारी सुआ लोकगीत (Vivah Song)',
+    title_hindi: 'पवारी विवाह तोरण एवं मंगल लोकगीत',
+    category: 'विवाह एवं मांगलिक गीत',
+    lyrics_pawari: `आवो मोर सुआ पवारी गीला गीत गाय,
+तोरण प ठाडो वर राजा मुकुट सजाया।
+हल्दी लगाओ आवो आखाटी को दिन आयो,
+ताप्ती मैया की कृपा से मंगल कारज सुहायो।
+रंगोली सजाओ अंगना मा पवारी सखियाँ,
+झूम-झूम के गावें सतपुड़ा की बीटियाँ।`,
+    lyrics_hindi_meaning: 'पवारी विवाह उत्सव का पारम्परिक मांगलिक गीत जिसमें सतपुड़ा अंचल की नारियां तोरण और हल्दी रस्म के अवसर पर माँ ताप्ती की वंदना करते हुए गाती हैं।',
+    singer_or_collector: 'गायक: सतपुड़ा पवारी लोक मण्डल (छिंदवाड़ा)',
+    image_url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+    contributor_name: 'प्रा. रूपेश पवार (माँ ताप्ती शोध संस्थान)',
+    status: 'approved',
+    created_at: '2026-02-01T10:00:00.000Z'
   },
   {
-    id: 'lead-2',
-    user_name: 'सुनीता पंवार (बैतूल)',
-    quiz_score: 10,
-    total_questions: 10,
-    percentage: 100,
-    issued_date: '09 अगस्त 2026',
-    certificate_no: 'PST-2026-QUIZ-654312',
-    user_photo_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
+    id: 'lok-02',
+    title_pawari: 'आखाटी लोक पर्व लोकगीत (Festival Song)',
+    title_hindi: 'अक्षय तृतीया (आखाटी) कृषि एवं फसल लोकगीत',
+    category: 'लोक पर्व एवं कृषि',
+    lyrics_pawari: `आखाटी का दिन आयो रे पवारी अंचल मा,
+नांगर सजाओ किसान खेती की छांव मा।
+सोना जैसी धरती मा बीजा बोवन जावें,
+अन्नपूर्णा माई को सुमिरन कर घर आवें।
+हरी-भरी खेती सुहावे सतपुड़ा की गोद मा।`,
+    lyrics_hindi_meaning: 'अक्षय तृतीया (आखाटी) के अवसर पर पवारी कृषकों द्वारा नए कृषि वर्ष के शुभारंभ पर गाया जाने वाला लोकगीत।',
+    singer_or_collector: 'संग्रहकर्ता: डॉ. कैलाश पवार (बैतूल)',
+    image_url: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop&q=80',
+    contributor_name: 'माँ ताप्ती शोध संस्थान',
+    status: 'approved',
+    created_at: '2026-02-02T11:30:00.000Z'
   },
   {
-    id: 'lead-3',
-    user_name: 'अनिल देशमुख (बालाघाट)',
-    quiz_score: 9,
-    total_questions: 10,
-    percentage: 90,
-    issued_date: '08 अगस्त 2026',
-    certificate_no: 'PST-2026-QUIZ-412980',
-    user_photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'
+    id: 'lok-03',
+    title_pawari: 'महुआ झरे सतपुड़ा की धार मा (Forest Folk Song)',
+    title_hindi: 'महुआ एवं प्रकृति सौंदर्य पवारी लोकगीत',
+    category: 'प्रकृति एवं ऋतु गीत',
+    lyrics_pawari: `भीनसरिया उठ के आवो महुआ चुन्हन जावें,
+सतपुड़ा की पटरिया मा मीठी सुर बजावें।
+महुआ की खुशबू से महके सारा गाँव,
+पवारी अंचल मा सबसे प्यारी अमराई छांव।
+टोरी और महुआ से समृद्ध पवारी धाम।`,
+    lyrics_hindi_meaning: 'सतपुड़ा के जंगलों में प्रातःकाल महुआ बिनने वाली पवारी बालिकाओं और महिलाओं का सुरीला प्रकृति लोकगीत।',
+    singer_or_collector: 'गायक: अनिता मालवीय एवं साथी (मुलताई)',
+    image_url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&auto=format&fit=crop&q=80',
+    contributor_name: 'सतपुड़ा पवारी लोक कला संघ',
+    status: 'approved',
+    created_at: '2026-02-05T09:15:00.000Z'
   },
   {
-    id: 'lead-4',
-    user_name: 'कविता चौधरी (मुलताई)',
-    quiz_score: 9,
-    total_questions: 10,
-    percentage: 90,
-    issued_date: '07 अगस्त 2026',
-    certificate_no: 'PST-2026-QUIZ-309182',
-    user_photo_url: ''
-  },
-  {
-    id: 'lead-5',
-    user_name: 'राजेश ठाकरे (नागपुर)',
-    quiz_score: 8,
-    total_questions: 10,
-    percentage: 80,
-    issued_date: '06 अगस्त 2026',
-    certificate_no: 'PST-2026-QUIZ-192834',
-    user_photo_url: ''
+    id: 'lok-04',
+    title_pawari: 'पवारी लोरी लोकगीत (Traditional Lullaby)',
+    title_hindi: 'पवारी मातृ लोरी गीत (निद्रा गीत)',
+    category: 'लोरी एवं वात्सल्य',
+    lyrics_pawari: `सो जा मोर लरका पवारी चंदा आवत है,
+दूध भात कटोरी मा आवो लावत है।
+सत्या माई की कृपा से निंदिया सुहानी,
+पवारी गाँव मा गूँजे परियों की कहानी।
+सो जा मोर लरका मीठे सपने मा।`,
+    lyrics_hindi_meaning: 'पवारी माताओं द्वारा छोटे बालकों को सुलाने हेतु गाया जाने वाला वात्सल्य और ममता से परिपूर्ण लोरी गीत।',
+    singer_or_collector: 'संग्रहकर्ता: रामेश्वर शर्मा (पांढुर्णा)',
+    image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
+    contributor_name: 'माँ ताप्ती शोध संस्थान संकलन',
+    status: 'approved',
+    created_at: '2026-02-08T14:20:00.000Z'
   }
 ];
 
