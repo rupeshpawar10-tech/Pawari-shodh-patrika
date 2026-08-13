@@ -3,27 +3,46 @@ import { PublicPageView } from './CmsContext';
 export interface RouteMatch {
   view: PublicPageView;
   articleIdOrSlug: string | null;
+  bookId: string | null;
+  blogId: string | null;
+  lokgeetId: string | null;
+  shabdkoshId: string | null;
+  paheliId: string | null;
+  memberId: string | null;
   issueId: string | null;
   tab: string | null;
-  bookId?: string | null;
-  blogId?: string | null;
-  writerId?: string | null;
-  lokgeetSlugOrId?: string | null;
-  paheliSlugOrId?: string | null;
-  shabdkoshSlugOrId?: string | null;
   isNotFound: boolean;
 }
 
 const DOMAIN_URL = 'https://pawari-shodh-patrika.vercel.app';
 
 export function getCanonicalUrl(path = '/'): string {
-  if (!path) path = '/';
-  const cleanPath = path.split('?')[0].split('#')[0].trim();
-  const normalizedPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
-  const origin = typeof window !== 'undefined' && window.location && window.location.origin
-    ? window.location.origin
-    : DOMAIN_URL;
-  return `${origin}${normalizedPath}`;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${DOMAIN_URL}${cleanPath}`;
+}
+
+export function getUrlForBook(bookId: string): string {
+  return `/book/${bookId}`;
+}
+
+export function getUrlForBlog(blogId: string): string {
+  return `/blog/${blogId}`;
+}
+
+export function getUrlForLokgeet(lokgeetId: string): string {
+  return `/lokgeet/${lokgeetId}`;
+}
+
+export function getUrlForShabdkosh(shabdkoshId: string): string {
+  return `/shabdkosh/${shabdkoshId}`;
+}
+
+export function getUrlForPaheli(paheliId: string): string {
+  return `/paheli/${paheliId}`;
+}
+
+export function getUrlForMember(memberId: string): string {
+  return `/editorial-board/${memberId}`;
 }
 
 /**
@@ -31,268 +50,175 @@ export function getCanonicalUrl(path = '/'): string {
  */
 export function parseRouteFromUrl(): RouteMatch {
   try {
-    let pathname = window.location.pathname.replace(/\/+/g, '/').toLowerCase();
-    if (pathname.length > 1 && pathname.endsWith('/')) {
-      pathname = pathname.slice(0, -1);
-    }
+    const pathname = window.location.pathname.replace(/\/+/g, '/').toLowerCase();
     const searchParams = new URLSearchParams(window.location.search);
     const hash = window.location.hash;
 
     // Check query params / hash fallbacks first for legacy deep links
-    const articleParam = searchParams.get('article') || searchParams.get('paper') || searchParams.get('manuscript') || searchParams.get('id') || searchParams.get('slug');
-    if (articleParam) {
-      return { view: 'article_detail', articleIdOrSlug: articleParam, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+    const articleParam = searchParams.get('article') || searchParams.get('paper') || searchParams.get('id');
+    if (articleParam && (pathname === '/' || pathname.includes('article'))) {
+      return { view: 'article_detail', articleIdOrSlug: articleParam, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
     }
 
-    const bookParam = searchParams.get('book') || searchParams.get('bookId') || searchParams.get('book_id');
+    if (hash.startsWith('#/article/')) {
+      const targetId = hash.replace('#/article/', '').split('?')[0];
+      if (targetId) return { view: 'article_detail', articleIdOrSlug: targetId, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
+    }
+
+    // 1. Separate Book Canonical Path: /book/:id or /books-literature?book=:id
+    if (pathname.startsWith('/book/')) {
+      const bookId = pathname.replace('/book/', '').trim();
+      return { view: 'books_blogs', articleIdOrSlug: null, bookId, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: 'books', isNotFound: false };
+    }
+    const bookParam = searchParams.get('book');
     if (bookParam) {
-      return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab: 'books', bookId: bookParam, blogId: null, isNotFound: false };
+      return { view: 'books_blogs', articleIdOrSlug: null, bookId: bookParam, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: 'books', isNotFound: false };
     }
 
-    const blogParam = searchParams.get('blog') || searchParams.get('blogId') || searchParams.get('blog_id');
+    // 2. Separate Blog Canonical Path: /blog/:id or /books-literature?blog=:id
+    if (pathname.startsWith('/blog/')) {
+      const blogId = pathname.replace('/blog/', '').trim();
+      return { view: 'books_blogs', articleIdOrSlug: null, bookId: null, blogId, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: 'blogs', isNotFound: false };
+    }
+    const blogParam = searchParams.get('blog');
     if (blogParam) {
-      return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab: 'blogs', bookId: null, blogId: blogParam, isNotFound: false };
+      return { view: 'books_blogs', articleIdOrSlug: null, bookId: null, blogId: blogParam, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: 'blogs', isNotFound: false };
     }
 
-    const samikshaParam = searchParams.get('samiksha') || searchParams.get('review');
-    if (samikshaParam) {
-      return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab: 'reviews', bookId: null, blogId: samikshaParam, isNotFound: false };
+    // 3. Separate Lokgeet Canonical Path: /lokgeet/:id or /lokgeet?id=:id
+    if (pathname.startsWith('/lokgeet/')) {
+      const lokgeetId = pathname.replace('/lokgeet/', '').trim();
+      return { view: 'pawari_lokgeet', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: 'lokgeet', isNotFound: false };
+    }
+    const lokgeetParam = searchParams.get('lokgeet') || (pathname === '/lokgeet' ? searchParams.get('id') : null);
+    if (lokgeetParam) {
+      return { view: 'pawari_lokgeet', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: lokgeetParam, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: 'lokgeet', isNotFound: false };
     }
 
-    const writerParam = searchParams.get('writer') || searchParams.get('sahityakar') || searchParams.get('author');
-    if (writerParam) {
-      return { view: 'pawari_writers', articleIdOrSlug: null, issueId: null, tab: 'writers', bookId: null, blogId: null, writerId: writerParam, isNotFound: false };
+    // 4. Separate Shabdkosh Canonical Path: /shabdkosh/:id or /shabdkosh?id=:id
+    if (pathname.startsWith('/shabdkosh/')) {
+      const shabdkoshId = pathname.replace('/shabdkosh/', '').trim();
+      return { view: 'pawari_shabdkosh', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId, paheliId: null, memberId: null, issueId: null, tab: 'shabdkosh', isNotFound: false };
+    }
+    const shabdkoshParam = searchParams.get('shabdkosh') || (pathname === '/shabdkosh' ? searchParams.get('id') : null);
+    if (shabdkoshParam) {
+      return { view: 'pawari_shabdkosh', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: shabdkoshParam, paheliId: null, memberId: null, issueId: null, tab: 'shabdkosh', isNotFound: false };
     }
 
-    if (hash.startsWith('#/article/') || hash.startsWith('#/paper/') || hash.startsWith('#/manuscript/')) {
-      const targetId = hash.replace('#/article/', '').replace('#/paper/', '').replace('#/manuscript/', '').split('?')[0];
-      if (targetId) return { view: 'article_detail', articleIdOrSlug: targetId, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+    // 5. Separate Paheli Canonical Path: /paheli/:id or /paheli?id=:id
+    if (pathname.startsWith('/paheli/')) {
+      const paheliId = pathname.replace('/paheli/', '').trim();
+      return { view: 'pawari_paheli', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId, memberId: null, issueId: null, tab: 'paheli', isNotFound: false };
+    }
+    const paheliParam = searchParams.get('paheli') || (pathname === '/paheli' ? searchParams.get('id') : null);
+    if (paheliParam) {
+      return { view: 'pawari_paheli', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: paheliParam, memberId: null, issueId: null, tab: 'paheli', isNotFound: false };
     }
 
-    if (hash.startsWith('#/book/')) {
-      const targetId = hash.replace('#/book/', '').split('?')[0];
-      if (targetId) return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab: 'books', bookId: targetId, blogId: null, isNotFound: false };
+    // 6. Separate Sahityakar / Member Canonical Path: /editorial-board/:id or /editorial-board?member=:id
+    if (pathname.startsWith('/editorial-board/')) {
+      const memberId = pathname.replace('/editorial-board/', '').trim();
+      if (memberId && memberId !== 'board') {
+        return { view: 'editorial_board', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId, issueId: null, tab: null, isNotFound: false };
+      }
     }
-
-    if (hash.startsWith('#/blog/')) {
-      const targetId = hash.replace('#/blog/', '').split('?')[0];
-      if (targetId) return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab: 'blogs', bookId: null, blogId: targetId, isNotFound: false };
-    }
-
-    if (hash.startsWith('#/samiksha/')) {
-      const targetId = hash.replace('#/samiksha/', '').split('?')[0];
-      if (targetId) return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab: 'reviews', bookId: null, blogId: targetId, isNotFound: false };
-    }
-
-    if (hash.startsWith('#/sahityakar/') || hash.startsWith('#/writer/')) {
-      const targetId = hash.replace('#/sahityakar/', '').replace('#/writer/', '').split('?')[0];
-      if (targetId) return { view: 'pawari_writers', articleIdOrSlug: null, issueId: null, tab: 'writers', bookId: null, blogId: null, writerId: targetId, isNotFound: false };
+    const memberParam = searchParams.get('member') || searchParams.get('editor') || searchParams.get('sahityakar');
+    if (memberParam) {
+      return { view: 'editorial_board', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: memberParam, issueId: null, tab: null, isNotFound: false };
     }
 
     // Exact or prefix path matching
     if (pathname === '/' || pathname === '/home') {
-      return { view: 'home', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+      return { view: 'home', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
     }
 
     if (pathname === '/about' || pathname === '/about-us') {
-      return { view: 'about', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+      return { view: 'about', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
     }
 
     if (pathname === '/current-issue' || pathname === '/current') {
-      return { view: 'current_issue', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+      return { view: 'current_issue', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
     }
 
-    if (pathname === '/archives' || pathname === '/archive' || pathname === '/issues') {
+    if (pathname === '/archives' || pathname === '/archive') {
       const issueId = searchParams.get('issue');
-      return { view: 'archive', articleIdOrSlug: null, issueId, tab: null, bookId: null, blogId: null, isNotFound: false };
+      return { view: 'archive', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId, tab: null, isNotFound: false };
     }
 
     if (pathname.startsWith('/issue/')) {
       const issueId = pathname.replace('/issue/', '').trim();
-      return { view: 'archive', articleIdOrSlug: null, issueId: issueId || null, tab: null, bookId: null, blogId: null, isNotFound: false };
+      return { view: 'archive', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: issueId || null, tab: null, isNotFound: false };
     }
 
-    if (pathname.startsWith('/samiksha/') || pathname.startsWith('/review/') || pathname.startsWith('/reviews/')) {
-      const samikshaId = pathname.replace('/samiksha/', '').replace('/review/', '').replace('/reviews/', '').trim();
-      return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab: 'reviews', bookId: null, blogId: samikshaId || null, isNotFound: false };
-    }
-
-    if (pathname.startsWith('/book/') || pathname.startsWith('/books/') || pathname.startsWith('/pustak/')) {
-      const bookId = pathname.replace('/book/', '').replace('/books/', '').replace('/pustak/', '').trim();
-      if (bookId) {
-        return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab: 'books', bookId, blogId: null, isNotFound: false };
-      }
-    }
-
-    if (pathname.startsWith('/blog/') || pathname.startsWith('/blogs/') || pathname.startsWith('/post/') || pathname.startsWith('/posts/')) {
-      const blogId = pathname.replace('/blog/', '').replace('/blogs/', '').replace('/post/', '').replace('/posts/', '').trim();
-      if (blogId) {
-        return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab: 'blogs', bookId: null, blogId, isNotFound: false };
-      }
-    }
-
-    if (
-      pathname.startsWith('/sahityakar/') || 
-      pathname.startsWith('/writer/') || 
-      pathname.startsWith('/writers/') || 
-      pathname.startsWith('/lekhak/') || 
-      pathname.startsWith('/authors/') ||
-      (pathname.startsWith('/author/') && !pathname.startsWith('/author/articles'))
-    ) {
-      const writerId = pathname
-        .replace('/sahityakar/', '')
-        .replace('/writer/', '')
-        .replace('/writers/', '')
-        .replace('/lekhak/', '')
-        .replace('/authors/', '')
-        .replace('/author/', '')
-        .trim();
-      if (writerId) {
-        return { view: 'pawari_writers', articleIdOrSlug: null, issueId: null, tab: 'writers', bookId: null, blogId: null, writerId, isNotFound: false };
-      }
-    }
-
-    if (pathname.startsWith('/lokgeet/')) {
-      const slugOrId = pathname.replace('/lokgeet/', '').trim();
-      return { view: 'pawari_lokgeet', articleIdOrSlug: null, issueId: null, tab: 'lokgeet', lokgeetSlugOrId: slugOrId || null, isNotFound: false };
-    }
-
-    if (pathname.startsWith('/paheli/')) {
-      const slugOrId = pathname.replace('/paheli/', '').trim();
-      return { view: 'pawari_paheli', articleIdOrSlug: null, issueId: null, tab: 'paheli', paheliSlugOrId: slugOrId || null, isNotFound: false };
-    }
-
-    if (pathname.startsWith('/shabdkosh/')) {
-      const slugOrId = pathname.replace('/shabdkosh/', '').trim();
-      return { view: 'pawari_shabdkosh', articleIdOrSlug: null, issueId: null, tab: 'shabdkosh', shabdkoshSlugOrId: slugOrId || null, isNotFound: false };
-    }
-
-    if (pathname === '/articles' || pathname === '/research-articles' || pathname === '/papers') {
-      return { view: 'articles', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
-    }
-
-    // Article / Paper / Manuscript detail slug matching
-    if (
-      pathname.startsWith('/article/') || 
-      pathname.startsWith('/paper/') || 
-      pathname.startsWith('/manuscript/') || 
-      pathname.startsWith('/full-text/') ||
-      pathname.startsWith('/research-paper/') ||
-      (pathname.startsWith('/articles/') && pathname !== '/articles') ||
-      (pathname.startsWith('/papers/') && pathname !== '/papers')
-    ) {
-      const slugOrId = pathname
-        .replace('/article/', '')
-        .replace('/paper/', '')
-        .replace('/manuscript/', '')
-        .replace('/full-text/', '')
-        .replace('/research-paper/', '')
-        .replace('/articles/', '')
-        .replace('/papers/', '')
-        .trim();
-      if (slugOrId) {
-        return { view: 'article_detail', articleIdOrSlug: slugOrId, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
-      }
-    }
-
-    if (pathname === '/books-literature' || pathname === '/books-blogs' || pathname === '/books') {
+    if (pathname === '/articles' || pathname === '/books-literature' || pathname === '/books-blogs') {
       const tab = searchParams.get('tab') || null;
-      return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab, bookId: bookParam || null, blogId: blogParam || null, isNotFound: false };
-    }
-
-    if (pathname === '/writers' || pathname === '/pawari-writers' || pathname === '/authors') {
-      return { view: 'pawari_writers', articleIdOrSlug: null, issueId: null, tab: 'writers', bookId: null, blogId: null, isNotFound: false };
+      return { view: 'books_blogs', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab, isNotFound: false };
     }
 
     if (pathname === '/shabdkosh' || pathname === '/pawari-shabdkosh') {
-      return { view: 'pawari_shabdkosh', articleIdOrSlug: null, issueId: null, tab: 'shabdkosh', bookId: null, blogId: null, isNotFound: false };
+      return { view: 'pawari_shabdkosh', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: 'shabdkosh', isNotFound: false };
     }
 
     if (pathname === '/paheli' || pathname === '/pawari-paheli') {
-      return { view: 'pawari_paheli', articleIdOrSlug: null, issueId: null, tab: 'paheli', bookId: null, blogId: null, isNotFound: false };
+      return { view: 'pawari_paheli', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: 'paheli', isNotFound: false };
     }
 
     if (pathname === '/lokgeet' || pathname === '/pawari-lokgeet') {
-      return { view: 'pawari_lokgeet', articleIdOrSlug: null, issueId: null, tab: 'lokgeet', bookId: null, blogId: null, isNotFound: false };
+      return { view: 'pawari_lokgeet', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: 'lokgeet', isNotFound: false };
     }
 
     if (pathname === '/quiz' || pathname === '/pawari-quiz') {
-      return { view: 'pawari_quiz', articleIdOrSlug: null, issueId: null, tab: 'quiz', bookId: null, blogId: null, isNotFound: false };
+      return { view: 'pawari_quiz', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: 'quiz', isNotFound: false };
     }
 
-    if (pathname === '/editorial-board' || pathname === '/editorial_board') {
-      return { view: 'editorial_board', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
-    }
-
-    if (pathname === '/author-guidelines' || pathname === '/author_guidelines') {
-      return { view: 'author_guidelines', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
-    }
-
-    if (
-      pathname === '/submit-manuscript' || 
-      pathname === '/submit_manuscript' || 
-      pathname === '/manuscript-submission' || 
-      pathname === '/submission' || 
-      pathname === '/submit'
-    ) {
-      return { view: 'submit_manuscript', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
-    }
-
-    if (pathname === '/contact' || pathname === '/contact-us') {
-      return { view: 'contact', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
-    }
-
-    if (pathname === '/author/articles/new' || pathname === '/author/articles/new/') {
-      return { view: 'author_article_editor', articleIdOrSlug: 'new', issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
-    }
-
-    if (pathname.startsWith('/author/articles/') && (pathname.endsWith('/edit') || pathname.endsWith('/edit/'))) {
-      const parts = pathname.split('/');
-      const artId = parts[3];
-      if (artId) {
-        return { view: 'author_article_editor', articleIdOrSlug: artId, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+    if (pathname.startsWith('/article/')) {
+      const slugOrId = pathname.replace('/article/', '').trim();
+      if (slugOrId) {
+        return { view: 'article_detail', articleIdOrSlug: slugOrId, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
       }
     }
 
+    if (pathname === '/editorial-board' || pathname === '/editorial_board') {
+      return { view: 'editorial_board', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
+    }
+
+    if (pathname === '/author-guidelines' || pathname === '/author_guidelines') {
+      return { view: 'author_guidelines', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
+    }
+
+    if (pathname === '/submit-manuscript' || pathname === '/submit_manuscript') {
+      return { view: 'submit_manuscript', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
+    }
+
+    if (pathname === '/contact' || pathname === '/contact-us') {
+      return { view: 'contact', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
+    }
+
     if (pathname === '/admin' || pathname.startsWith('/admin/')) {
-      return { view: 'admin', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+      return { view: 'admin', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
     }
 
     // Unmatched path -> 404 Not Found
-    return { view: 'home', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: true };
+    return { view: 'home', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: true };
   } catch (e) {
-    return { view: 'home', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+    return { view: 'home', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab: null, isNotFound: false };
   }
 }
 
 /**
  * Generates clean canonical URL path for a view
  */
-export function getUrlForView(
-  view: PublicPageView, 
-  articleIdOrSlug?: string | null, 
-  issueId?: string | null,
-  bookId?: string | null,
-  blogId?: string | null,
-  itemSlugOrId?: string | null,
-  isSamiksha?: boolean,
-  writerId?: string | null
-): string {
-  if (writerId) return `/sahityakar/${writerId}`;
-  if (bookId) return `/book/${bookId}`;
-  if (blogId) return isSamiksha ? `/samiksha/${blogId}` : `/blog/${blogId}`;
-
+export function getUrlForView(view: PublicPageView, articleIdOrSlug?: string | null, issueId?: string | null): string {
   switch (view) {
     case 'home': return '/';
     case 'about': return '/about';
     case 'current_issue': return '/current-issue';
     case 'archive': return issueId ? `/issue/${issueId}` : '/archives';
-    case 'articles': return '/articles';
+    case 'articles':
     case 'books_blogs': return '/books-literature';
-    case 'pawari_writers': return (itemSlugOrId || writerId) ? `/sahityakar/${itemSlugOrId || writerId}` : '/writers';
-    case 'pawari_shabdkosh': return itemSlugOrId ? `/shabdkosh/${itemSlugOrId}` : '/shabdkosh';
-    case 'pawari_paheli': return itemSlugOrId ? `/paheli/${itemSlugOrId}` : '/paheli';
-    case 'pawari_lokgeet': return itemSlugOrId ? `/lokgeet/${itemSlugOrId}` : '/lokgeet';
+    case 'pawari_shabdkosh': return '/shabdkosh';
+    case 'pawari_paheli': return '/paheli';
+    case 'pawari_lokgeet': return '/lokgeet';
     case 'pawari_quiz': return '/quiz';
     case 'article_detail': return articleIdOrSlug ? `/article/${articleIdOrSlug}` : '/current-issue';
     case 'editorial_board': return '/editorial-board';
@@ -300,7 +226,6 @@ export function getUrlForView(
     case 'submit_manuscript': return '/submit-manuscript';
     case 'contact': return '/contact';
     case 'admin': return '/admin';
-    case 'author_article_editor': return (!articleIdOrSlug || articleIdOrSlug === 'new') ? '/author/articles/new' : `/author/articles/${articleIdOrSlug}/edit`;
     default: return '/';
   }
 }
@@ -308,19 +233,10 @@ export function getUrlForView(
 /**
  * Programmatically updates window location using History API
  */
-export function navigateTo(
-  view: PublicPageView, 
-  articleIdOrSlug?: string | null, 
-  issueId?: string | null,
-  bookId?: string | null,
-  blogId?: string | null,
-  itemSlugOrId?: string | null,
-  isSamiksha?: boolean,
-  writerId?: string | null
-) {
-  const targetUrl = getUrlForView(view, articleIdOrSlug, issueId, bookId, blogId, itemSlugOrId, isSamiksha, writerId);
-  if (window.location.pathname + window.location.search !== targetUrl) {
-    window.history.pushState({ view, articleIdOrSlug, issueId, bookId, blogId, itemSlugOrId, isSamiksha, writerId }, '', targetUrl);
+export function navigateTo(view: PublicPageView, articleIdOrSlug?: string | null, issueId?: string | null) {
+  const targetUrl = getUrlForView(view, articleIdOrSlug, issueId);
+  if (window.location.pathname !== targetUrl) {
+    window.history.pushState({ view, articleIdOrSlug, issueId }, '', targetUrl);
     window.dispatchEvent(new Event('popstate'));
   }
 }
