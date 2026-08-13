@@ -42,6 +42,8 @@ import {
   RotateCcw
 } from 'lucide-react';
 
+import { parseRouteFromUrl, getUrlForBook, getUrlForBlog } from '../../lib/router';
+
 interface BooksBlogsViewProps {
   initialTab?: 'all' | 'books' | 'blogs' | 'reviews' | 'research_papers' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz';
 }
@@ -57,18 +59,50 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
 
   const [activeTab, setActiveTab] = useState<'all' | 'books' | 'blogs' | 'reviews' | 'research_papers' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz'>(initialTab);
 
+  // Reader state
+  const [selectedBook, setSelectedBook] = useState<BookItem | null>(null);
+  const [selectedBlog, setSelectedBlog] = useState<BlogItem | null>(null);
+
   React.useEffect(() => {
+    const route = parseRouteFromUrl();
     const searchParams = new URLSearchParams(window.location.search);
     const urlTab = searchParams.get('tab') as any;
-    if (urlTab && ['all', 'books', 'blogs', 'reviews', 'research_papers', 'shabdkosh', 'paheli', 'lokgeet', 'quiz'].includes(urlTab)) {
+
+    if (route.bookId) {
+      const b = booksList.find(item => item.id === route.bookId || item.isbn === route.bookId);
+      if (b) {
+        setSelectedBook(b);
+        setActiveTab('books');
+      }
+    } else if (route.blogId) {
+      const bl = blogsList.find(item => item.id === route.blogId);
+      if (bl) {
+        setSelectedBlog(bl);
+        setActiveTab('blogs');
+      }
+    } else if (urlTab && ['all', 'books', 'blogs', 'reviews', 'research_papers', 'shabdkosh', 'paheli', 'lokgeet', 'quiz'].includes(urlTab)) {
       setActiveTab(urlTab);
     } else if (initialTab) {
       setActiveTab(initialTab);
     }
-  }, [initialTab]);
+  }, [initialTab, cmsBooks, cmsBlogs]);
+
+  const handleSelectBook = (book: BookItem) => {
+    setSelectedBook(book);
+    setSelectedBlog(null);
+    window.history.pushState({ bookId: book.id }, '', getUrlForBook(book.id));
+  };
+
+  const handleSelectBlog = (blog: BlogItem) => {
+    setSelectedBlog(blog);
+    setSelectedBook(null);
+    window.history.pushState({ blogId: blog.id }, '', getUrlForBlog(blog.id));
+  };
 
   const handleTabChange = (tabKey: 'all' | 'books' | 'blogs' | 'reviews' | 'research_papers' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz') => {
     setActiveTab(tabKey);
+    setSelectedBook(null);
+    setSelectedBlog(null);
     const newUrl = tabKey === 'all' ? '/books-literature' : `/books-literature?tab=${tabKey}`;
     if (window.location.pathname + window.location.search !== newUrl) {
       window.history.pushState({ tab: tabKey }, '', newUrl);
@@ -677,7 +711,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
             {filteredBooks.map((book) => (
               <div 
                 key={book.id}
-                onClick={() => setSelectedBook(book)}
+                onClick={() => handleSelectBook(book)}
                 className="bg-white border border-amber-900/15 hover:border-amber-500 rounded-2xl p-5 shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group space-y-4"
               >
                 <div className="flex gap-4 items-start">
@@ -746,7 +780,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
             {filteredBlogs.map((blog) => (
               <div 
                 key={blog.id}
-                onClick={() => setSelectedBlog(blog)}
+                onClick={() => handleSelectBlog(blog)}
                 className="bg-white border border-amber-900/15 hover:border-amber-500 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
               >
                 <div>
