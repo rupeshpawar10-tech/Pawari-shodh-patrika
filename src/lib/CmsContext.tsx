@@ -165,8 +165,6 @@ interface CmsContextType {
   setSelectedBookId: (id: string | null) => void;
   selectedBlogId: string | null;
   setSelectedBlogId: (id: string | null) => void;
-  selectedWriterId: string | null;
-  setSelectedWriterId: (id: string | null) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   isNotFound: boolean;
@@ -415,7 +413,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedArticleId, setSelectedArticleIdRaw] = useState<string | null>(initialRoute.articleIdOrSlug);
   const [selectedBookId, setSelectedBookIdRaw] = useState<string | null>(initialRoute.bookId || null);
   const [selectedBlogId, setSelectedBlogIdRaw] = useState<string | null>(initialRoute.blogId || null);
-  const [selectedWriterId, setSelectedWriterIdRaw] = useState<string | null>(initialRoute.writerId || null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isNotFound, setIsNotFound] = useState<boolean>(initialRoute.isNotFound);
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('dashboard');
@@ -478,13 +475,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const setSelectedWriterId = (id: string | null) => {
-    setSelectedWriterIdRaw(id);
-    if (id) {
-      navigateTo('pawari_writers', null, null, null, null, null, false, id);
-    }
-  };
-
   useEffect(() => {
     const handlePopState = () => {
       const currentRoute = parseRouteFromUrl();
@@ -492,7 +482,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSelectedArticleIdRaw(currentRoute.articleIdOrSlug);
       if (currentRoute.bookId !== undefined) setSelectedBookIdRaw(currentRoute.bookId);
       if (currentRoute.blogId !== undefined) setSelectedBlogIdRaw(currentRoute.blogId);
-      if (currentRoute.writerId !== undefined) setSelectedWriterIdRaw(currentRoute.writerId);
       setIsNotFound(currentRoute.isNotFound);
     };
     window.addEventListener('popstate', handlePopState);
@@ -525,11 +514,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('local_books_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((b: BookItem) => b.id));
-          const missingSamples = SAMPLE_BOOKS.filter(s => !existingIds.has(s.id));
-          return [...parsed, ...missingSamples];
-        }
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
     return SAMPLE_BOOKS;
@@ -539,11 +524,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('local_blogs_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((b: BlogItem) => b.id));
-          const missingSamples = SAMPLE_BLOGS.filter(s => !existingIds.has(s.id));
-          return [...parsed, ...missingSamples];
-        }
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
     return SAMPLE_BLOGS;
@@ -554,11 +535,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('pawari_writers_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((w: PawariWriterItem) => w.id));
-          const missingSamples = SAMPLE_WRITERS.filter(s => !existingIds.has(s.id));
-          return [...parsed, ...missingSamples];
-        }
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
     return SAMPLE_WRITERS;
@@ -569,11 +546,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('pawari_shabdkosh_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((s: PawariShabdkoshItem) => s.id));
-          const missingSamples = SAMPLE_SHABDKOSH.filter(s => !existingIds.has(s.id));
-          return [...parsed, ...missingSamples];
-        }
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
     return SAMPLE_SHABDKOSH;
@@ -604,11 +577,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('pawari_lokgeet_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((l: PawariLokgeetItem) => l.id));
-          const missingSamples = SAMPLE_LOKGEET.filter(s => !existingIds.has(s.id));
-          return [...parsed, ...missingSamples];
-        }
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
     return SAMPLE_LOKGEET;
@@ -877,18 +846,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // 3.1 Books
       try {
         const booksSnap = await getDocs(collection(db, 'books'));
-        let loadedBooks: BookItem[] = [];
-        if (!booksSnap.empty) {
-          loadedBooks = booksSnap.docs.map(d => ({ id: d.id, ...d.data() } as BookItem));
-        }
-        SAMPLE_BOOKS.forEach(sb => {
-          if (!loadedBooks.some(b => b.id === sb.id)) {
-            loadedBooks.push(sb);
-          }
-        });
-        if (isMounted) {
+        if (!booksSnap.empty && isMounted) {
+          const loadedBooks = booksSnap.docs.map(d => ({ id: d.id, ...d.data() } as BookItem));
           setBooks(loadedBooks);
           try { localStorage.setItem('local_books_cache', JSON.stringify(loadedBooks)); } catch (e) {}
+        } else {
+          const cached = localStorage.getItem('local_books_cache');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) setBooks(parsed);
+            } catch (e) {}
+          }
         }
       } catch (e) {
         // Fallback silently
@@ -897,18 +866,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // 3.2 Blogs
       try {
         const blogsSnap = await getDocs(collection(db, 'blogs'));
-        let loadedBlogs: BlogItem[] = [];
-        if (!blogsSnap.empty) {
-          loadedBlogs = blogsSnap.docs.map(d => ({ id: d.id, ...d.data() } as BlogItem));
-        }
-        SAMPLE_BLOGS.forEach(sb => {
-          if (!loadedBlogs.some(b => b.id === sb.id)) {
-            loadedBlogs.push(sb);
-          }
-        });
-        if (isMounted) {
+        if (!blogsSnap.empty && isMounted) {
+          const loadedBlogs = blogsSnap.docs.map(d => ({ id: d.id, ...d.data() } as BlogItem));
           setBlogs(loadedBlogs);
           try { localStorage.setItem('local_blogs_cache', JSON.stringify(loadedBlogs)); } catch (e) {}
+        } else {
+          const cached = localStorage.getItem('local_blogs_cache');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) setBlogs(parsed);
+            } catch (e) {}
+          }
         }
       } catch (e) {
         // Fallback silently
@@ -917,16 +886,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // 3.3 Writers & Authors
       try {
         const writersSnap = await getDocs(collection(db, 'writers'));
-        let loadedWriters: PawariWriterItem[] = [];
-        if (!writersSnap.empty) {
-          loadedWriters = writersSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariWriterItem));
-        }
-        SAMPLE_WRITERS.forEach(sw => {
-          if (!loadedWriters.some(w => w.id === sw.id)) {
-            loadedWriters.push(sw);
-          }
-        });
-        if (isMounted) {
+        if (!writersSnap.empty && isMounted) {
+          const loadedWriters = writersSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariWriterItem));
           setWriters(loadedWriters);
           try { localStorage.setItem('pawari_writers_cache', JSON.stringify(loadedWriters)); } catch (e) {}
         }
@@ -937,90 +898,50 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // 3.4 Shabdkosh
       try {
         const shabdkoshSnap = await getDocs(collection(db, 'shabdkosh'));
-        let loadedShabdkosh: PawariShabdkoshItem[] = [];
-        if (!shabdkoshSnap.empty) {
-          loadedShabdkosh = shabdkoshSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariShabdkoshItem));
-        }
-        SAMPLE_SHABDKOSH.forEach(ss => {
-          if (!loadedShabdkosh.some(s => s.id === ss.id)) {
-            loadedShabdkosh.push(ss);
-          }
-        });
-        if (isMounted) {
-          setShabdkoshList(loadedShabdkosh);
-          try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(loadedShabdkosh)); } catch (e) {}
+        if (!shabdkoshSnap.empty && isMounted) {
+          const loaded = shabdkoshSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariShabdkoshItem));
+          setShabdkoshList(loaded);
+          try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(loaded)); } catch (e) {}
         }
       } catch (e) {}
 
       // 3.5 Paheli
       try {
         const paheliSnap = await getDocs(collection(db, 'paheli'));
-        let loadedPaheli: PawariPaheliItem[] = [];
-        if (!paheliSnap.empty) {
-          loadedPaheli = paheliSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariPaheliItem));
-        }
-        SAMPLE_PAHELI.forEach(sp => {
-          if (!loadedPaheli.some(p => p.id === sp.id)) {
-            loadedPaheli.push(sp);
-          }
-        });
-        if (isMounted) {
-          setPaheliList(loadedPaheli);
-          try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(loadedPaheli)); } catch (e) {}
+        if (!paheliSnap.empty && isMounted) {
+          const loaded = paheliSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariPaheliItem));
+          setPaheliList(loaded);
+          try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(loaded)); } catch (e) {}
         }
       } catch (e) {}
 
       // 3.6 Lokgeet
       try {
         const lokgeetSnap = await getDocs(collection(db, 'lokgeet'));
-        let loadedLokgeet: PawariLokgeetItem[] = [];
-        if (!lokgeetSnap.empty) {
-          loadedLokgeet = lokgeetSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
-        }
-        SAMPLE_LOKGEET.forEach(sl => {
-          if (!loadedLokgeet.some(l => l.id === sl.id)) {
-            loadedLokgeet.push(sl);
-          }
-        });
-        if (isMounted) {
-          setLokgeetList(loadedLokgeet);
-          try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(loadedLokgeet)); } catch (e) {}
+        if (!lokgeetSnap.empty && isMounted) {
+          const loaded = lokgeetSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
+          setLokgeetList(loaded);
+          try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(loaded)); } catch (e) {}
         }
       } catch (e) {}
 
       // 3.7 Quiz Questions
       try {
         const quizSnap = await getDocs(collection(db, 'quiz_questions'));
-        let loadedQuiz: QuizQuestion[] = [];
-        if (!quizSnap.empty) {
-          loadedQuiz = quizSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizQuestion));
-        }
-        SAMPLE_QUIZ_QUESTIONS.forEach(sq => {
-          if (!loadedQuiz.some(q => q.id === sq.id)) {
-            loadedQuiz.push(sq);
-          }
-        });
-        if (isMounted) {
-          setQuizQuestions(loadedQuiz);
-          try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(loadedQuiz)); } catch (e) {}
+        if (!quizSnap.empty && isMounted) {
+          const loaded = quizSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizQuestion));
+          setQuizQuestions(loaded);
+          try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(loaded)); } catch (e) {}
         }
       } catch (e) {}
 
       // 3.8 Quiz Leaderboard
       try {
         const leaderSnap = await getDocs(collection(db, 'quiz_leaderboard'));
-        let loadedLeaderboard: QuizLeaderboardEntry[] = [];
-        if (!leaderSnap.empty) {
-          loadedLeaderboard = leaderSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizLeaderboardEntry));
-        }
-        SAMPLE_QUIZ_LEADERBOARD.forEach(sl => {
-          if (!loadedLeaderboard.some(l => l.id === sl.id)) {
-            loadedLeaderboard.push(sl);
-          }
-        });
-        if (isMounted) {
-          setQuizLeaderboard(loadedLeaderboard);
-          try { localStorage.setItem('pawari_quiz_leaderboard', JSON.stringify(loadedLeaderboard)); } catch (e) {}
+        if (!leaderSnap.empty && isMounted) {
+          const loaded = leaderSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizLeaderboardEntry));
+          setQuizLeaderboard(loaded);
+          try { localStorage.setItem('pawari_quiz_leaderboard', JSON.stringify(loaded)); } catch (e) {}
         }
       } catch (e) {}
 
@@ -2284,8 +2205,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedBookId,
         selectedBlogId,
         setSelectedBlogId,
-        selectedWriterId,
-        setSelectedWriterId,
         searchQuery,
         setSearchQuery,
         isNotFound,

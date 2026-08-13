@@ -3,8 +3,16 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
     function isImage() {
-      return request.resource.contentType.matches('image/(jpeg|jpg|png|webp|gif|svg\\+xml)');
+      return request.resource.contentType.matches('image/(jpeg|jpg|png|webp)');
     }
 
     function isDocument() {
@@ -13,49 +21,51 @@ service firebase.storage {
 
     // User folder rules: users/{uid}/images/{filename}
     match /users/{uid}/images/{fileName} {
-      allow read: if true;
-      allow write, create, update: if request.resource.size <= 15 * 1024 * 1024;
-      allow delete: if true;
+      allow read: if isSignedIn();
+      allow write, create, update: if isOwner(uid)
+        && request.resource.size <= 5 * 1024 * 1024
+        && isImage();
+      allow delete: if isOwner(uid);
     }
 
     // User folder rules: users/{uid}/documents/{filename}
     match /users/{uid}/documents/{fileName} {
-      allow read: if true;
-      allow write, create, update: if request.resource.size <= 25 * 1024 * 1024;
-      allow delete: if true;
+      allow read: if isSignedIn();
+      allow write, create, update: if isOwner(uid)
+        && request.resource.size <= 15 * 1024 * 1024
+        && isDocument();
+      allow delete: if isOwner(uid);
     }
 
-    // Editorial and general public uploads (Admin & system features)
+    // Editorial and general public uploads (Admin & system features fallback)
     match /editorial_photos/{fileName} {
       allow read: if true;
-      allow write, create, update, delete: if true;
+      allow write, create, update: if isSignedIn()
+        && request.resource.size <= 5 * 1024 * 1024
+        && isImage();
+      allow delete: if isSignedIn();
     }
 
     match /documents/{fileName} {
       allow read: if true;
-      allow write, create, update, delete: if true;
+      allow write, create, update: if isSignedIn()
+        && request.resource.size <= 15 * 1024 * 1024
+        && isDocument();
+      allow delete: if isSignedIn();
     }
 
     match /manuscripts/{fileName} {
       allow read: if true;
-      allow write, create, update, delete: if true;
+      allow write, create, update: if isSignedIn()
+        && request.resource.size <= 15 * 1024 * 1024
+        && isDocument();
+      allow delete: if isSignedIn();
     }
 
-    match /books/{fileName} {
-      allow read: if true;
-      allow write, create, update, delete: if true;
-    }
-
-    match /media/{fileName} {
-      allow read: if true;
-      allow write, create, update, delete: if true;
-    }
-
-    // Catch-all rule for all other storage paths
+    // Default deny all other paths
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if request.resource.size <= 25 * 1024 * 1024;
+      allow write: if isSignedIn() && request.resource.size <= 15 * 1024 * 1024;
     }
   }
 }
-

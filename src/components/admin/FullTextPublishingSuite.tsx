@@ -74,82 +74,20 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
   
   // Section Builder State
   const [sectionsList, setSectionsList] = useState<ArticleSection[]>(() => {
-    if (Array.isArray(initialArticle.sections)) {
+    if (initialArticle.sections && initialArticle.sections.length > 0) {
       return [...initialArticle.sections];
     }
-    // Fallback if initialArticle.sections is undefined:
-    // Build sections dynamically from non-empty full_text_ fields if present
-    const existingSections: ArticleSection[] = [];
-    let order = 1;
-
-    if (initialArticle.full_text_introduction?.trim()) {
-      existingSections.push({
-        id: 'sec_intro',
-        section_type: 'introduction',
-        section_title: 'Introduction (प्रस्तावना)',
-        content_html: initialArticle.full_text_introduction,
-        sort_order: order++
-      });
-    }
-    if (initialArticle.full_text_literature_review?.trim()) {
-      existingSections.push({
-        id: 'sec_literature',
-        section_type: 'literature_review',
-        section_title: 'Literature Review (साहित्य अवलोकन)',
-        content_html: initialArticle.full_text_literature_review,
-        sort_order: order++
-      });
-    }
-    if (initialArticle.full_text_methodology?.trim()) {
-      existingSections.push({
-        id: 'sec_methodology',
-        section_type: 'methodology',
-        section_title: 'Research Methodology (अनुसंधान कार्यप्रणाली)',
-        content_html: initialArticle.full_text_methodology,
-        sort_order: order++
-      });
-    }
-    if (initialArticle.full_text_results_discussion?.trim()) {
-      existingSections.push({
-        id: 'sec_results',
-        section_type: 'results',
-        section_title: 'Results & Discussion (परिणाम एवं विश्लेषण)',
-        content_html: initialArticle.full_text_results_discussion,
-        sort_order: order++
-      });
-    }
-    if (initialArticle.full_text_conclusion?.trim()) {
-      existingSections.push({
-        id: 'sec_conclusion',
-        section_type: 'conclusion',
-        section_title: 'Conclusion (निष्कर्ष)',
-        content_html: initialArticle.full_text_conclusion,
-        sort_order: order++
-      });
-    }
-    if (initialArticle.full_text_acknowledgement?.trim()) {
-      existingSections.push({
-        id: 'sec_ack',
-        section_type: 'acknowledgement',
-        section_title: 'Acknowledgement (आभार)',
-        content_html: initialArticle.full_text_acknowledgement,
-        sort_order: order++
-      });
-    }
-
-    if (existingSections.length > 0) {
-      return existingSections;
-    }
-
-    // Default for brand new or unstructured articles: a single clean article body section
+    // Default initial sections setup
     return [
-      {
-        id: 'sec_body_' + Date.now(),
-        section_type: 'custom',
-        section_title: 'आलेख मुख्य पाठ (Article Content)',
-        content_html: '<p>यहाँ आलेख का मुख्य पाठ दर्ज करें...</p>',
-        sort_order: 1
-      }
+      { id: 'sec_title', section_type: 'title', section_title: 'Title & Subtitle (शीर्षक एवं उप-शीर्षक)', content_html: `<h1 class="font-serif font-bold text-2xl text-slate-900 mb-2">${initialArticle.title_hindi || initialArticle.title_english || 'शोध आलेख शीर्षक'}</h1>`, sort_order: 1 },
+      { id: 'sec_abstract', section_type: 'abstract', section_title: 'Abstract / सार (Hindi & English)', content_html: `<p class="font-serif leading-relaxed text-justify">${initialArticle.abstract_hindi || initialArticle.abstract_english || 'प्रस्तुत शोध पत्र में...'}</p>`, sort_order: 2 },
+      { id: 'sec_intro', section_type: 'introduction', section_title: '1. Introduction (प्रस्तावना)', content_html: initialArticle.full_text_introduction || '<p>प्रस्तावना का मुख्य पाठ यहाँ दर्ज करें...</p>', sort_order: 3 },
+      { id: 'sec_literature', section_type: 'literature_review', section_title: '2. Literature Review (साहित्य अवलोकन)', content_html: initialArticle.full_text_literature_review || '<p>साहित्य अवलोकन का विवरण यहाँ लिखें...</p>', sort_order: 4 },
+      { id: 'sec_methodology', section_type: 'methodology', section_title: '3. Research Methodology (अनुसंधान कार्यप्रणाली)', content_html: initialArticle.full_text_methodology || '<p>शोध कार्यप्रणाली एवं तथ्य संकलन प्रक्रिया...</p>', sort_order: 5 },
+      { id: 'sec_results', section_type: 'results', section_title: '4. Results & Discussion (परिणाम एवं विश्लेषण)', content_html: initialArticle.full_text_results_discussion || '<p>शोध निष्कर्ष एवं परिणाम विवरण...</p>', sort_order: 6 },
+      { id: 'sec_conclusion', section_type: 'conclusion', section_title: '5. Conclusion (निष्कर्ष एवं भावी सम्भावनाएँ)', content_html: initialArticle.full_text_conclusion || '<p>शोध पत्र का अंतिम निष्कर्ष...</p>', sort_order: 7 },
+      { id: 'sec_ack', section_type: 'acknowledgement', section_title: 'Acknowledgement (आभार)', content_html: initialArticle.full_text_acknowledgement || '<p>शोध निर्देशक एवं संस्थान के प्रति आभार...</p>', sort_order: 8 },
+      { id: 'sec_refs', section_type: 'references', section_title: 'References (संदर्भ ग्रंथ सूची)', content_html: (initialArticle.references || []).map(r => `<p class="pl-5 -indent-5 mb-1.5 font-serif text-sm">${r}</p>`).join('') || '<p>1. पंवार, राजेश (2024). पवारी भाषा व संस्कृति. भोपाल: साहित्य अकादमी.</p>', sort_order: 9 }
     ];
   });
 
@@ -173,7 +111,7 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
   // Keep internal state in sync if initialArticle changes
   useEffect(() => {
     setArticle({ ...initialArticle });
-    if (Array.isArray(initialArticle.sections)) {
+    if (initialArticle.sections && initialArticle.sections.length > 0) {
       setSectionsList([...initialArticle.sections]);
     }
   }, [initialArticle.id, initialArticle.updated_at]);
@@ -196,7 +134,7 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
       if (savedDraft) {
         const parsedDraft: Article = JSON.parse(savedDraft);
         setArticle(parsedDraft);
-        if (Array.isArray(parsedDraft.sections)) {
+        if (parsedDraft.sections && parsedDraft.sections.length > 0) {
           setSectionsList(parsedDraft.sections);
         }
         setLocalDraftAvailable(false);
@@ -264,23 +202,9 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
   const performAutosave = async () => {
     setSaveStatus('saving');
     setIsAutosaving(true);
-
-    const introSec = sectionsList.find(s => s.section_type === 'introduction');
-    const litSec = sectionsList.find(s => s.section_type === 'literature_review');
-    const methSec = sectionsList.find(s => s.section_type === 'methodology');
-    const resSec = sectionsList.find(s => s.section_type === 'results' || s.section_type === 'discussion');
-    const concSec = sectionsList.find(s => s.section_type === 'conclusion');
-    const ackSec = sectionsList.find(s => s.section_type === 'acknowledgement');
-
     const updated: Article = {
       ...article,
       sections: sectionsList,
-      full_text_introduction: introSec ? introSec.content_html : '',
-      full_text_literature_review: litSec ? litSec.content_html : '',
-      full_text_methodology: methSec ? methSec.content_html : '',
-      full_text_results_discussion: resSec ? resSec.content_html : '',
-      full_text_conclusion: concSec ? concSec.content_html : '',
-      full_text_acknowledgement: ackSec ? ackSec.content_html : '',
       updated_at: new Date().toISOString()
     };
 
@@ -340,6 +264,7 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
   };
 
   const handleDeleteSection = (id: string) => {
+    if (sectionsList.length <= 1) return;
     setSectionsList(prev => prev.filter(s => s.id !== id));
     notifyChange();
   };
@@ -371,88 +296,17 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
 
   // Apply Parsed Word Document to Sections
   const handleApplyWordArticle = (parsed: ParsedWordArticle) => {
-    const newSections: ArticleSection[] = [];
-    let order = 1;
-
-    if (parsed.full_text_introduction?.trim()) {
-      newSections.push({
-        id: 'sec_intro_' + Date.now(),
-        section_type: 'introduction',
-        section_title: 'Introduction (प्रस्तावना)',
-        content_html: cleanWordHtml(parsed.full_text_introduction),
-        sort_order: order++
-      });
-    }
-
-    if (parsed.full_text_literature_review?.trim()) {
-      newSections.push({
-        id: 'sec_lit_' + Date.now(),
-        section_type: 'literature_review',
-        section_title: 'Literature Review (साहित्य अवलोकन)',
-        content_html: cleanWordHtml(parsed.full_text_literature_review),
-        sort_order: order++
-      });
-    }
-
-    if (parsed.full_text_methodology?.trim()) {
-      newSections.push({
-        id: 'sec_meth_' + Date.now(),
-        section_type: 'methodology',
-        section_title: 'Research Methodology (अनुसंधान कार्यप्रणाली)',
-        content_html: cleanWordHtml(parsed.full_text_methodology),
-        sort_order: order++
-      });
-    }
-
-    if (parsed.full_text_results_discussion?.trim()) {
-      newSections.push({
-        id: 'sec_res_' + Date.now(),
-        section_type: 'results',
-        section_title: 'Results & Discussion (परिणाम एवं विश्लेषण)',
-        content_html: cleanWordHtml(parsed.full_text_results_discussion),
-        sort_order: order++
-      });
-    }
-
-    if (parsed.full_text_conclusion?.trim()) {
-      newSections.push({
-        id: 'sec_conc_' + Date.now(),
-        section_type: 'conclusion',
-        section_title: 'Conclusion (निष्कर्ष)',
-        content_html: cleanWordHtml(parsed.full_text_conclusion),
-        sort_order: order++
-      });
-    }
-
-    if (parsed.full_text_acknowledgement?.trim()) {
-      newSections.push({
-        id: 'sec_ack_' + Date.now(),
-        section_type: 'acknowledgement',
-        section_title: 'Acknowledgement (आभार)',
-        content_html: cleanWordHtml(parsed.full_text_acknowledgement),
-        sort_order: order++
-      });
-    }
-
-    if (parsed.references && parsed.references.length > 0) {
-      newSections.push({
-        id: 'sec_refs_' + Date.now(),
-        section_type: 'references',
-        section_title: 'References (संदर्भ ग्रंथ सूची)',
-        content_html: parsed.references.map(r => `<p class="pl-5 -indent-5 mb-1.5 font-serif text-sm">${r}</p>`).join(''),
-        sort_order: order++
-      });
-    }
-
-    if (newSections.length === 0) {
-      newSections.push({
-        id: 'sec_body_' + Date.now(),
-        section_type: 'custom',
-        section_title: 'आलेख मुख्य पाठ (Article Content)',
-        content_html: cleanWordHtml(parsed.full_text_introduction || '') || '<p>वर्ड दस्तावेज़ का मुख्य पाठ...</p>',
-        sort_order: 1
-      });
-    }
+    const newSections: ArticleSection[] = [
+      { id: 'sec_title', section_type: 'title', section_title: 'Title & Subtitle (शीर्षक)', content_html: `<h1 class="font-serif font-bold text-2xl text-slate-900 mb-2">${parsed.title_hindi || parsed.title_english}</h1>`, sort_order: 1 },
+      { id: 'sec_abstract', section_type: 'abstract', section_title: 'Abstract / सार', content_html: `<p class="font-serif leading-relaxed">${parsed.abstract_hindi || parsed.abstract_english}</p>`, sort_order: 2 },
+      { id: 'sec_intro', section_type: 'introduction', section_title: '1. Introduction (प्रस्तावना)', content_html: cleanWordHtml(parsed.full_text_introduction) || '<p>प्रस्तावना पाठ...</p>', sort_order: 3 },
+      { id: 'sec_literature', section_type: 'literature_review', section_title: '2. Literature Review (साहित्य अवलोकन)', content_html: cleanWordHtml(parsed.full_text_literature_review) || '<p>साहित्य अवलोकन विवरण...</p>', sort_order: 4 },
+      { id: 'sec_methodology', section_type: 'methodology', section_title: '3. Research Methodology (अनुसंधान कार्यप्रणाली)', content_html: cleanWordHtml(parsed.full_text_methodology) || '<p>शोध कार्यप्रणाली...</p>', sort_order: 5 },
+      { id: 'sec_results', section_type: 'results', section_title: '4. Results & Discussion (परिणाम एवं विश्लेषण)', content_html: cleanWordHtml(parsed.full_text_results_discussion) || '<p>परिणाम एवं विश्लेषण विवरण...</p>', sort_order: 6 },
+      { id: 'sec_conclusion', section_type: 'conclusion', section_title: '5. Conclusion (निष्कर्ष)', content_html: cleanWordHtml(parsed.full_text_conclusion) || '<p>निष्कर्ष एवं सारांश...</p>', sort_order: 7 },
+      { id: 'sec_ack', section_type: 'acknowledgement', section_title: 'Acknowledgement (आभार)', content_html: cleanWordHtml(parsed.full_text_acknowledgement) || '<p>आभार प्रकटीकरण...</p>', sort_order: 8 },
+      { id: 'sec_refs', section_type: 'references', section_title: 'References (संदर्भ ग्रंथ सूची)', content_html: parsed.references.map(r => `<p class="pl-5 -indent-5 mb-1.5 font-serif text-sm">${r}</p>`).join(''), sort_order: 9 }
+    ];
 
     setArticle(prev => ({
       ...prev,
@@ -498,12 +352,12 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
       sections: sectionsList,
       status: statusToSave,
       content_mode: article.content_mode || 'full_text',
-      full_text_introduction: introSec ? introSec.content_html : '',
-      full_text_literature_review: litSec ? litSec.content_html : '',
-      full_text_methodology: methSec ? methSec.content_html : '',
-      full_text_results_discussion: resSec ? resSec.content_html : '',
-      full_text_conclusion: concSec ? concSec.content_html : '',
-      full_text_acknowledgement: ackSec ? ackSec.content_html : '',
+      full_text_introduction: introSec?.content_html || article.full_text_introduction || '',
+      full_text_literature_review: litSec?.content_html || article.full_text_literature_review || '',
+      full_text_methodology: methSec?.content_html || article.full_text_methodology || '',
+      full_text_results_discussion: resSec?.content_html || article.full_text_results_discussion || '',
+      full_text_conclusion: concSec?.content_html || article.full_text_conclusion || '',
+      full_text_acknowledgement: ackSec?.content_html || article.full_text_acknowledgement || '',
       updated_at: new Date().toISOString()
     };
 
@@ -802,110 +656,77 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
             </div>
 
             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-              {sectionsList.length === 0 ? (
-                <div className="text-center p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-xs text-slate-500 space-y-2">
-                  <p>कोई अनुभाग शेष नहीं है (No sections remaining)</p>
-                  <button
-                    type="button"
-                    onClick={handleAddCustomSection}
-                    className="px-3 py-1.5 bg-amber-600 text-white rounded-lg font-bold text-xs hover:bg-amber-700"
-                  >
-                    + नया अनुभाग जोड़ें
-                  </button>
-                </div>
-              ) : (
-                sectionsList.map((sec, idx) => (
-                  <div
-                    key={sec.id}
-                    className="p-3 bg-slate-50 hover:bg-amber-50/60 rounded-xl border border-slate-200 text-xs transition space-y-2 group"
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <input
-                        type="text"
-                        value={sec.section_title}
-                        onChange={(e) => handleUpdateSectionTitle(sec.id, e.target.value)}
-                        className="font-bold text-slate-900 bg-transparent border-b border-transparent focus:border-amber-500 outline-none w-full text-xs"
-                      />
-                    </div>
+              {sectionsList.map((sec, idx) => (
+                <div
+                  key={sec.id}
+                  className="p-3 bg-slate-50 hover:bg-amber-50/60 rounded-xl border border-slate-200 text-xs transition space-y-2 group"
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <input
+                      type="text"
+                      value={sec.section_title}
+                      onChange={(e) => handleUpdateSectionTitle(sec.id, e.target.value)}
+                      className="font-bold text-slate-900 bg-transparent border-b border-transparent focus:border-amber-500 outline-none w-full text-xs"
+                    />
+                  </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200/60">
-                      <span className="font-mono">{sec.word_count || 0} words</span>
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200/60">
+                    <span className="font-mono">{sec.word_count || 0} words</span>
 
-                      {/* Section Order Controls */}
-                      <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
-                        <button
-                          type="button"
-                          onClick={() => handleMoveSection(idx, 'up')}
-                          disabled={idx === 0}
-                          className="p-1 hover:bg-slate-200 rounded text-slate-700 disabled:opacity-30"
-                          title="Move Up"
-                        >
-                          <ArrowUp className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleMoveSection(idx, 'down')}
-                          disabled={idx === sectionsList.length - 1}
-                          className="p-1 hover:bg-slate-200 rounded text-slate-700 disabled:opacity-30"
-                          title="Move Down"
-                        >
-                          <ArrowDown className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDuplicateSection(sec)}
-                          className="p-1 hover:bg-slate-200 rounded text-amber-700"
-                          title="Duplicate"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteSection(sec.id)}
-                          className="p-1 hover:bg-red-100 rounded text-red-600"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
+                    {/* Section Order Controls */}
+                    <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveSection(idx, 'up')}
+                        disabled={idx === 0}
+                        className="p-1 hover:bg-slate-200 rounded text-slate-700 disabled:opacity-30"
+                        title="Move Up"
+                      >
+                        <ArrowUp className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveSection(idx, 'down')}
+                        disabled={idx === sectionsList.length - 1}
+                        className="p-1 hover:bg-slate-200 rounded text-slate-700 disabled:opacity-30"
+                        title="Move Down"
+                      >
+                        <ArrowDown className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicateSection(sec)}
+                        className="p-1 hover:bg-slate-200 rounded text-amber-700"
+                        title="Duplicate"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSection(sec.id)}
+                        className="p-1 hover:bg-red-100 rounded text-red-600"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Right Main Editor Canvas */}
           <div className="lg:col-span-3 space-y-6">
-            {sectionsList.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center space-y-4 shadow-xs">
-                <FileText className="w-12 h-12 text-amber-600 mx-auto opacity-50" />
-                <h4 className="font-serif font-bold text-base text-slate-800">
-                  सभी अनुभाग हटा दिए गए हैं (All sections removed)
-                </h4>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  आप बिना किसी पूर्व-निर्धारित हेडिंग के नया अनुभाग या स्वतंत्र आलेख पाठ जोड़ सकते हैं।
-                </p>
-                <button
-                  type="button"
-                  onClick={handleAddCustomSection}
-                  className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>+ नया अनुभाग या आलेख मुख्य पाठ जोड़ें</span>
-                </button>
-              </div>
-            ) : (
-              sectionsList.map((sec) => (
-                <SectionRichEditor
-                  key={sec.id}
-                  sectionTitle={sec.section_title}
-                  initialHtml={sec.content_html}
-                  onChange={(html) => handleUpdateSectionContent(sec.id, html)}
-                  lang={lang}
-                />
-              ))
-            )}
+            {sectionsList.map((sec) => (
+              <SectionRichEditor
+                key={sec.id}
+                sectionTitle={sec.section_title}
+                initialHtml={sec.content_html}
+                onChange={(html) => handleUpdateSectionContent(sec.id, html)}
+                lang={lang}
+              />
+            ))}
           </div>
         </div>
       )}

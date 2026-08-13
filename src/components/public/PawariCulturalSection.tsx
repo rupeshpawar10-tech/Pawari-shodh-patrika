@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { PawariShabdkoshItem, PawariPaheliItem, PawariLokgeetItem, QuizQuestion, QuizCertificate } from '../../types';
+import { SafeImage } from '../common/SafeImage';
 import { 
   BookOpen, 
   HelpCircle, 
@@ -10,7 +11,6 @@ import {
   Search, 
   Eye, 
   EyeOff, 
-  Lightbulb, 
   CheckCircle2, 
   X, 
   Upload, 
@@ -25,64 +25,309 @@ import {
   FileCheck2,
   Check,
   AlertCircle,
-  Copy
+  Copy,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Link2,
+  ExternalLink,
+  Play,
+  Trophy,
+  Medal,
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
-
-import { 
-  SAMPLE_SHABDKOSH, 
-  SAMPLE_PAHELI, 
-  SAMPLE_LOKGEET, 
-  SAMPLE_QUIZ_QUESTIONS 
-} from '../../data/pawariCulturalData';
-
-import { parseRouteFromUrl, getUrlForLokgeet, getUrlForShabdkosh, getUrlForPaheli } from '../../lib/router';
 
 interface PawariCulturalSectionProps {
   initialTab?: 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz';
 }
 
+// Helper function to shuffle options of a QuizQuestion so correct answer is NOT stuck at A
+export function shuffleQuestionOptions(q: QuizQuestion): QuizQuestion {
+  if (!q || !q.options || q.options.length === 0) return q;
+  const correctText = q.options[q.correct_option_index ?? 0];
+  const shuffledOptions = [...q.options];
+
+  // Fisher-Yates shuffle
+  for (let i = shuffledOptions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+  }
+
+  let newCorrectIndex = shuffledOptions.indexOf(correctText);
+  if (newCorrectIndex === -1) newCorrectIndex = 0;
+
+  return {
+    ...q,
+    options: shuffledOptions,
+    correct_option_index: newCorrectIndex
+  };
+}
+
+const FALLBACK_QUIZ_QUESTIONS: QuizQuestion[] = [
+  {
+    id: 'fq1',
+    question_pawari: 'हरी घास पर प्रातःकाल मोती जैसी चमकने वाली इस बूंद की पहेली (पाहलोड़ी) का उत्तर क्या है?',
+    question_hindi: 'हरी घास पर प्रातःकाल मोती जैसी चमकने वाली इस बूंद की पहेली (पाहलोड़ी) का उत्तर क्या है?',
+    options: ['पानी (Water)', 'ओस (Dew)', 'दूध (Milk)', 'अमृत (Nectar)'],
+    correct_option_index: 1,
+    explanation: 'प्रातःकाल घास की पत्तियों पर जमी बूंदों को ओस (Dew) कहा जाता है।',
+    section_type: 'paheli'
+  },
+  {
+    id: 'fq2',
+    question_pawari: 'पवारी बोली मुख्य रूप से किस भौगोलिक अंचल एवं भाषा-परिवार की सांस्कृतिक धरोहर है?',
+    question_hindi: 'पवारी बोली मुख्य रूप से किस भौगोलिक अंचल एवं भाषा-परिवार की सांस्कृतिक धरोहर है?',
+    options: ['उत्तर प्रदेश (UP)', 'राजस्थान (Rajasthan)', 'बैतूल, छिंदवाड़ा, सिवनी व ताप्ती अंचल (म.प्र.-महाराष्ट्र सीमा)', 'गुजरात (Gujarat)'],
+    correct_option_index: 2,
+    explanation: 'पवारी बोली बैतूल, छिंदवाड़ा, सिवनी, बालाघाट एवं वर्धा क्षेत्र की सांस्कृतिक धरोहर है।',
+    section_type: 'shabdkosh'
+  },
+  {
+    id: 'fq3',
+    question_pawari: 'पवारी भाषा में "रोटी / अनाज के पकवान" को सामान्यतः क्या कहा जाता है?',
+    question_hindi: 'पवारी भाषा में "रोटी / अनाज के पकवान" को सामान्यतः क्या कहा जाता है?',
+    options: ['चावल (Rice)', 'खीर (Pudding)', 'रोटी / भाकर (Bread / Bhakar)', 'सब्जी (Vegetable)'],
+    correct_option_index: 2,
+    explanation: 'पवारी में रोटी/भाकर अनाज के पकवान के लिए प्रयुक्त होता है।',
+    section_type: 'shabdkosh'
+  },
+  {
+    id: 'fq4',
+    question_pawari: 'पवारी लोक संस्कृति में माँ ताप्ती का पावन उद्गम स्थल कहाँ स्थित है?',
+    question_hindi: 'पवारी लोक संस्कृति में माँ ताप्ती का पावन उद्गम स्थल कहाँ स्थित है?',
+    options: ['भोपाल (Bhopal)', 'मुलताई, बैतूल (Multai, Betul)', 'इन्दौर (Indore)', 'जबलपुर (Jabalpur)'],
+    correct_option_index: 1,
+    explanation: 'माँ ताप्ती का पावन उद्गम मुलताई नगर (बैतूल, म.प्र.) में स्थित है।',
+    section_type: 'lokgeet'
+  },
+  {
+    id: 'fq5',
+    question_pawari: 'पवारी लोकगीत मुख्य रूप से किस अवसर पर गाए जाते हैं?',
+    question_hindi: 'पवारी लोकगीत मुख्य रूप से किस अवसर पर गाए जाते हैं?',
+    options: ['विवाह, दीवाली, होली एवं पर्व-त्योहार', 'केवल खेलकूद स्पर्धा', 'कार्यालयीन मीटिंग', 'व्यापारिक क्रय-विक्रय'],
+    correct_option_index: 0,
+    explanation: 'पवारी लोकगीत विवाह, दीवाली, होली व सांस्कृतिक उत्सवों पर गाए जाते हैं।',
+    section_type: 'lokgeet'
+  },
+  {
+    id: 'fq6',
+    question_pawari: 'माँ ताप्ती पवारी शोध संस्थान के निदेशक एवं वरिष्ठ पवारी साहित्यकार कौन हैं?',
+    question_hindi: 'माँ ताप्ती पवारी शोध संस्थान के निदेशक एवं वरिष्ठ पवारी साहित्यकार कौन हैं?',
+    options: ['डॉ. कैलाश पवार', 'डॉ. मोहन लाल गुप्ता', 'श्री रामेश्वर शर्मा', 'प्रो. अनिता मालवीय'],
+    correct_option_index: 0,
+    explanation: 'डॉ. कैलाश पवार माँ ताप्ती पवारी शोध संस्थान मुलताई के निदेशक एवं शोधकर्ता हैं।',
+    section_type: 'writers'
+  },
+  {
+    id: 'fq7',
+    question_pawari: 'पवारी शोध पत्रिका में प्रकाशित शोध पत्रों (Research Papers) का प्राथमिक उद्देश्य क्या है?',
+    question_hindi: 'पवारी शोध पत्रिका में प्रकाशित शोध पत्रों (Research Papers) का प्राथमिक उद्देश्य क्या है?',
+    options: ['व्यवसायिक विज्ञापन', 'पवारी भाषा विज्ञान, लोकसाहित्य व संस्कृति का वैज्ञानिक संरक्षण', 'राजनीतिक चुनाव प्रचार', 'सिनेमा मनोरंजन'],
+    correct_option_index: 1,
+    explanation: 'शोध पत्रों का उद्देश्य पवारी बोली के व्याकरण, लोकसाहित्य एवं इतिहास का प्रामाणिक दस्तावेजीकरण है।',
+    section_type: 'articles'
+  },
+  {
+    id: 'fq8',
+    question_pawari: 'पवारी पहेली (पाहलोड़ी): "लाल-लाल गाजर, पेट मा पत्थर" का सही उत्तर क्या है?',
+    question_hindi: 'पवारी पहेली (पाहलोड़ी): "लाल-लाल गाजर, पेट मा पत्थर" का सही उत्तर क्या है?',
+    options: ['आम (Mango)', 'इमली (Tamarind)', 'जामुन (Black Plum)', 'महुआ / खजूर (Mahua / Date)'],
+    correct_option_index: 3,
+    explanation: 'इस पारम्परिक पाहलोड़ी (पहेली) का सही उत्तर महुआ या खजूर है।',
+    section_type: 'paheli'
+  },
+  {
+    id: 'fq9',
+    question_pawari: 'पवारी भाषा-संस्कृति पर आधारित प्रकाशित ग्रन्थों व पुस्तकों का डिजिटल रिकॉर्ड कौन रखता है?',
+    question_hindi: 'पवारी भाषा-संस्कृति पर आधारित प्रकाशित ग्रन्थों व पुस्तकों का डिजिटल रिकॉर्ड कौन रखता है?',
+    options: ['विदेश शोध संस्थान', 'माँ ताप्ती पवारी शोध संस्थान एवं अंचल साहित्यकार', 'फिल्म सेंसर बोर्ड', 'खेल प्राधिकरण'],
+    correct_option_index: 1,
+    explanation: 'माँ ताप्ती पवारी शोध संस्थान मुलताई पवारी ग्रन्थों एवं साहित्यकारों का डिजिटल रिकॉर्ड रखता है।',
+    section_type: 'books'
+  },
+  {
+    id: 'fq10',
+    question_pawari: 'पवारी लोकगीतों में विवाह अवसर पर गाया जाने वाला प्रमुख मंगल गीत कौन सा है?',
+    question_hindi: 'पवारी लोकगीतों में विवाह अवसर पर गाया जाने वाला प्रमुख मंगल गीत कौन सा है?',
+    options: ['फाग गीत', 'विवाह बन्ना-बन्नी व भांवर गीत', 'मराठी लावणी', 'कव्वाली'],
+    correct_option_index: 1,
+    explanation: 'विवाह के समय पवारी बन्ना-बन्नी, हल्दी, भांवर व विदाई गीत मंगल स्वरों में गाए जाते हैं।',
+    section_type: 'lokgeet'
+  }
+];
+
 export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ initialTab = 'shabdkosh' }) => {
-  const { shabdkoshList, paheliList, lokgeetList, quizQuestions, submitPublicContribution, uploadFileToStorage } = useCms();
+  const { 
+    lang,
+    shabdkoshList, 
+    paheliList, 
+    lokgeetList, 
+    quizQuestions, 
+    writers,
+    books,
+    articles,
+    editorialMembers,
+    quizLeaderboard,
+    saveQuizCertificate,
+    submitPublicContribution, 
+    uploadFileToStorage 
+  } = useCms();
   const [activeTab, setActiveTab] = useState<'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz'>(initialTab);
 
-  React.useEffect(() => {
-    const route = parseRouteFromUrl();
-    if (route.lokgeetId) {
-      setActiveTab('lokgeet');
-    } else if (route.shabdkoshId) {
-      setActiveTab('shabdkosh');
-    } else if (route.paheliId) {
-      setActiveTab('paheli');
-      setRevealedPaheli(prev => ({ ...prev, [route.paheliId!]: true }));
-    } else if (initialTab) {
-      setActiveTab(initialTab);
-    }
-  }, [initialTab]);
+  // Dynamic Patron / Director and Chief Editor from CMS Editorial Members
+  const patronMember = (editorialMembers || []).find(m => 
+    (m.role && (m.role.toLowerCase().includes('patron') || m.role.includes('संरक्षक'))) || 
+    (m.designation_hindi && m.designation_hindi.includes('संरक्षक'))
+  ) || (editorialMembers || [])[0];
 
-  // Fallback to sample cultural data if Firestore collection is fresh or empty
-  const rawShabdkosh = (shabdkoshList && shabdkoshList.length > 0) ? shabdkoshList : SAMPLE_SHABDKOSH;
-  const rawPaheli = (paheliList && paheliList.length > 0) ? paheliList : SAMPLE_PAHELI;
-  const rawLokgeet = (lokgeetList && lokgeetList.length > 0) ? lokgeetList : SAMPLE_LOKGEET;
-  const rawQuizQuestions = (quizQuestions && quizQuestions.length > 0) ? quizQuestions : SAMPLE_QUIZ_QUESTIONS;
+  const chiefEditorMember = (editorialMembers || []).find(m => 
+    (m.role && (m.role.toLowerCase().includes('chief') || m.role.includes('मुख्य'))) || 
+    (m.designation_hindi && m.designation_hindi.includes('मुख्य संपादक'))
+  ) || (editorialMembers || [])[1] || (editorialMembers || [])[0];
 
-  // Filter approved items only for public display
-  const approvedShabdkosh = rawShabdkosh.filter(s => s.status === 'approved' || (!s.status && !s.id.startsWith('contrib_')));
-  const approvedPaheli = rawPaheli.filter(p => p.status === 'approved' || (!p.status && !p.id.startsWith('contrib_')));
-  const approvedLokgeet = rawLokgeet.filter(l => l.status === 'approved' || (!l.status && !l.id.startsWith('contrib_')));
+  // Filter approved items only for public display (Pending contributions require CMS approval)
+  const approvedShabdkosh = shabdkoshList.filter(s => s.status === 'approved' || s.status === 'published' || (!s.status && !s.id.startsWith('contrib_')));
+  const approvedPaheli = paheliList.filter(p => p.status === 'approved' || p.status === 'published' || (!p.status && !p.id.startsWith('contrib_')));
+  const approvedLokgeet = lokgeetList.filter(l => l.status === 'approved' || l.status === 'published' || (!l.status && !l.id.startsWith('contrib_')));
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [shabdkoshCategory, setShabdkoshCategory] = useState('all');
+  const [shabdkoshLetter, setShabdkoshLetter] = useState('all');
   const [paheliCategory, setPaheliCategory] = useState('all');
   const [revealedPaheli, setRevealedPaheli] = useState<Record<string, boolean>>({});
   const [copiedPaheliId, setCopiedPaheliId] = useState<string | null>(null);
 
+  // Lokgeet specific state & URL navigation
+  const [lokgeetCategory, setLokgeetCategory] = useState('all');
+  const [lokgeetSort, setLokgeetSort] = useState<'default' | 'title' | 'category'>('default');
+  const [lokgeetPage, setLokgeetPage] = useState<number>(1);
+  const LOKGEET_PER_PAGE = 6;
+  const [selectedLokgeet, setSelectedLokgeet] = useState<PawariLokgeetItem | null>(null);
+  const [copiedLokgeetId, setCopiedLokgeetId] = useState<string | null>(null);
+  const [copiedLyricsId, setCopiedLyricsId] = useState<string | null>(null);
+
+  // Reset page when search or category or sort changes
+  React.useEffect(() => {
+    setLokgeetPage(1);
+  }, [searchTerm, lokgeetCategory, lokgeetSort]);
+
+  const HINDI_LETTERS = [
+    'all',
+    'अ', 'आ', 'इ', 'ई', 'उ', 'ऊ', 'ऋ', 'ए', 'ऐ', 'ओ', 'औ', 'अं',
+    'क', 'ख', 'ग', 'घ',
+    'च', 'छ', 'ज', 'झ',
+    'ट', 'ठ', 'ड', 'ढ',
+    'त', 'थ', 'द', 'ध', 'न',
+    'प', 'फ', 'ब', 'भ', 'म',
+    'य', 'र', 'ल', 'व',
+    'श', 'ष', 'स', 'ह',
+    'क्ष', 'त्र', 'ज्ञ'
+  ];
+
+  // Sync Lokgeet from URL on mount & popstate
+  React.useEffect(() => {
+    const syncLokgeetFromUrl = () => {
+      try {
+        const pathname = decodeURIComponent(window.location.pathname.toLowerCase());
+        if (pathname.startsWith('/lokgeet/')) {
+          const slugOrId = pathname.replace('/lokgeet/', '').trim();
+          if (slugOrId) {
+            const found = approvedLokgeet.find(l => 
+              l.id.toLowerCase() === slugOrId || 
+              (l.slug && l.slug.toLowerCase() === slugOrId) ||
+              l.id.toLowerCase() === `lokgeet-${slugOrId}`
+            );
+            if (found) {
+              setSelectedLokgeet(found);
+              setActiveTab('lokgeet');
+              return;
+            }
+          }
+        } else if (pathname === '/lokgeet' || pathname === '/pawari-lokgeet') {
+          setActiveTab('lokgeet');
+        }
+      } catch (e) {}
+    };
+
+    syncLokgeetFromUrl();
+    window.addEventListener('popstate', syncLokgeetFromUrl);
+    return () => window.removeEventListener('popstate', syncLokgeetFromUrl);
+  }, [approvedLokgeet]);
+
+  const handleOpenLokgeet = (item: PawariLokgeetItem, e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    setSelectedLokgeet(item);
+    setActiveTab('lokgeet');
+    const targetId = item.slug || item.id;
+    const targetUrl = `/lokgeet/${targetId}`;
+    if (window.location.pathname !== targetUrl) {
+      window.history.pushState({ view: 'pawari_lokgeet', lokgeetSlugOrId: targetId }, '', targetUrl);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCloseLokgeet = () => {
+    setSelectedLokgeet(null);
+    if (window.location.pathname.startsWith('/lokgeet/')) {
+      window.history.pushState({ view: 'pawari_lokgeet' }, '', '/lokgeet');
+    }
+  };
+
+  const handleCopyLokgeetLink = (item: PawariLokgeetItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const directUrl = `${window.location.origin}/lokgeet/${item.slug || item.id}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(directUrl).then(() => {
+        setCopiedLokgeetId(item.id);
+        setTimeout(() => setCopiedLokgeetId(null), 2500);
+      });
+    } else {
+      prompt('लोकगीत का डायरेक्ट लिंक कॉपी करें:', directUrl);
+    }
+  };
+
+  const handleCopyLyrics = (item: PawariLokgeetItem) => {
+    const fullText = `🎵 *${item.title_pawari}* ${item.title_hindi ? `(${item.title_hindi})` : ''}\nश्रेणी: ${item.category}\n\n*लोकगीत के बोल:*\n${item.lyrics_pawari}\n\n${item.lyrics_hindi_meaning ? `*भावार्थ:*\n${item.lyrics_hindi_meaning}\n\n` : ''}📖 पवारी भाषा एवं संस्कृति शोध पत्रिका: ${window.location.origin}/lokgeet/${item.slug || item.id}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(fullText).then(() => {
+        setCopiedLyricsId(item.id);
+        setTimeout(() => setCopiedLyricsId(null), 2500);
+      });
+    } else {
+      prompt('लोकगीत के बोल:', fullText);
+    }
+  };
+
+  const handleShareLokgeetWhatsApp = (item: PawariLokgeetItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const directUrl = `${window.location.origin}/lokgeet/${item.slug || item.id}`;
+    const shareText = `🎵 *${item.title_pawari}* ${item.title_hindi ? `(${item.title_hindi})` : ''}\n\n"${item.lyrics_pawari.slice(0, 150)}..."\n\n📖 पूरा लोकगीत पढ़ें एवं भावार्थ देखें:\n${directUrl}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
+
+  // Parse letter from URL on load if present
+  React.useEffect(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const letterParam = searchParams.get('letter') || searchParams.get('a');
+      if (letterParam) {
+        setShabdkoshLetter(letterParam);
+        setActiveTab('shabdkosh');
+      } else if (window.location.hash && window.location.hash.includes('letter=')) {
+        const parts = window.location.hash.split('letter=');
+        if (parts[1]) {
+          setShabdkoshLetter(decodeURIComponent(parts[1]));
+          setActiveTab('shabdkosh');
+        }
+      }
+    } catch (e) {}
+  }, []);
+
   const handleSharePaheli = async (item: PawariPaheliItem) => {
     const isAnswerRevealed = !!revealedPaheli[item.id];
     let shareText = `🧩 *पवारी पहेली (पवारी बुझौवल)* 🧩\n\n"${item.riddle_pawari}"`;
-    if (item.hint_hindi) {
-      shareText += `\n\n💡 *संकेत:* ${item.hint_hindi}`;
-    }
     if (isAnswerRevealed) {
       shareText += `\n\n✅ *उत्तर:* ${item.answer_hindi}`;
       if (item.answer_pawari) shareText += ` (${item.answer_pawari})`;
@@ -116,9 +361,6 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const handleWhatsAppSharePaheli = (item: PawariPaheliItem) => {
     const isAnswerRevealed = !!revealedPaheli[item.id];
     let shareText = `🧩 *पवारी पहेली (पवारी बुझौवल)* 🧩\n\n"${item.riddle_pawari}"`;
-    if (item.hint_hindi) {
-      shareText += `\n\n💡 *संकेत:* ${item.hint_hindi}`;
-    }
     if (isAnswerRevealed) {
       shareText += `\n\n✅ *उत्तर:* ${item.answer_hindi}`;
       if (item.answer_pawari) shareText += ` (${item.answer_pawari})`;
@@ -163,12 +405,238 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const [userName, setUserName] = useState('');
   const [userPhoto, setUserPhoto] = useState<string>('');
   const [certificateData, setCertificateData] = useState<QuizCertificate | null>(null);
+  const [copiedQuizLink, setCopiedQuizLink] = useState(false);
+  const [quizSubTab, setQuizSubTab] = useState<'quiz' | 'leaderboard'>('quiz');
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [leaderboardSearch, setLeaderboardSearch] = useState('');
+
+  // Helper function to reliably render the certificate DOM element to HTML5 Canvas
+  const renderCertificateCanvas = async (certElement: HTMLElement): Promise<HTMLCanvasElement> => {
+    // Wait for any images inside the certificate element to finish loading
+    const images = Array.from(certElement.querySelectorAll('img'));
+    await Promise.all(images.map(img => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise<void>(resolve => {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+        if (!img.complete) {
+          const currentSrc = img.src;
+          img.src = currentSrc;
+        }
+      });
+    }));
+
+    const html2canvasModule = await import('html2canvas-pro');
+    const html2canvas = (html2canvasModule.default || html2canvasModule) as unknown as (element: HTMLElement, options?: any) => Promise<HTMLCanvasElement>;
+
+    return await html2canvas(certElement, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#FFFDF7',
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: certElement.scrollWidth || 900,
+      windowHeight: certElement.scrollHeight || 600,
+      onclone: (clonedDoc: Document) => {
+        // 1. Convert/clean oklch(...) colors in cloned stylesheets to avoid parser crashes
+        const styleEls = clonedDoc.querySelectorAll('style');
+        styleEls.forEach((style) => {
+          if (style.textContent && /oklch/i.test(style.textContent)) {
+            style.textContent = style.textContent.replace(/oklch\([^)]+\)/gi, '#b45309');
+          }
+        });
+
+        // 2. Format printable-certificate-card element
+        const target = clonedDoc.getElementById('printable-certificate-card');
+        if (target) {
+          target.style.backgroundColor = '#FFFDF7';
+          target.style.color = '#0f172a';
+          
+          // Ensure crossOrigin on cloned images
+          const clonedImgs = target.querySelectorAll('img');
+          clonedImgs.forEach(img => {
+            if (img.src && !img.src.startsWith('data:')) {
+              img.crossOrigin = 'anonymous';
+            }
+          });
+        }
+      }
+    });
+  };
+
+  const handleDownloadCertificateImage = async () => {
+    const certElement = document.getElementById('printable-certificate-card');
+    if (!certElement) {
+      alert('प्रमाण-पत्र कार्ड उपलब्ध नहीं है।');
+      return;
+    }
+    setIsGeneratingImage(true);
+    try {
+      const canvas = await renderCertificateCanvas(certElement);
+      const imageUri = canvas.toDataURL('image/png', 1.0);
+      const link = document.createElement('a');
+      const nameClean = (certificateData?.user_name || 'Participant').replace(/\s+/g, '_');
+      link.download = `Pawari_Quiz_Certificate_${nameClean}.png`;
+      link.href = imageUri;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      console.error('Error generating certificate image:', err);
+      alert('इमेज डाउनलोड करने में त्रुटि हुई: ' + (err?.message || 'पुनः प्रयास करें।'));
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const handleDownloadCertificatePdf = async () => {
+    const certElement = document.getElementById('printable-certificate-card');
+    if (!certElement) {
+      alert('प्रमाण-पत्र कार्ड उपलब्ध नहीं है।');
+      return;
+    }
+    setIsGeneratingImage(true);
+    try {
+      const jspdfModule = await import('jspdf');
+      const jsPDFClass = ((jspdfModule as any).jsPDF || (jspdfModule as any).default) as any;
+
+      if (!jsPDFClass) {
+        throw new Error('jsPDF module load error');
+      }
+
+      const canvas = await renderCertificateCanvas(certElement);
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const orientation = imgWidth >= imgHeight ? 'l' : 'p';
+
+      const pdf = new jsPDFClass({
+        orientation,
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      // Fit proportionally onto strictly 1 single A4 page with margins
+      const margin = 8;
+      const maxWidth = pdfWidth - (margin * 2);
+      const maxHeight = pdfHeight - (margin * 2);
+
+      const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
+      const renderWidth = imgWidth * ratio;
+      const renderHeight = imgHeight * ratio;
+
+      const x = (pdfWidth - renderWidth) / 2;
+      const y = (pdfHeight - renderHeight) / 2;
+
+      pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight, undefined, 'FAST');
+      const nameClean = (certificateData?.user_name || 'Participant').replace(/\s+/g, '_');
+      pdf.save(`Pawari_Quiz_Certificate_${nameClean}.pdf`);
+    } catch (err: any) {
+      console.error('Error generating PDF:', err);
+      alert('PDF डाउनलोड करने में त्रुटि हुई: ' + (err?.message || 'पुनः प्रयास करें।'));
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const handleShareCertificateImage = async () => {
+    const certElement = document.getElementById('printable-certificate-card');
+    if (!certElement) {
+      alert('प्रमाण-पत्र कार्ड उपलब्ध नहीं है।');
+      return;
+    }
+    setIsGeneratingImage(true);
+    try {
+      const canvas = await renderCertificateCanvas(certElement);
+      const nameClean = (certificateData?.user_name || 'Participant').replace(/\s+/g, '_');
+      const fileName = `Pawari_Quiz_Certificate_${nameClean}.png`;
+
+      const runFallbackShare = () => {
+        const imageUri = canvas.toDataURL('image/png', 1.0);
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = imageUri;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        const quizUrl = `${window.location.origin}/quiz`;
+        const shareText = `🏆 *पवारी भोयरी संस्कृति ई-प्रमाण-पत्र* 🏆\n\nमैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त कर यह ई-प्रमाण-पत्र अर्जित किया है!\n\n(मेरा प्रमाण-पत्र डाउनलोड हो गया है। इसे यहाँ संलग्न करके शेयर करें!)\n\n👉 *क्विज़ में भाग लें:* ${quizUrl}`;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+
+        alert('इमेज आपकी डिवाइस पर डाउनलोड हो गई है एवं व्हाट्सएप शेयर विंडो खोल दी गई है! कृपया डाउनलोड इमेज को संलग्न करें।');
+      };
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setIsGeneratingImage(false);
+          alert('इमेज फ़ाइल तैयार करने में असमर्थ।');
+          return;
+        }
+
+        const file = new File([blob], fileName, { type: 'image/png' });
+        const shareData = {
+          title: 'पवारी भोयरी संस्कृति ई-प्रमाण-पत्र',
+          text: `🏆 मैंने माँ ताप्ती पवारी शोध संस्थान की पवारी भोयरी संस्कृति ई-क्विज़ 2026 में ${certificateData?.quiz_score}/${certificateData?.total_questions} (${certificateData?.percentage}%) अंक प्राप्त कर यह ई-प्रमाण-पत्र अर्जित किया है!`,
+          files: [file]
+        };
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share(shareData);
+            setIsGeneratingImage(false);
+            return;
+          } catch (shareErr: any) {
+            if (shareErr?.name === 'AbortError') {
+              setIsGeneratingImage(false);
+              return;
+            }
+            console.log('Native file share failed/fallback needed:', shareErr);
+          }
+        }
+
+        runFallbackShare();
+        setIsGeneratingImage(false);
+      }, 'image/png');
+    } catch (err: any) {
+      console.error('Error sharing certificate image:', err);
+      alert('शेयर करने में त्रुटि हुई: ' + (err?.message || 'पुनः प्रयास करें।'));
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const handleCopyQuizLink = () => {
+    const quizUrl = `${window.location.origin}/quiz`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(quizUrl).then(() => {
+        setCopiedQuizLink(true);
+        setTimeout(() => setCopiedQuizLink(false), 2500);
+      });
+    } else {
+      prompt('पवारी ई-क्विज़ का डायरेक्ट लिंक शेयर करें:', quizUrl);
+    }
+  };
+
+  const handleShareQuizWhatsApp = () => {
+    const quizUrl = `${window.location.origin}/quiz`;
+    const shareText = `🏆 *पवारी भोयरी लोक संस्कृति एवं साहित्य ई-क्विज़ 2026* 🏆\n\nअपनी पवारी बोली, लोकगीत, शब्दकोश एवं पहेली ज्ञान की परीक्षा दें और ई-प्रमाण-पत्र प्राप्त करें!\n\n👉 *क्विज़ में भाग लेने के लिए नीचे दिए गए डायरेक्ट लिंक पर क्लिक करें:*\n${quizUrl}\n\n🚩 *माँ ताप्ती पवारी शोध संस्थान*`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
 
   // Shabdkosh Filtering
   const filteredShabdkosh = approvedShabdkosh.filter(item => {
     const matchesSearch = item.word_pawari.toLowerCase().includes(searchTerm.toLowerCase()) || item.meaning_hindi.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = shabdkoshCategory === 'all' || item.category === shabdkoshCategory;
-    return matchesSearch && matchesCategory;
+    const matchesLetter = shabdkoshLetter === 'all' || 
+                          item.word_pawari.trim().startsWith(shabdkoshLetter) ||
+                          item.word_pawari.trim().toLowerCase().startsWith(shabdkoshLetter.toLowerCase());
+    return matchesSearch && matchesCategory && matchesLetter;
   });
 
   // Paheli Filtering
@@ -180,11 +648,42 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     return matchesSearch && matchesCategory;
   });
 
+  // Unique Lokgeet categories
+  const lokgeetCategories = Array.from(new Set(approvedLokgeet.map(l => l.category).filter(Boolean)));
+
   // Lokgeet Filtering
-  const filteredLokgeet = approvedLokgeet.filter(item => 
-    item.title_pawari.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.lyrics_pawari.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLokgeet = approvedLokgeet.filter(item => {
+    const q = searchTerm.toLowerCase().trim();
+    const matchesSearch = 
+      !q ||
+      item.title_pawari.toLowerCase().includes(q) ||
+      (item.title_hindi && item.title_hindi.toLowerCase().includes(q)) ||
+      item.lyrics_pawari.toLowerCase().includes(q) ||
+      (item.singer_or_collector && item.singer_or_collector.toLowerCase().includes(q)) ||
+      (item.category && item.category.toLowerCase().includes(q));
+    const matchesCategory = lokgeetCategory === 'all' || item.category === lokgeetCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const sortedLokgeet = React.useMemo(() => {
+    return [...filteredLokgeet].sort((a, b) => {
+      if (lokgeetSort === 'title') {
+        return a.title_pawari.localeCompare(b.title_pawari, 'hi');
+      }
+      if (lokgeetSort === 'category') {
+        return (a.category || '').localeCompare(b.category || '', 'hi');
+      }
+      return 0;
+    });
+  }, [filteredLokgeet, lokgeetSort]);
+
+  const totalLokgeetPages = Math.ceil(sortedLokgeet.length / LOKGEET_PER_PAGE) || 1;
+  const paginatedLokgeet = React.useMemo(() => {
+    return sortedLokgeet.slice(
+      (lokgeetPage - 1) * LOKGEET_PER_PAGE,
+      lokgeetPage * LOKGEET_PER_PAGE
+    );
+  }, [sortedLokgeet, lokgeetPage, LOKGEET_PER_PAGE]);
 
   const togglePaheliAnswer = (id: string) => {
     setRevealedPaheli(prev => ({ ...prev, [id]: !prev[id] }));
@@ -302,120 +801,222 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     }
   };
 
-  // Dynamic Quiz Questions Generator combining Shabdkosh, Paheli, Books, Blogs & Research Papers
-  const { articles, books: cmsBooks } = useCms();
-  const [activeQuizQuestions, setActiveQuizQuestions] = React.useState<QuizQuestion[]>([]);
-  const [copiedLink, setCopiedLink] = useState(false);
+  // Quiz Category Filter and Question Count Limit states
+  const [selectedQuizCategory, setSelectedQuizCategory] = useState<string>('all');
+  const [quizQuestionLimit, setQuizQuestionLimit] = useState<number | 'all'>(10);
 
-  const generateDynamicQuestionsPool = React.useCallback((): QuizQuestion[] => {
-    const pool: QuizQuestion[] = [];
+  // Quiz logic - dynamically generate multi-domain questions (Shabdkosh, Paheli, Lokgeet, Writers, Research Papers, Books)
+  // guaranteeing that ALL shabdkosh, ALL paheli, and ALL lokgeet items are converted into questions!
+  const generateFreshQuizQuestions = React.useCallback((catFilter: string = selectedQuizCategory, limit: number | 'all' = quizQuestionLimit): QuizQuestion[] => {
+    const dynamicList: QuizQuestion[] = [];
 
-    // A. Master Quiz Questions List
-    if (rawQuizQuestions && rawQuizQuestions.length > 0) {
-      pool.push(...rawQuizQuestions);
-    }
+    const defaultShabdkoshDistractors = ['पानी (Water)', 'रोटी / भाकर (Bread)', 'घर / मकान (House)', 'पेड़ / वृक्ष (Tree)', 'मित्र / सखा (Friend)', 'सूर्य / धूप (Sun)', 'आकाश / गगन (Sky)', 'दूध (Milk)', 'नदी / जल (River)', 'अमृत / मिठास (Nectar)'];
+    const defaultPaheliDistractors = ['ओस की बूंद (Dew)', 'महुआ / खजूर (Date/Mahua)', 'दीपक एवं बाटी (Lamp)', 'सूरज और धूप (Sun)', 'ताला और चाबी (Lock)', 'आंखें (Eyes)', 'रास्ता / मार्ग (Path)', 'दर्पण / शीशा (Mirror)', 'बादल / घटा (Cloud)'];
+    const standardCategories = ['विवाह गीत', 'भक्ति / पूजा गीत', 'ऋतु एवं उत्सव गीत', 'दीवाली / गोधन गीत', 'होरी / फाग गीत', 'श्रम व लोकोक्ति गीत', 'विदाई एवं करुण गीत'];
 
-    // B. Generate Dynamic Questions from Approved Shabdkosh
-    approvedShabdkosh.forEach((s, idx) => {
-      if (s.word_pawari && s.meaning_hindi) {
-        const otherMeanings = approvedShabdkosh
-          .filter(other => other.id !== s.id && other.meaning_hindi !== s.meaning_hindi)
-          .map(other => other.meaning_hindi)
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 3);
-
-        if (otherMeanings.length >= 3) {
-          const options = [s.meaning_hindi, ...otherMeanings].sort(() => 0.5 - Math.random());
-          const correct_option = options.indexOf(s.meaning_hindi);
-
-          pool.push({
-            id: `dyn_shabdkosh_${s.id}_${idx}`,
-            question_pawari: `पवारी शब्द "${s.word_pawari}" का सही हिंदी अर्थ क्या है?`,
-            question_hindi: `पवारी शब्द "${s.word_pawari}" का अर्थ चुनें`,
-            options,
-            correct_option,
-            explanation: `पवारी में "${s.word_pawari}" का अर्थ "${s.meaning_hindi}" होता है।`
-          });
-        }
+    // 1. Shabdkosh Questions - Ensure ALL shabdkosh items are included
+    const validShabdkosh = (shabdkoshList || []).filter(s => s.word_pawari && s.meaning_hindi);
+    validShabdkosh.forEach((item, idx) => {
+      let distractors = validShabdkosh
+        .filter(s => s.id !== item.id && s.meaning_hindi !== item.meaning_hindi)
+        .map(s => s.meaning_hindi);
+      
+      if (distractors.length < 3) {
+        const extra = defaultShabdkoshDistractors.filter(d => d !== item.meaning_hindi && !distractors.includes(d));
+        distractors = [...distractors, ...extra];
       }
-    });
-
-    // C. Generate Dynamic Questions from Approved Paheli
-    approvedPaheli.forEach((p, idx) => {
-      if (p.riddle_pawari && p.answer_hindi) {
-        const otherAnswers = approvedPaheli
-          .filter(other => other.id !== p.id && other.answer_hindi !== p.answer_hindi)
-          .map(other => other.answer_hindi)
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 3);
-
-        if (otherAnswers.length >= 3) {
-          const options = [p.answer_hindi, ...otherAnswers].sort(() => 0.5 - Math.random());
-          const correct_option = options.indexOf(p.answer_hindi);
-
-          pool.push({
-            id: `dyn_paheli_${p.id}_${idx}`,
-            question_pawari: `पवारी बुझौवल (पहेली): "${p.riddle_pawari}" का सही उत्तर क्या है?`,
-            question_hindi: `पहेली का सही उत्तर चुनें`,
-            options,
-            correct_option,
-            explanation: `पहेली "${p.riddle_pawari}" का सही उत्तर "${p.answer_hindi}" है।`
-          });
-        }
-      }
-    });
-
-    // D. Generate Dynamic Questions from Research Papers & Literature
-    if (articles && articles.length > 0) {
-      articles.slice(0, 6).forEach((art, idx) => {
-        if (art.title_hindi && art.category) {
-          const options = [art.category, 'लोकगीत संग्रह', 'पवारी नाटक', 'व्याकरण कोश'].sort(() => 0.5 - Math.random());
-          const correct_option = options.indexOf(art.category);
-
-          pool.push({
-            id: `dyn_art_${art.id}_${idx}`,
-            question_pawari: `शोध पत्र "${art.title_hindi.slice(0, 45)}..." किस विषय श्रेणी का है?`,
-            question_hindi: `शोध पत्र की विषय श्रेणी चुनें`,
-            options,
-            correct_option,
-            explanation: `यह शोध पत्र "${art.category}" श्रेणी का है।`
-          });
-        }
+      const picked = [...distractors].sort(() => 0.5 - Math.random()).slice(0, 3);
+      dynamicList.push({
+        id: `dyn_shabd_${item.id}_${idx}`,
+        question_pawari: `पवारी शब्द '${item.word_pawari}' का सही हिंदी अर्थ क्या है?`,
+        question_hindi: `पवारी शब्द '${item.word_pawari}' का सही हिंदी अर्थ क्या है?`,
+        options: [item.meaning_hindi, ...picked],
+        correct_option_index: 0,
+        explanation: `'${item.word_pawari}' का प्रामाणिक हिंदी अर्थ '${item.meaning_hindi}' है।`,
+        section_type: 'shabdkosh'
       });
+    });
+
+    // 2. Paheli (Pahlodi) Questions - Ensure ALL paheli items are included
+    const validPaheli = (paheliList || []).filter(p => p.riddle_pawari && p.answer_hindi);
+    validPaheli.forEach((item, idx) => {
+      let distractors = validPaheli
+        .filter(p => p.id !== item.id && p.answer_hindi !== item.answer_hindi)
+        .map(p => p.answer_hindi);
+
+      if (distractors.length < 3) {
+        const extra = defaultPaheliDistractors.filter(d => d !== item.answer_hindi && !distractors.includes(d));
+        distractors = [...distractors, ...extra];
+      }
+      const picked = [...distractors].sort(() => 0.5 - Math.random()).slice(0, 3);
+      dynamicList.push({
+        id: `dyn_pah_${item.id}_${idx}`,
+        question_pawari: `पवारी पहेली (पाहलोड़ी): "${item.riddle_pawari}" का सही उत्तर क्या है?`,
+        question_hindi: `पवारी पहेली (पाहलोड़ी): "${item.riddle_pawari}" का सही उत्तर क्या है?`,
+        options: [item.answer_hindi, ...picked],
+        correct_option_index: 0,
+        explanation: `इस पवारी पहेली का सही उत्तर '${item.answer_hindi}' है।${item.hint_hindi ? ' संकेत: ' + item.hint_hindi : ''}`,
+        section_type: 'paheli'
+      });
+    });
+
+    // 3. Lokgeet Questions - Ensure ALL lokgeet items are included
+    const validLokgeet = (lokgeetList || []).filter(l => l.title_pawari);
+    validLokgeet.forEach((song, idx) => {
+      const songCat = song.category || 'विवाह गीत';
+      const wrongCats = standardCategories.filter(c => c !== songCat).sort(() => 0.5 - Math.random()).slice(0, 3);
+      dynamicList.push({
+        id: `dyn_lok_${song.id}_${idx}`,
+        question_pawari: `पवारी लोकगीत '${song.title_pawari}' किस श्रेणी का प्रामाणिक लोकगीत है?`,
+        question_hindi: `पवारी लोकगीत '${song.title_pawari}' किस श्रेणी का प्रामाणिक लोकगीत है?`,
+        options: [songCat, ...wrongCats],
+        correct_option_index: 0,
+        explanation: `'${song.title_pawari}' ${songCat} श्रेणी का पवारी लोकगीत है।`,
+        section_type: 'lokgeet'
+      });
+    });
+
+    // 4. Writers / Authors Questions
+    const validWriters = (writers || []).filter(w => w.name_hindi);
+    validWriters.forEach((w, idx) => {
+      const bookOrSpec = w.published_books?.[0] || w.specialization_hindi || w.designation_hindi || 'पवारी साहित्य व भाषा संवर्धन';
+      const wrongNames = ['डॉ. मोहन लाल गुप्ता', 'श्री रामेश्वर शर्मा', 'प्रो. अनिता मालवीय', 'डॉ. रमेश पंवार', 'डॉ. कैलाश पवार']
+        .filter(n => n !== w.name_hindi)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3);
+
+      dynamicList.push({
+        id: `dyn_wri_${w.id}_${idx}`,
+        question_pawari: `पवारी लोकसाहित्य में '${bookOrSpec}' कार्य हेतु जाने जाने वाले प्रसिद्ध साहित्यकार कौन हैं?`,
+        question_hindi: `पवारी लोकसाहित्य में '${bookOrSpec}' कार्य हेतु जाने जाने वाले प्रसिद्ध साहित्यकार कौन हैं?`,
+        options: [w.name_hindi, ...wrongNames],
+        correct_option_index: 0,
+        explanation: `'${w.name_hindi}' पवारी भाषा व संस्कृति के प्रतिष्ठित साहित्यकार हैं।`,
+        section_type: 'writers'
+      });
+    });
+
+    // 5. Research Papers (शोध पत्र व आलेख) Questions
+    const validArticles = (articles || []).filter(a => a.title_hindi);
+    validArticles.forEach((art, idx) => {
+      const authorName = art.authors?.[0]?.name || 'डॉ. कैलाश पवार';
+      const wrongAuthors = ['डॉ. मोहन लाल गुप्ता', 'श्री रामेश्वर शर्मा', 'प्रो. अनिता मालवीय', 'डॉ. रमेश पंवार']
+        .filter(n => n !== authorName)
+        .slice(0, 3);
+
+      dynamicList.push({
+        id: `dyn_art_${art.id}_${idx}`,
+        question_pawari: `पवारी शोध पत्रिका में प्रकाशित शोध पत्र '${art.title_hindi}' के लेखक/शोधकर्ता कौन हैं?`,
+        question_hindi: `पवारी शोध पत्रिका में प्रकाशित शोध पत्र '${art.title_hindi}' के लेखक/शोधकर्ता कौन हैं?`,
+        options: [authorName, ...wrongAuthors],
+        correct_option_index: 0,
+        explanation: `शोध पत्र '${art.title_hindi}' के लेखक ${authorName} हैं।`,
+        section_type: 'articles'
+      });
+    });
+
+    // 6. Books Questions
+    const validBooks = (books || []).filter(b => b.title_hindi);
+    validBooks.forEach((b, idx) => {
+      const authorName = b.author || 'माँ ताप्ती पवारी शोध संस्थान';
+      const wrongAuthors = ['डॉ. कैलाश पवार', 'डॉ. रमेश पंवार', 'प्रो. अनिता मालवीय', 'श्री रामेश्वर शर्मा']
+        .filter(n => n !== authorName)
+        .slice(0, 3);
+
+      dynamicList.push({
+        id: `dyn_bk_${b.id}_${idx}`,
+        question_pawari: `पवारी ग्रन्थ/पुस्तक '${b.title_hindi}' के लेखक / संपादक कौन हैं?`,
+        question_hindi: `पवारी ग्रन्थ/पुस्तक '${b.title_hindi}' के लेखक / संपादक कौन हैं?`,
+        options: [authorName, ...wrongAuthors],
+        correct_option_index: 0,
+        explanation: `पुस्तक '${b.title_hindi}' के लेखक/संपादक ${authorName} हैं।`,
+        section_type: 'books'
+      });
+    });
+
+    // Combine static stored questions, dynamic questions and fallback set
+    let pool = [
+      ...(quizQuestions || []),
+      ...dynamicList,
+      ...FALLBACK_QUIZ_QUESTIONS
+    ];
+
+    // Filter by category if selected
+    if (catFilter !== 'all') {
+      pool = pool.filter(q => q.section_type === catFilter);
     }
 
-    // Shuffle master pool and return 10 unique, random questions every time
-    return [...pool].sort(() => 0.5 - Math.random()).slice(0, 10);
-  }, [quizQuestions, approvedShabdkosh, approvedPaheli, articles]);
+    // Shuffle pool order
+    const shuffledPool = [...pool].sort(() => 0.5 - Math.random());
+
+    // Slice according to limit
+    const finalPool = (limit === 'all' || limit <= 0) ? shuffledPool : shuffledPool.slice(0, limit);
+
+    // Shuffle options for each question so correct option is NOT stuck at A
+    return finalPool.map(q => shuffleQuestionOptions(q));
+  }, [shabdkoshList, paheliList, lokgeetList, quizQuestions, writers, books, articles, selectedQuizCategory, quizQuestionLimit]);
+
+  const handleQuizFilterChange = (cat: string, limit: number | 'all') => {
+    setSelectedQuizCategory(cat);
+    setQuizQuestionLimit(limit);
+    setCurrentQIndex(0);
+    setUserAnswers({});
+    setIsQuizSubmitted(false);
+    setActiveQuizQuestions(generateFreshQuizQuestions(cat, limit));
+  };
+
+  const [activeQuizQuestions, setActiveQuizQuestions] = React.useState<QuizQuestion[]>([]);
 
   React.useEffect(() => {
-    setActiveQuizQuestions(generateDynamicQuestionsPool());
-  }, [generateDynamicQuestionsPool]);
+    setActiveQuizQuestions(generateFreshQuizQuestions());
+  }, [generateFreshQuizQuestions]);
+
+  const handleSelectOption = (optIndex: number) => {
+    setUserAnswers(prev => ({ ...prev, [currentQIndex]: optIndex }));
+  };
+
+  const handleNextQuiz = () => {
+    if (currentQIndex < activeQuizQuestions.length - 1) {
+      setCurrentQIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrevQuiz = () => {
+    if (currentQIndex > 0) {
+      setCurrentQIndex(prev => prev - 1);
+    }
+  };
 
   const handleFinishQuiz = () => {
-    if (!userName.trim()) {
-      alert('कृपया प्रमाण-पत्र हेतु अपना शुभ नाम दर्ज करें।');
+    const trimmedName = userName ? userName.trim() : '';
+    if (!trimmedName) {
+      alert('⚠️ कृपया प्रमाण-पत्र प्राप्त करने के लिए अपना शुभ नाम दर्ज करें। (नाम लिखना अनिवार्य है)');
+      const nameInput = document.getElementById('participant-name-input');
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 
+    const questionsToGrade = activeQuizQuestions.length > 0 
+      ? activeQuizQuestions 
+      : ((quizQuestions && quizQuestions.length > 0) ? quizQuestions.slice(0, 10) : FALLBACK_QUIZ_QUESTIONS.slice(0, 10));
+
     let score = 0;
-    activeQuizQuestions.forEach((q, idx) => {
-      const correctIdx = typeof q.correct_option === 'number' 
-        ? q.correct_option 
-        : (typeof (q as any).correct_option_index === 'number' ? (q as any).correct_option_index : 0);
-      
-      if (userAnswers[idx] === correctIdx) {
+    questionsToGrade.forEach((q, idx) => {
+      if (userAnswers[idx] === q.correct_option_index) {
         score += 1;
       }
     });
 
-    const totalQ = activeQuizQuestions.length || 10;
+    const totalQ = questionsToGrade.length || 10;
     const percentage = Math.round((score / totalQ) * 100);
     const certNo = 'PCH-' + Math.floor(100000 + Math.random() * 900000);
 
     const cert: QuizCertificate = {
       id: certNo,
-      user_name: userName.trim(),
+      user_name: trimmedName,
       user_photo_url: userPhoto,
       quiz_score: score,
       total_questions: totalQ,
@@ -426,10 +1027,18 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
     setCertificateData(cert);
     setIsQuizSubmitted(true);
+
+    if (saveQuizCertificate) {
+      try {
+        saveQuizCertificate(cert);
+      } catch (err) {
+        console.error('Error saving quiz certificate:', err);
+      }
+    }
   };
 
   const handleResetQuiz = () => {
-    setActiveQuizQuestions(generateDynamicQuestionsPool());
+    setActiveQuizQuestions(generateFreshQuizQuestions());
     setCurrentQIndex(0);
     setUserAnswers({});
     setIsQuizSubmitted(false);
@@ -438,29 +1047,8 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
   const handleShareWhatsApp = () => {
     if (!certificateData) return;
-    const shareText = `🚩 मैंने "माँ ताप्ती पवारी शोध संस्थान" पवारी भोयरी संस्कृति क्विज़ में ${certificateData.percentage}% प्राप्तांक के साथ ई-प्रमाण-पत्र अर्जित किया है!\n\nनाम: ${certificateData.user_name}\nप्रमाण-पत्र क्रमांक: ${certificateData.certificate_no}\n\nआप भी अपनी पवारी भाषा एवं संस्कृति का ज्ञान परखें: ${window.location.origin}`;
+    const shareText = `🚩 मैंने "माँ ताप्ती पवारी शोध संस्थान" पवारी भोयरी संस्कृति क्विज़ 2026 में ${certificateData.percentage}% अंक प्राप्त कर ई-प्रमाण-पत्र प्राप्त किया है!\n\nनाम: ${certificateData.user_name}\nप्रमाण-पत्र क्रमांक: ${certificateData.certificate_no}\n\nआप भी अपनी पवारी भाषा एवं संस्कृति का परीक्षण करें: https://pawarishodh.org`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-  };
-
-  const handleShareSocial = (platform: 'facebook' | 'twitter' | 'linkedin' | 'telegram' | 'copy') => {
-    if (!certificateData) return;
-    const siteUrl = window.location.origin;
-    const title = `मैंने पवारी संस्कृति क्विज़ में ${certificateData.percentage}% अंक प्राप्त किए!`;
-    const shareText = `🚩 मैंने "माँ ताप्ती पवारी शोध संस्थान" पवारी भोयरी संस्कृति क्विज़ 2026 में ${certificateData.percentage}% अंक प्राप्त कर ई-प्रमाण-पत्र प्राप्त किया है! (प्रमाण-पत्र क्रमांक: ${certificateData.certificate_no})`;
-
-    if (platform === 'facebook') {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(siteUrl)}&quote=${encodeURIComponent(shareText)}`, '_blank');
-    } else if (platform === 'twitter') {
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(siteUrl)}`, '_blank');
-    } else if (platform === 'linkedin') {
-      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(siteUrl)}`, '_blank');
-    } else if (platform === 'telegram') {
-      window.open(`https://t.me/share/url?url=${encodeURIComponent(siteUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
-    } else if (platform === 'copy') {
-      navigator.clipboard.writeText(`${shareText}\n\nपोर्टल लिंक: ${siteUrl}`);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
-    }
   };
 
   const handlePrintCertificate = () => {
@@ -470,36 +1058,66 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   return (
     <div className="space-y-8">
       {/* Top Hero Banner */}
-      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-red-950 via-amber-950 to-red-900 border border-amber-500/30 p-8 text-amber-100 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      {activeTab === 'lokgeet' ? (
+        <div className="bg-slate-900/90 text-amber-100 rounded-2xl p-5 sm:p-6 border border-amber-900/30 relative overflow-hidden shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1 max-w-3xl">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                <Music className="w-3.5 h-3.5 text-amber-400" />
+                <span>मौखिक लोकसाहित्य अभिलेखागार</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-amber-100 font-serif tracking-tight">
+                पवारी लोकगीत संग्रह
+              </h1>
+              <p className="text-xs sm:text-sm text-amber-200/80 leading-relaxed font-sans">
+                बैतूल, छिंदवाड़ा एवं ताप्ती अंचल के पारम्परिक पवारी विवाह, भक्ति, पूजा व ऋतु लोकगीतों का प्रामाणिक डिजिटल संग्रह।
+              </p>
+            </div>
 
-        <div className="relative z-10 max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold mb-4">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>पवारी भोयरी लोक संस्कृति एवं साहित्य डिजिटल कोश</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl font-black text-amber-200 font-serif leading-tight mb-3">
-            पवारी भोयरी शब्दकोश, पहेली, लोकगीत एवं क्विज़
-          </h1>
-          <p className="text-amber-100/80 text-base leading-relaxed mb-6">
-            बैतूल, छिंदवाड़ा एवं ताप्ती अंचल की समृद्ध पवारी बोली के शब्दों, पारंपरिक बुझौवलों (पहेलियों), विवाह व भक्ति लोकगीतों का अनुशीलन करें। अपनी संस्कृति ज्ञान की परीक्षा दें एवं आकर्षक ई-प्रमाण-पत्र प्राप्त करें।
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => {
-                setContribType('shabdkosh');
+                setContribType('lokgeet');
                 setIsContribModalOpen(true);
               }}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-bold text-sm shadow-lg shadow-amber-900/40 transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-amber-950 hover:bg-amber-900 border border-amber-700/60 text-amber-200 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs shrink-0 self-start md:self-center"
             >
-              <PlusCircle className="w-4 h-4" />
-              <span>पाठक योगदान: नया शब्द / पहेली / लोकगीत जोड़ें</span>
+              <PlusCircle className="w-4 h-4 text-amber-400" />
+              <span>लोकगीत योगदान करें</span>
             </button>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-red-950 via-amber-950 to-red-900 border border-amber-500/30 p-8 text-amber-100 shadow-2xl">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 max-w-4xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold mb-4">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>पवारी भोयरी लोक संस्कृति एवं साहित्य डिजिटल कोश</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-black text-amber-200 font-serif leading-tight mb-3">
+              पवारी भोयरी शब्दकोश, पहेली, लोकगीत एवं क्विज़
+            </h1>
+            <p className="text-amber-100/80 text-base leading-relaxed mb-6">
+              बैतूल, छिंदवाड़ा एवं ताप्ती अंचल की समृद्ध पवारी बोली के शब्दों, पारंपरिक बुझौवलों (पहेलियों), विवाह व भक्ति लोकगीतों का अनुशीलन करें। अपनी संस्कृति ज्ञान की परीक्षा दें एवं आकर्षक ई-प्रमाण-पत्र प्राप्त करें।
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => {
+                  setContribType('shabdkosh');
+                  setIsContribModalOpen(true);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-amber-950 font-bold text-sm shadow-lg shadow-amber-900/40 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>पाठक योगदान: नया शब्द / पहेली / लोकगीत जोड़ें</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="flex flex-wrap gap-3 bg-slate-900/80 p-2 rounded-2xl border border-amber-900/40 shadow-lg">
@@ -553,20 +1171,38 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       </div>
 
       {/* SEARCH BAR FOR LISTINGS */}
-      {activeTab !== 'quiz' && (
+      {activeTab !== 'quiz' && activeTab !== 'lokgeet' && (
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-900/60 p-4 rounded-2xl border border-amber-900/30">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400/60" />
-            <input
-              type="text"
-              placeholder={
-                activeTab === 'shabdkosh' ? 'शब्द या अर्थ खोजें...' :
-                activeTab === 'paheli' ? 'पहेली या उत्तर खोजें...' : 'लोकगीत शीर्षक या बोल खोजें...'
-              }
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-amber-900/40 rounded-xl text-amber-100 placeholder-amber-400/40 focus:outline-none focus:border-amber-500 text-sm"
-            />
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400/60" />
+              <input
+                type="text"
+                placeholder={
+                  activeTab === 'shabdkosh' ? 'शब्द या अर्थ खोजें...' :
+                  activeTab === 'paheli' ? 'पहेली या उत्तर खोजें...' : 'लोकगीत शीर्षक या बोल खोजें...'
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-amber-900/40 rounded-xl text-amber-100 placeholder-amber-400/40 focus:outline-none focus:border-amber-500 text-sm"
+              />
+            </div>
+
+            {/* Compact Alphabet Selector Dropdown for Shabdkosh */}
+            {activeTab === 'shabdkosh' && (
+              <select
+                value={shabdkoshLetter}
+                onChange={(e) => setShabdkoshLetter(e.target.value)}
+                className="w-full sm:w-auto bg-slate-950 border border-amber-900/40 text-amber-200 text-xs font-semibold rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500 cursor-pointer"
+              >
+                <option value="all">वर्ण (अ-ज्ञ): सभी</option>
+                {HINDI_LETTERS.filter(l => l !== 'all').map(letChar => (
+                  <option key={letChar} value={letChar} className="bg-slate-900 text-amber-100">
+                    ' {letChar} ' वर्ण के शब्द
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {activeTab === 'shabdkosh' && (
@@ -628,11 +1264,14 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
             >
               {item.image_url ? (
                 <div className="h-48 overflow-hidden relative bg-slate-950">
-                  <img 
+                  <SafeImage 
                     src={item.image_url} 
                     alt={item.word_pawari} 
+                    loading="lazy"
+                    decoding="async"
+                    width={380}
+                    height={192}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-70" />
                   <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-950/90 text-amber-300 border border-amber-700/50">
@@ -726,11 +1365,14 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                   <div className="flex gap-4 items-start">
                     {item.image_url && (
                       <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 border border-amber-900/40 bg-slate-950">
-                        <img 
+                        <SafeImage 
                           src={item.image_url} 
                           alt="पहेली चित्र" 
+                          loading="lazy"
+                          decoding="async"
+                          width={96}
+                          height={96}
                           className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
                         />
                       </div>
                     )}
@@ -739,13 +1381,6 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                       <h3 className="text-xl font-bold text-amber-100 font-serif leading-relaxed mb-3">
                         "{item.riddle_pawari}"
                       </h3>
-
-                      {item.hint_hindi && (
-                        <p className="text-xs text-amber-300/80 flex items-center gap-1.5 bg-amber-950/40 p-2.5 rounded-xl border border-amber-800/30">
-                          <Lightbulb className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                          <span>संकेत: {item.hint_hindi}</span>
-                        </p>
-                      )}
                     </div>
                   </div>
 
@@ -833,69 +1468,467 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
       {/* 3. LOKGEET VIEW */}
       {activeTab === 'lokgeet' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredLokgeet.map((item) => (
-            <div 
-              key={item.id}
-              className="bg-slate-900/80 border border-amber-900/30 hover:border-amber-500/50 rounded-2xl overflow-hidden shadow-lg transition-all p-6 flex flex-col justify-between"
-            >
-              <div>
-                {item.image_url && (
-                  <div className="h-44 rounded-xl overflow-hidden mb-4 relative bg-slate-950 border border-amber-900/30">
-                    <img 
-                      src={item.image_url} 
-                      alt={item.title_pawari} 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
-                    <span className="absolute bottom-3 left-3 px-3 py-1 rounded-full text-xs font-bold bg-amber-950/90 text-amber-300 border border-amber-700/50">
-                      {item.category}
+        <div className="space-y-6">
+          {/* DETAILED LOKGEET MODAL / FULL VIEW */}
+          {selectedLokgeet ? (
+            <div className="bg-slate-900/95 border-2 border-amber-600/40 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6 text-amber-100 animate-fadeIn relative">
+              {/* Top Navigation & URL Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-amber-900/40">
+                <button
+                  onClick={handleCloseLokgeet}
+                  className="px-4 py-2 bg-amber-950/80 hover:bg-amber-900 text-amber-200 hover:text-white rounded-xl text-xs md:text-sm font-semibold border border-amber-700/50 flex items-center gap-2 transition-all cursor-pointer shadow-md"
+                >
+                  <ArrowLeft className="w-4 h-4 text-amber-400" />
+                  <span>वापस लोकगीत सूची पर जाएं</span>
+                </button>
+
+                <div className="flex items-center gap-2 bg-slate-950/80 px-3.5 py-1.5 rounded-xl border border-amber-900/50 text-xs text-amber-400/80">
+                  <Link2 className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                  <span className="font-mono text-[11px] truncate max-w-[200px] sm:max-w-[320px]">
+                    /lokgeet/{selectedLokgeet.slug || selectedLokgeet.id}
+                  </span>
+                  <button
+                    onClick={(e) => handleCopyLokgeetLink(selectedLokgeet, e)}
+                    className="ml-1 text-amber-300 hover:text-amber-100 flex items-center gap-1 cursor-pointer bg-amber-900/40 hover:bg-amber-800 px-2 py-0.5 rounded text-[11px] border border-amber-700/40 transition-colors"
+                  >
+                    {copiedLokgeetId === selectedLokgeet.id ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-400 font-bold">कॉपी हुआ!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>लिंक</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Main Song Header */}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3.5 py-1 rounded-full text-xs font-bold bg-amber-950 text-amber-300 border border-amber-700/60 shadow">
+                    🎵 {selectedLokgeet.category}
+                  </span>
+                  {selectedLokgeet.singer_or_collector && (
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-950 text-amber-200/90 border border-amber-900/50 flex items-center gap-1.5">
+                      <User className="w-3 h-3 text-amber-400" />
+                      <span>गवैया / संग्रहकर्ता: {selectedLokgeet.singer_or_collector}</span>
                     </span>
-                  </div>
-                )}
-
-                <h3 className="text-xl font-bold text-amber-200 font-serif mb-1">
-                  {item.title_pawari}
-                </h3>
-                {item.title_hindi && (
-                  <p className="text-xs text-amber-400/80 font-medium mb-3">
-                    ({item.title_hindi})
-                  </p>
-                )}
-
-                {item.singer_or_collector && (
-                  <p className="text-xs text-amber-300/80 mb-3 italic flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-amber-400" />
-                    <span>{item.singer_or_collector}</span>
-                  </p>
-                )}
-
-                {/* Lyrics Container */}
-                <div className="bg-slate-950/80 p-4 rounded-xl border border-amber-900/30 mb-3 max-h-64 overflow-y-auto">
-                  <pre className="text-sm font-serif text-amber-100 whitespace-pre-wrap leading-relaxed font-normal">
-                    {item.lyrics_pawari}
-                  </pre>
+                  )}
                 </div>
 
-                {item.lyrics_hindi_meaning && (
-                  <div className="bg-amber-950/30 p-3 rounded-xl border border-amber-800/20 text-xs text-amber-200/80">
-                    <span className="font-semibold text-amber-400 block mb-0.5">भावार्थ:</span>
-                    {item.lyrics_hindi_meaning}
+                <h2 className="text-2xl md:text-4xl font-bold text-amber-100 font-serif leading-tight">
+                  {selectedLokgeet.title_pawari}
+                </h2>
+                {selectedLokgeet.title_hindi && (
+                  <p className="text-sm md:text-base text-amber-400/90 font-medium">
+                    ({selectedLokgeet.title_hindi})
+                  </p>
+                )}
+              </div>
+
+              {/* Optional Image / YouTube / Audio Media */}
+              {selectedLokgeet.image_url && (
+                <div className="max-h-72 rounded-2xl overflow-hidden relative border border-amber-900/40 bg-slate-950">
+                  <SafeImage
+                    src={selectedLokgeet.image_url}
+                    alt={selectedLokgeet.title_pawari}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              {selectedLokgeet.audio_url && (
+                <div className="p-4 bg-amber-950/40 border border-amber-800/40 rounded-2xl space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
+                    <Volume2 className="w-4 h-4 text-amber-400" />
+                    <span>पवारी ऑडियो लोकगीत सुनें:</span>
+                  </div>
+                  <audio controls src={selectedLokgeet.audio_url} className="w-full rounded-xl focus:outline-none" />
+                </div>
+              )}
+
+              {selectedLokgeet.youtube_url && (
+                <div className="p-4 bg-slate-950/80 border border-amber-900/50 rounded-2xl flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-2 text-xs text-amber-300 font-medium">
+                    <Play className="w-4 h-4 text-red-400 fill-red-400" />
+                    <span>यूट्यूब पर वीडियो/ऑडियो प्रसारण उपलब्ध है</span>
+                  </div>
+                  <a
+                    href={selectedLokgeet.youtube_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-700/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  >
+                    <span>यूट्यूब पर देखें</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+
+              {/* Complete Lyrics Box */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg md:text-xl font-bold text-amber-300 font-serif flex items-center gap-2">
+                    <Music className="w-5 h-5 text-amber-400" />
+                    <span>लोकगीत के सम्पूर्ण बोल (Lyrics)</span>
+                  </h3>
+                  <button
+                    onClick={() => handleCopyLyrics(selectedLokgeet)}
+                    className="px-3 py-1.5 bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-800/60 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors shadow"
+                  >
+                    {copiedLyricsId === selectedLokgeet.id ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400 font-bold">बोल कॉपी हो गए!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-amber-400" />
+                        <span>बोल कॉपी करें</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="bg-slate-950/90 p-6 md:p-8 rounded-2xl border border-amber-900/40 shadow-inner">
+                  <pre className="text-base md:text-lg font-serif text-amber-50 whitespace-pre-wrap leading-relaxed tracking-wide font-normal">
+                    {selectedLokgeet.lyrics_pawari}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Hindi Meaning / भावार्थ */}
+              {selectedLokgeet.lyrics_hindi_meaning && (
+                <div className="p-5 bg-amber-950/40 border border-amber-800/30 rounded-2xl space-y-2">
+                  <h4 className="text-sm font-bold text-amber-400 font-serif flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>गीत का भावार्थ (हिंदी अर्थ):</span>
+                  </h4>
+                  <p className="text-sm text-amber-100/90 leading-relaxed font-serif">
+                    {selectedLokgeet.lyrics_hindi_meaning}
+                  </p>
+                </div>
+              )}
+
+              {/* Contributor & Share Footer */}
+              <div className="pt-4 border-t border-amber-900/30 flex flex-wrap items-center justify-between gap-4">
+                <span className="text-xs text-amber-400/60">
+                  संग्रहकर्ता / योगदान: <strong className="text-amber-300">{selectedLokgeet.contributor_name || 'माँ ताप्ती शोध संस्थान'}</strong>
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => handleShareLokgeetWhatsApp(selectedLokgeet, e)}
+                    className="px-3.5 py-1.5 bg-emerald-950/90 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/50 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <Share2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>व्हाट्सएप शेयर</span>
+                  </button>
+                  <button
+                    onClick={(e) => handleCopyLokgeetLink(selectedLokgeet, e)}
+                    className="px-3.5 py-1.5 bg-amber-950/80 hover:bg-amber-900 text-amber-200 border border-amber-800/50 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <Link2 className="w-3.5 h-3.5 text-amber-400" />
+                    <span>डायरेक्ट लिंक कॉपी करें</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Prev / Next Lokgeet Navigation */}
+              {approvedLokgeet.length > 1 && (
+                <div className="pt-4 border-t border-amber-900/30 flex justify-between items-center gap-4">
+                  {(() => {
+                    const currentIndex = approvedLokgeet.findIndex(l => l.id === selectedLokgeet.id);
+                    const prevItem = currentIndex > 0 ? approvedLokgeet[currentIndex - 1] : null;
+                    const nextItem = currentIndex < approvedLokgeet.length - 1 ? approvedLokgeet[currentIndex + 1] : null;
+
+                    return (
+                      <>
+                        {prevItem ? (
+                          <button
+                            onClick={(e) => handleOpenLokgeet(prevItem, e)}
+                            className="px-3.5 py-2 bg-slate-950/80 hover:bg-slate-950 border border-amber-900/50 hover:border-amber-700 text-amber-300 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-all max-w-[48%]"
+                          >
+                            <ChevronLeft className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                            <span className="truncate">पिछला: {prevItem.title_pawari}</span>
+                          </button>
+                        ) : <div />}
+
+                        {nextItem ? (
+                          <button
+                            onClick={(e) => handleOpenLokgeet(nextItem, e)}
+                            className="px-3.5 py-2 bg-slate-950/80 hover:bg-slate-950 border border-amber-900/50 hover:border-amber-700 text-amber-300 rounded-xl text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-all max-w-[48%] ml-auto"
+                          >
+                            <span className="truncate">अगला: {nextItem.title_pawari}</span>
+                            <ChevronRight className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          </button>
+                        ) : <div />}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* LOKGEET LIST VIEW */
+            <div className="space-y-6">
+              {/* Search, Filter Chips, Sort & Count Bar */}
+              <div className="bg-slate-900/90 border border-amber-900/30 p-4 sm:p-5 rounded-2xl space-y-4 shadow-xs">
+                {/* Search & Sort Row */}
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-amber-500/80 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="पवारी लोकगीत शीर्षक, श्रेणी या बोल खोजें..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-amber-900/40 rounded-xl text-amber-100 placeholder-amber-400/40 text-xs sm:text-sm focus:outline-none focus:border-amber-500 transition-colors"
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-400/60 hover:text-amber-200 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sort Dropdown */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-amber-400/70 hidden md:inline">क्रमबद्ध:</span>
+                    <select
+                      value={lokgeetSort}
+                      onChange={(e) => setLokgeetSort(e.target.value as any)}
+                      className="w-full sm:w-auto px-3.5 py-2.5 bg-slate-950 border border-amber-900/40 rounded-xl text-amber-200 text-xs font-semibold focus:outline-none focus:border-amber-500 cursor-pointer"
+                    >
+                      <option value="default">नवीनतम (Default)</option>
+                      <option value="title">शीर्षक अनुसार (अ-ज़)</option>
+                      <option value="category">श्रेणी अनुसार</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Category Filter Chips */}
+                {lokgeetCategories.length > 0 && (
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+                    <span className="text-amber-400/60 font-semibold text-[11px] shrink-0 mr-1 hidden sm:inline">
+                      श्रेणी:
+                    </span>
+                    <button
+                      onClick={() => setLokgeetCategory('all')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                        lokgeetCategory === 'all'
+                          ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                          : 'bg-slate-950 text-amber-300 hover:bg-amber-950/60 border border-amber-900/40'
+                      }`}
+                    >
+                      सभी श्रेणियाँ ({approvedLokgeet.length})
+                    </button>
+
+                    {lokgeetCategories.map((cat) => {
+                      const count = approvedLokgeet.filter(l => l.category === cat).length;
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => setLokgeetCategory(cat)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                            lokgeetCategory === cat
+                              ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                              : 'bg-slate-950 text-amber-300 hover:bg-amber-950/60 border border-amber-900/40'
+                          }`}
+                        >
+                          {cat} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Total Count Bar */}
+                <div className="flex flex-wrap items-center justify-between text-xs text-amber-400/80 pt-2 border-t border-amber-900/20 gap-2">
+                  <span>
+                    कुल उपलब्ध लोकगीत: <strong className="text-amber-300 font-serif">{sortedLokgeet.length}</strong>
+                    {sortedLokgeet.length > LOKGEET_PER_PAGE && (
+                      <span className="ml-2 text-amber-400/60">
+                        (पृष्ठ {lokgeetPage} / {totalLokgeetPages})
+                      </span>
+                    )}
+                  </span>
+                  <span className="hidden sm:inline text-amber-400/60 text-[11px]">
+                    पूरा लोकगीत व भावार्थ पढ़ने हेतु "पूरा देखें" या शीर्षक पर क्लिक करें
+                  </span>
+                </div>
+              </div>
+
+              {/* Compact Archive Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {paginatedLokgeet.map((item) => {
+                  const directUrl = `/lokgeet/${item.slug || item.id}`;
+                  const lyricsClean = item.lyrics_pawari.replace(/\n+/g, ' ').trim();
+                  const shortSnippet = lyricsClean.slice(0, 110) + (lyricsClean.length > 110 ? '...' : '');
+
+                  return (
+                    <div 
+                      key={item.id}
+                      onClick={(e) => handleOpenLokgeet(item, e)}
+                      className="bg-slate-900/80 border border-amber-900/30 hover:border-amber-600/60 rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 group hover:bg-slate-900 shadow-xs hover:shadow-md cursor-pointer space-y-3"
+                    >
+                      <div className="space-y-2.5">
+                        {/* Header Row: Category Tag */}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-amber-950/80 text-amber-300 border border-amber-700/40">
+                            🎵 {item.category}
+                          </span>
+                          <span className="text-[11px] text-amber-400/50 font-serif">
+                            पवारी लोकसाहित्य
+                          </span>
+                        </div>
+
+                        {/* Title */}
+                        <div>
+                          <a
+                            href={directUrl}
+                            onClick={(e) => handleOpenLokgeet(item, e)}
+                            className="block text-left cursor-pointer focus:outline-none"
+                          >
+                            <h3 className="text-lg font-bold text-amber-100 group-hover:text-amber-300 font-serif leading-snug transition-colors">
+                              {item.title_pawari}
+                            </h3>
+                          </a>
+                          {item.title_hindi && (
+                            <p className="text-xs text-amber-400/70 font-medium mt-0.5">
+                              ({item.title_hindi})
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Short Snippet Preview (Not full lyrics) */}
+                        <div className="bg-slate-950/70 p-3 rounded-xl border border-amber-900/20 text-xs font-serif text-amber-200/90 leading-relaxed italic line-clamp-2">
+                          "{shortSnippet}"
+                        </div>
+
+                        {/* Source / Collector */}
+                        <div className="flex items-center gap-1.5 text-[11px] text-amber-400/70 italic">
+                          <User className="w-3.5 h-3.5 text-amber-500/80 shrink-0" />
+                          <span className="truncate">
+                            संग्रहकर्ता: {item.singer_or_collector || item.contributor_name || 'माँ ताप्ती शोध संस्थान'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Footer Actions */}
+                      <div className="pt-3 border-t border-amber-900/20 flex items-center justify-between gap-2">
+                        <button
+                          onClick={(e) => handleOpenLokgeet(item, e)}
+                          className="px-3.5 py-1.5 bg-amber-950 hover:bg-amber-900 text-amber-200 hover:text-white rounded-xl text-xs font-bold border border-amber-700/50 flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                        >
+                          <span>पूरा देखें ➔</span>
+                        </button>
+
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => handleCopyLokgeetLink(item, e)}
+                            title="डायरेक्ट URL लिंक कॉपी करें"
+                            className="p-1.5 bg-slate-950 hover:bg-amber-950 text-amber-400 hover:text-amber-200 rounded-lg border border-amber-900/40 text-xs transition-colors cursor-pointer"
+                          >
+                            {copiedLokgeetId === item.id ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <Link2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+
+                          <button
+                            onClick={(e) => handleShareLokgeetWhatsApp(item, e)}
+                            title="व्हाट्सएप पर शेयर करें"
+                            className="p-1.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 rounded-lg border border-emerald-800/40 text-xs transition-colors cursor-pointer"
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {sortedLokgeet.length === 0 && (
+                  <div className="col-span-full py-16 text-center bg-slate-900/40 border border-amber-900/20 rounded-2xl space-y-2">
+                    <Music className="w-12 h-12 text-amber-600/30 mx-auto" />
+                    <p className="text-amber-200/70 font-medium">कोई पवारी लोकगीत नहीं मिला।</p>
+                    <p className="text-xs text-amber-400/50">कृपया अन्य खोज शब्द या श्रेणी चुनकर प्रयास करें।</p>
                   </div>
                 )}
               </div>
 
-              <div className="pt-3 border-t border-amber-900/20 text-[11px] text-amber-400/50 mt-4 flex justify-between items-center">
-                <span>योगदान: {item.contributor_name || 'माँ ताप्ती शोध संस्थान'}</span>
-              </div>
-            </div>
-          ))}
+              {/* Pagination Controls */}
+              {totalLokgeetPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-amber-900/30 text-xs">
+                  <span className="text-amber-400/70">
+                    प्रदर्शित: <strong className="text-amber-200 font-serif">{((lokgeetPage - 1) * LOKGEET_PER_PAGE) + 1}</strong> से <strong className="text-amber-200 font-serif">{Math.min(lokgeetPage * LOKGEET_PER_PAGE, sortedLokgeet.length)}</strong> (कुल {sortedLokgeet.length})
+                  </span>
 
-          {filteredLokgeet.length === 0 && (
-            <div className="col-span-full py-16 text-center bg-slate-900/40 border border-amber-900/20 rounded-2xl">
-              <Music className="w-12 h-12 text-amber-600/30 mx-auto mb-3" />
-              <p className="text-amber-200/70 font-medium">कोई लोकगीत नहीं मिला।</p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      disabled={lokgeetPage === 1}
+                      onClick={() => setLokgeetPage(p => Math.max(p - 1, 1))}
+                      className="px-3 py-1.5 rounded-lg bg-slate-950 border border-amber-900/40 text-amber-300 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-950/60 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5 text-amber-400" />
+                      <span>पिछला</span>
+                    </button>
+
+                    {Array.from({ length: totalLokgeetPages }, (_, i) => i + 1).map((pg) => (
+                      <button
+                        key={pg}
+                        onClick={() => setLokgeetPage(pg)}
+                        className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          lokgeetPage === pg
+                            ? 'bg-amber-500 text-slate-950 shadow-xs'
+                            : 'bg-slate-950 text-amber-300 hover:bg-amber-950/60 border border-amber-900/40'
+                        }`}
+                      >
+                        {pg}
+                      </button>
+                    ))}
+
+                    <button
+                      disabled={lokgeetPage === totalLokgeetPages}
+                      onClick={() => setLokgeetPage(p => Math.min(p + 1, totalLokgeetPages))}
+                      className="px-3 py-1.5 rounded-lg bg-slate-950 border border-amber-900/40 text-amber-300 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-950/60 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>अगला</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom Callout Box for Contributions */}
+              <div className="bg-slate-900/60 border border-amber-900/30 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-amber-100 mt-6 shadow-xs">
+                <div className="space-y-1 text-center sm:text-left">
+                  <h4 className="font-serif font-bold text-amber-200 text-sm sm:text-base">
+                    क्या आपके पास पारम्परिक पवारी लोकगीत उपलब्ध हैं?
+                  </h4>
+                  <p className="text-xs text-amber-200/70">
+                    माँ ताप्ती शोध संस्थान में अपने अंचल के विवाह, पूजा या भगत गीत साझा करके लोकसाहित्य संरक्षण में योगदान दें।
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setContribType('lokgeet');
+                    setIsContribModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-amber-950 hover:bg-amber-900 border border-amber-700/60 text-amber-200 text-xs font-bold rounded-xl transition-all shrink-0 cursor-pointer shadow-xs"
+                >
+                  लोकगीत जमा करें ➔
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -903,295 +1936,671 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
 
       {/* 4. QUIZ & CERTIFICATE ENGINE */}
       {activeTab === 'quiz' && (
-        <div className="max-w-3xl mx-auto space-y-6">
-          {!isQuizSubmitted ? (
-            <div className="bg-slate-900/90 border border-amber-800/40 rounded-3xl p-6 md:p-8 shadow-2xl relative text-amber-100">
-              {/* User Details Setup Before or During Quiz */}
-              <div className="mb-6 p-4 bg-amber-950/40 border border-amber-800/30 rounded-2xl space-y-3">
-                <h4 className="text-sm font-bold text-amber-300 flex items-center gap-2">
-                  <User className="w-4 h-4 text-amber-400" />
-                  प्रमाण-पत्र हेतु प्रतिभागी का नाम एवं फोटो (Participant Info for Certificate)
-                </h4>
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Sub-tab Navigation: Take Quiz vs Top Scorer Leaderboard */}
+          <div className="flex items-center justify-between bg-slate-900/90 border border-amber-500/40 p-2 rounded-2xl shadow-xl gap-2">
+            <button
+              onClick={() => setQuizSubTab('quiz')}
+              className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                quizSubTab === 'quiz'
+                  ? 'bg-amber-500 text-amber-950 shadow-md'
+                  : 'text-amber-200 hover:bg-amber-950/60'
+              }`}
+            >
+              <Award className="w-4 h-4" />
+              <span>📋 ई-क्विज़ परीक्षा (Take Quiz)</span>
+            </button>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-amber-200 mb-1">
-                      आपका पूरा नाम (Full Name) *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="जैसे: रूपेश पवार / अनिता मालवीय"
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-sm focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
+            <button
+              onClick={() => setQuizSubTab('leaderboard')}
+              className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                quizSubTab === 'leaderboard'
+                  ? 'bg-amber-500 text-amber-950 shadow-md'
+                  : 'text-amber-200 hover:bg-amber-950/60'
+              }`}
+            >
+              <Trophy className="w-4 h-4 text-amber-950" />
+              <span>🏆 टॉप स्कोरर लीडरबोर्ड ({quizLeaderboard?.length || 0})</span>
+            </button>
+          </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-amber-200 mb-1">
-                      प्रमाण-पत्र फोटो (Optional Photo)
-                    </label>
-                    <div className="flex gap-2 items-center">
-                      <input
-                        type="text"
-                        placeholder="https://... या फाइल अपलोड करें"
-                        value={userPhoto}
-                        onChange={(e) => setUserPhoto(e.target.value)}
-                        className="flex-1 px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-xs focus:outline-none focus:border-amber-500"
-                      />
-                      <label className="px-3 py-2 bg-amber-950 border border-amber-700 text-amber-200 rounded-xl cursor-pointer text-xs font-medium flex items-center gap-1">
-                        <Upload className="w-3.5 h-3.5" />
-                        <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'quiz')} className="hidden" />
-                      </label>
-                    </div>
-                  </div>
+          {/* LEADERBOARD SUB-TAB VIEW */}
+          {quizSubTab === 'leaderboard' ? (
+            <div className="space-y-6">
+              {/* Leaderboard Banner */}
+              <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border border-amber-500/40 rounded-3xl p-6 text-amber-100 text-center space-y-3 shadow-2xl relative overflow-hidden">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <span>पवारी भोयरी संस्कृति ज्ञान प्रतियोगिता</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-black text-amber-200 font-serif">
+                  टॉप स्कोरर लीडरबोर्ड (Top Scorers Leaderboard)
+                </h3>
+                <p className="text-xs sm:text-sm text-amber-300/80 max-w-xl mx-auto">
+                  निष्पक्ष परीक्षा में सर्वोच्च अंक प्राप्त करने वाले शीर्ष विद्वान प्रतिभागियों की सूची।
+                </p>
+
+                {/* Search Bar for Leaderboard */}
+                <div className="pt-2 max-w-md mx-auto relative">
+                  <Search className="w-4 h-4 text-amber-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="प्रतिभागी का नाम या प्रमाण-पत्र क्रमांक खोजें..."
+                    value={leaderboardSearch}
+                    onChange={(e) => setLeaderboardSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-slate-950/90 border border-amber-600/50 rounded-xl text-amber-100 text-xs placeholder:text-amber-400/50 focus:outline-none focus:border-amber-400"
+                  />
                 </div>
               </div>
 
-              {/* Question Header & Progress */}
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-amber-900/30">
-                <div>
-                  <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
-                    प्रश्न {currentQIndex + 1} / {activeQuizQuestions.length}
-                  </span>
-                  <h3 className="text-lg md:text-xl font-bold text-amber-100 font-serif mt-1">
-                    {activeQuizQuestions[currentQIndex]?.question_pawari}
-                  </h3>
-                  {activeQuizQuestions[currentQIndex]?.question_hindi && (
-                    <p className="text-xs text-amber-400/70 mt-0.5">
-                      ({activeQuizQuestions[currentQIndex]?.question_hindi})
-                    </p>
-                  )}
-                </div>
-
-                <div className="w-12 h-12 rounded-full bg-amber-950 border border-amber-600/50 flex items-center justify-center font-bold text-amber-300 text-sm flex-shrink-0">
-                  {currentQIndex + 1}/{activeQuizQuestions.length}
-                </div>
-              </div>
-
-              {/* Options */}
-              <div className="space-y-3 mb-8">
-                {activeQuizQuestions[currentQIndex]?.options.map((opt, optIdx) => {
-                  const isSelected = userAnswers[currentQIndex] === optIdx;
+              {/* Top 3 Winner Podium Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {quizLeaderboard.slice(0, 3).map((item, index) => {
+                  const ranks = [
+                    { title: 'प्रथम स्थान (Rank 1)', badge: '🥇', color: 'from-amber-500 to-amber-300 text-amber-950 border-amber-400' },
+                    { title: 'द्वितीय स्थान (Rank 2)', badge: '🥈', color: 'from-slate-300 to-slate-100 text-slate-950 border-slate-300' },
+                    { title: 'तृतीय स्थान (Rank 3)', badge: '🥉', color: 'from-amber-700 to-amber-600 text-amber-100 border-amber-600' }
+                  ];
+                  const rank = ranks[index];
                   return (
-                    <button
-                      key={optIdx}
-                      onClick={() => handleSelectOption(optIdx)}
-                      className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
-                        isSelected 
-                          ? 'bg-amber-500/20 border-amber-500 text-amber-100 font-semibold shadow-lg' 
-                          : 'bg-slate-950/60 border-amber-900/40 text-amber-200/90 hover:bg-slate-950 hover:border-amber-700/50'
-                      }`}
-                    >
-                      <span className="text-sm flex items-center gap-3">
-                        <span className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs ${isSelected ? 'bg-amber-500 text-amber-950' : 'bg-slate-900 text-amber-400'}`}>
-                          {String.fromCharCode(65 + optIdx)}
-                        </span>
-                        {opt}
-                      </span>
-                      {isSelected && <Check className="w-5 h-5 text-amber-400" />}
-                    </button>
+                    <div key={item.id} className="bg-slate-900/90 border border-amber-500/40 rounded-3xl p-5 text-center space-y-3 relative shadow-xl hover:border-amber-400 transition-all flex flex-col justify-between">
+                      <div className="space-y-3">
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r ${rank.color} shadow-lg`}>
+                          <span>{rank.badge}</span>
+                          <span>{rank.title}</span>
+                        </div>
+
+                        <div className="relative w-20 h-20 mx-auto">
+                          {item.user_photo_url ? (
+                            <img
+                              src={item.user_photo_url}
+                              alt={item.user_name}
+                              className="w-20 h-20 rounded-full object-cover border-2 border-amber-400 shadow-md"
+                            />
+                          ) : (
+                            <div className="w-20 h-20 rounded-full bg-amber-950 border-2 border-amber-400 flex items-center justify-center text-amber-300 text-xl font-bold">
+                              {item.user_name.charAt(0)}
+                            </div>
+                          )}
+                          <div className="absolute -bottom-1 -right-1 bg-amber-500 text-amber-950 p-1 rounded-full shadow-md">
+                            <CheckCircle2 className="w-4 h-4" />
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-serif font-bold text-amber-100 text-base line-clamp-1">{item.user_name}</h4>
+                          <p className="text-[11px] text-amber-300/70 font-mono mt-0.5">{item.issued_date}</p>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-amber-900/40 bg-amber-950/40 rounded-2xl p-2.5 text-xs">
+                        <div className="flex justify-between items-center text-amber-200">
+                          <span>प्राप्तांक:</span>
+                          <strong className="text-amber-400 font-bold">{item.quiz_score}/{item.total_questions} ({item.percentage}%)</strong>
+                        </div>
+                        <div className="text-[10px] text-amber-400/60 font-mono mt-1 text-right">
+                          {item.certificate_no}
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
 
-              {/* Controls */}
-              <div className="flex items-center justify-between pt-4 border-t border-amber-900/30">
-                <button
-                  onClick={handlePrevQuiz}
-                  disabled={currentQIndex === 0}
-                  className="px-4 py-2 rounded-xl bg-slate-800 text-amber-200 text-xs font-semibold disabled:opacity-40 cursor-pointer"
-                >
-                  पिछला प्रश्न
-                </button>
+              {/* Full Participant Leaderboard List */}
+              <div className="bg-slate-900/90 border border-amber-800/40 rounded-3xl p-5 md:p-6 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between border-b border-amber-900/30 pb-3">
+                  <h4 className="font-serif font-bold text-amber-200 text-lg flex items-center gap-2">
+                    <Medal className="w-5 h-5 text-amber-400" />
+                    समस्त प्रतिभागी सूची (Full Scorers List)
+                  </h4>
+                  <span className="text-xs text-amber-400/80 bg-amber-950 px-2.5 py-1 rounded-full border border-amber-800">
+                    कुल प्रतिभागी: {quizLeaderboard.length}
+                  </span>
+                </div>
 
-                {currentQIndex < activeQuizQuestions.length - 1 ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
+                  {quizLeaderboard
+                    .filter(item => 
+                      item.user_name.toLowerCase().includes(leaderboardSearch.toLowerCase()) ||
+                      item.certificate_no.toLowerCase().includes(leaderboardSearch.toLowerCase())
+                    )
+                    .map((item, idx) => (
+                      <div
+                        key={item.id}
+                        className="bg-slate-950/70 border border-amber-900/30 rounded-2xl p-3.5 flex items-center justify-between gap-3 hover:border-amber-700/50 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                            idx === 0 ? 'bg-amber-400 text-amber-950' : idx === 1 ? 'bg-slate-300 text-slate-950' : idx === 2 ? 'bg-amber-700 text-amber-100' : 'bg-slate-800 text-amber-300'
+                          }`}>
+                            #{idx + 1}
+                          </span>
+
+                          {item.user_photo_url ? (
+                            <img src={item.user_photo_url} alt={item.user_name} className="w-9 h-9 rounded-full object-cover border border-amber-500/50 shrink-0" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-amber-950 border border-amber-700/50 flex items-center justify-center text-amber-300 font-bold text-xs shrink-0">
+                              {item.user_name.charAt(0)}
+                            </div>
+                          )}
+
+                          <div>
+                            <h5 className="font-semibold text-amber-100 text-xs sm:text-sm">{item.user_name}</h5>
+                            <p className="text-[10px] text-amber-400/60 font-mono">क्रमांक: {item.certificate_no} • {item.issued_date}</p>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="inline-block px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold">
+                            {item.quiz_score}/{item.total_questions} ({item.percentage}%)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                <div className="text-center pt-2">
                   <button
-                    onClick={handleNextQuiz}
-                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold text-sm shadow-lg cursor-pointer"
-                  >
-                    अगला प्रश्न
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleFinishQuiz}
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-emerald-950 font-bold text-sm shadow-xl flex items-center gap-2 cursor-pointer"
+                    onClick={() => {
+                      setQuizSubTab('quiz');
+                      handleResetQuiz();
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold text-xs shadow-lg inline-flex items-center gap-2 cursor-pointer"
                   >
                     <Award className="w-4 h-4" />
-                    <span>क्विज़ सबमिट करें एवं प्रमाण-पत्र देखें</span>
+                    <span>स्वयं क्विज़ दें और लीडरबोर्ड में स्थान पाएँ ➔</span>
                   </button>
-                )}
+                </div>
               </div>
             </div>
-          ) : certificateData && certificateData.percentage >= 60 ? (
-            /* CERTIFICATE DISPLAY & DOWNLOAD CARD FOR PASSING SCORE (>= 60%) */
+          ) : (
+            /* TAKE QUIZ OR VIEW CERTIFICATE SUB-TAB */
             <div className="space-y-6">
-              <div className="bg-slate-900/90 border border-amber-500/40 p-6 rounded-3xl text-center space-y-4 shadow-2xl">
-                <div className="inline-flex p-3 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">
-                  <Award className="w-10 h-10" />
+              {/* Dedicated Quiz Share Link Banner */}
+              <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border border-amber-500/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-amber-100 shadow-xl">
+                <div className="space-y-1 text-center sm:text-left">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                    <Award className="w-3.5 h-3.5 text-amber-400" />
+                    <span>पवारी भोयरी संस्कृति ई-क्विज़</span>
+                  </div>
+                  <h3 className="font-serif font-bold text-amber-200 text-base sm:text-lg">
+                    पवारी क्विज़ शेयर करें (Direct Link)
+                  </h3>
+                  <p className="text-xs text-amber-300/80">
+                    अपनी पवारी भाषा एवं संस्कृति ज्ञान की परीक्षा लें। अपने मित्रों व समूह में क्विज़ लिंक शेयर करें!
+                  </p>
                 </div>
-                <h3 className="text-2xl font-black text-amber-200 font-serif">
-                  बधाई हो! {certificateData?.user_name}
-                </h3>
-                <p className="text-sm text-amber-100/80">
-                  आपने {certificateData?.total_questions} में से {certificateData?.quiz_score} प्रश्नों का सही उत्तर देकर 
-                  <strong className="text-amber-400 mx-1 font-bold">{certificateData?.percentage}%</strong> सफलता प्राप्त की है!
-                </p>
 
-                <div className="flex flex-wrap justify-center gap-2.5 pt-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
-                    onClick={handleDownloadCertificatePdf}
-                    disabled={isGeneratingPdf}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-amber-950 font-bold text-xs shadow-xl flex items-center gap-2 cursor-pointer transition disabled:opacity-50"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>{isGeneratingPdf ? 'PDF तैयार हो रहा है...' : 'ई-प्रमाण-पत्र PDF डाउनलोड करें'}</span>
-                  </button>
-
-                  <button
-                    onClick={handlePrintCertificate}
-                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-200 font-bold text-xs border border-amber-500/30 flex items-center gap-1.5 cursor-pointer transition"
-                  >
-                    <span>प्रिंट करें (Print)</span>
-                  </button>
-
-                  <button
-                    onClick={handleShareWhatsApp}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg flex items-center gap-1.5 cursor-pointer transition"
+                    onClick={handleShareQuizWhatsApp}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition-all"
                   >
                     <Share2 className="w-4 h-4" />
-                    <span>WhatsApp</span>
+                    <span>वॉट्सऐप शेयर</span>
                   </button>
-
                   <button
-                    onClick={() => handleShareSocial('facebook')}
-                    className="px-4 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-600 text-white font-bold text-xs shadow-lg flex items-center gap-1.5 cursor-pointer transition"
+                    onClick={handleCopyQuizLink}
+                    className="px-3.5 py-2 rounded-xl bg-amber-950 hover:bg-amber-900 border border-amber-600/60 text-amber-200 font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer transition-all"
                   >
-                    <span>Facebook</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleShareSocial('twitter')}
-                    className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-lg flex items-center gap-1.5 cursor-pointer transition"
-                  >
-                    <span>Twitter/X</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleShareSocial('telegram')}
-                    className="px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs shadow-lg flex items-center gap-1.5 cursor-pointer transition"
-                  >
-                    <span>Telegram</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleShareSocial('copy')}
-                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-200 font-bold text-xs border border-amber-500/30 flex items-center gap-1.5 cursor-pointer transition"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>{copiedLink ? 'लिंक कॉपी हो गया!' : 'लिंक कॉपी करें'}</span>
-                  </button>
-
-                  <button
-                    onClick={handleResetQuiz}
-                    className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 font-semibold text-xs border border-amber-500/20 flex items-center gap-1.5 cursor-pointer transition"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>पुनः क्विज़ दें</span>
+                    {copiedQuizLink ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-400" />
+                        <span className="text-emerald-400">लिंक कॉपी हुआ!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Link2 className="w-4 h-4 text-amber-400" />
+                        <span>क्विज़ डायरेक्ट लिंक</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
 
-              {/* HIGH-RES VISUAL CERTIFICATE TEMPLATE WITH CHIEF EDITOR & PATRON SIGNATURES */}
-              <div className="print:m-0 print:p-0 print:shadow-none">
-                <div 
-                  id="pawari-certificate-node"
-                  className="bg-gradient-to-br from-amber-950 via-red-950 to-amber-950 border-8 border-amber-600/80 p-8 md:p-12 rounded-3xl text-amber-100 relative shadow-2xl font-serif text-center overflow-hidden"
-                >
-                  {/* Decorative Border Corners */}
-                  <div className="absolute top-3 left-3 w-12 h-12 border-t-2 border-l-2 border-amber-400" />
-                  <div className="absolute top-3 right-3 w-12 h-12 border-t-2 border-r-2 border-amber-400" />
-                  <div className="absolute bottom-3 left-3 w-12 h-12 border-b-2 border-l-2 border-amber-400" />
-                  <div className="absolute bottom-3 right-3 w-12 h-12 border-b-2 border-r-2 border-amber-400" />
+              {!isQuizSubmitted ? (
+                <div className="bg-slate-900/90 border border-amber-800/40 rounded-3xl p-6 md:p-8 shadow-2xl relative text-amber-100">
+                  {/* User Details Setup Before or During Quiz */}
+                  <div className="mb-6 p-4 bg-amber-950/40 border border-amber-800/30 rounded-2xl space-y-3">
+                    <h4 className="text-sm font-bold text-amber-300 flex items-center gap-2">
+                      <User className="w-4 h-4 text-amber-400" />
+                      प्रमाण-पत्र हेतु प्रतिभागी का नाम एवं फोटो (Participant Info for Certificate)
+                    </h4>
 
-                  {/* Institution Header */}
-                  <div className="mb-6 space-y-1">
-                    <p className="text-xs uppercase tracking-widest text-amber-400 font-sans font-bold">
-                      🚩 माँ ताप्ती शोध संस्थान, मुलताई (बैतूल) 🚩
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-amber-200 mb-1">
+                          आपका पूरा नाम (Full Name) <span className="text-red-400 font-bold">* अनिवार्य</span>
+                        </label>
+                        <input
+                          id="participant-name-input"
+                          type="text"
+                          placeholder="जैसे: रूपेश पवार / अनिता मालवीय"
+                          value={userName}
+                          onChange={(e) => setUserName(e.target.value)}
+                          className={`w-full px-3.5 py-2 bg-slate-950 border rounded-xl text-amber-100 text-sm focus:outline-none transition-all ${
+                            !userName.trim() ? 'border-red-500/80 focus:border-red-400 bg-red-950/20' : 'border-amber-900/50 focus:border-amber-500'
+                          }`}
+                          required
+                        />
+                        {!userName.trim() && (
+                          <p className="text-[11px] text-red-400 mt-1 font-semibold flex items-center gap-1">
+                            ⚠️ प्रमाण-पत्र प्राप्त करने के लिए अपना नाम यहाँ लिखें।
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-amber-200 mb-1">
+                          प्रमाण-पत्र फोटो (Optional Photo)
+                        </label>
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            placeholder="https://... या फाइल अपलोड करें"
+                            value={userPhoto}
+                            onChange={(e) => setUserPhoto(e.target.value)}
+                            className="flex-1 px-3.5 py-2 bg-slate-950 border border-amber-900/50 rounded-xl text-amber-100 text-xs focus:outline-none focus:border-amber-500"
+                          />
+                          <label className="px-3 py-2 bg-amber-950 border border-amber-700 text-amber-200 rounded-xl cursor-pointer text-xs font-medium flex items-center gap-1">
+                            <Upload className="w-3.5 h-3.5" />
+                            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'quiz')} className="hidden" />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category & Question Count Filter Bar */}
+                  <div className="mb-6 p-4 bg-slate-950/80 border border-amber-800/40 rounded-2xl space-y-3">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+                          <span>🎯 क्विज़ विषय श्रेणी चुनें (Select Quiz Domain)</span>
+                        </h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            { id: 'all', label: '🌟 सभी विषय (All)' },
+                            { id: 'shabdkosh', label: `📖 शब्दकोश (${(shabdkoshList || []).length})` },
+                            { id: 'paheli', label: `🧩 पहेली (पाहलोड़ी) (${(paheliList || []).length})` },
+                            { id: 'lokgeet', label: `🎵 लोकगीत (${(lokgeetList || []).length})` },
+                            { id: 'writers', label: `✒️ साहित्यकार (${(writers || []).length})` },
+                          ].map((cat) => (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => handleQuizFilterChange(cat.id, quizQuestionLimit)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
+                                selectedQuizCategory === cat.id
+                                  ? 'bg-amber-500 text-amber-950 font-bold shadow-md scale-102'
+                                  : 'bg-amber-950/60 hover:bg-amber-900/60 text-amber-200 border border-amber-800/40'
+                              }`}
+                            >
+                              {cat.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 border-t md:border-t-0 md:border-l border-amber-800/30 pt-2.5 md:pt-0 md:pl-4">
+                        <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider mb-1.5">
+                          📊 कुल प्रश्न संख्या (Questions Limit)
+                        </h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            { id: 10, label: '10 प्रश्न' },
+                            { id: 20, label: '20 प्रश्न' },
+                            { id: 50, label: '50 प्रश्न' },
+                            { id: 'all', label: '♾️ सभी प्रश्न' },
+                          ].map((lim) => (
+                            <button
+                              key={lim.id}
+                              type="button"
+                              onClick={() => handleQuizFilterChange(selectedQuizCategory, lim.id as number | 'all')}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                                quizQuestionLimit === lim.id
+                                  ? 'bg-amber-400 text-amber-950 font-bold shadow-sm'
+                                  : 'bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-900/50'
+                              }`}
+                            >
+                              {lim.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Question Header & Progress */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-amber-900/30">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
+                          प्रश्न {currentQIndex + 1} / {activeQuizQuestions.length}
+                        </span>
+
+                        {activeQuizQuestions[currentQIndex]?.section_type && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            {activeQuizQuestions[currentQIndex]?.section_type === 'shabdkosh' ? '📖 शब्दकोश' :
+                             activeQuizQuestions[currentQIndex]?.section_type === 'paheli' ? '🧩 पहेली (पाहलोड़ी)' :
+                             activeQuizQuestions[currentQIndex]?.section_type === 'lokgeet' ? '🎵 लोकगीत' :
+                             activeQuizQuestions[currentQIndex]?.section_type === 'writers' ? '✒️ साहित्यकार' :
+                             activeQuizQuestions[currentQIndex]?.section_type === 'articles' ? '📜 शोध पत्र' : '📚 ग्रन्थ/पुस्तक'}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-lg md:text-xl font-bold text-amber-100 font-serif">
+                        {activeQuizQuestions[currentQIndex]?.question_pawari}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={handleResetQuiz}
+                        title="नये रैंडम प्रश्न लोड करें"
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-700/50 text-amber-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                        <span>नये प्रश्न</span>
+                      </button>
+
+                      <div className="w-10 h-10 rounded-full bg-amber-950 border border-amber-600/50 flex items-center justify-center font-bold text-amber-300 text-xs shrink-0">
+                        {currentQIndex + 1}/{activeQuizQuestions.length}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Options */}
+                  <div className="space-y-3 mb-8">
+                    {activeQuizQuestions[currentQIndex]?.options.map((opt, optIdx) => {
+                      const isSelected = userAnswers[currentQIndex] === optIdx;
+                      return (
+                        <button
+                          key={optIdx}
+                          onClick={() => handleSelectOption(optIdx)}
+                          className={`w-full p-4 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                            isSelected 
+                              ? 'bg-amber-500/20 border-amber-500 text-amber-100 font-semibold shadow-lg' 
+                              : 'bg-slate-950/60 border-amber-900/40 text-amber-200/90 hover:bg-slate-950 hover:border-amber-700/50'
+                          }`}
+                        >
+                          <span className="text-sm flex items-center gap-3">
+                            <span className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs ${isSelected ? 'bg-amber-500 text-amber-950' : 'bg-slate-900 text-amber-400'}`}>
+                              {String.fromCharCode(65 + optIdx)}
+                            </span>
+                            {opt}
+                          </span>
+                          {isSelected && <Check className="w-5 h-5 text-amber-400" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Controls */}
+                  <div className="flex items-center justify-between pt-4 border-t border-amber-900/30">
+                    <button
+                      onClick={handlePrevQuiz}
+                      disabled={currentQIndex === 0}
+                      className="px-4 py-2 rounded-xl bg-slate-800 text-amber-200 text-xs font-semibold disabled:opacity-40 cursor-pointer"
+                    >
+                      पिछला प्रश्न
+                    </button>
+
+                    {currentQIndex < activeQuizQuestions.length - 1 ? (
+                      <button
+                        onClick={handleNextQuiz}
+                        className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold text-sm shadow-lg cursor-pointer"
+                      >
+                        अगला प्रश्न
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleFinishQuiz}
+                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-emerald-950 font-bold text-sm shadow-xl flex items-center gap-2 cursor-pointer"
+                      >
+                        <Award className="w-4 h-4" />
+                        <span>क्विज़ सबमिट करें एवं प्रमाण-पत्र देखें</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : certificateData && certificateData.percentage >= 60 ? (
+                /* CERTIFICATE DISPLAY & DOWNLOAD CARD FOR PASSING SCORE (>= 60%) */
+                <div className="space-y-6">
+                  <div className="bg-slate-900/90 border border-amber-500/40 p-6 rounded-3xl text-center space-y-4 shadow-2xl">
+                    <div className="inline-flex p-3 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                      <Award className="w-10 h-10" />
+                    </div>
+                    <h3 className="text-2xl font-black text-amber-200 font-serif">
+                      बधाई हो! {certificateData?.user_name}
+                    </h3>
+                    <p className="text-sm text-amber-100/80">
+                      आपने {certificateData?.total_questions} में से {certificateData?.quiz_score} प्रश्नों का सही उत्तर देकर 
+                      <strong className="text-amber-400 mx-1 font-bold">{certificateData?.percentage}%</strong> सफलता प्राप्त की है!
                     </p>
-                    <h2 className="text-3xl md:text-4xl font-black text-amber-200 tracking-wide drop-shadow-md">
-                      पवारी भोयरी संस्कृति ई-प्रमाण-पत्र
+
+                    <div className="flex flex-wrap justify-center gap-3 pt-2">
+                      <button
+                        onClick={handleDownloadCertificateImage}
+                        disabled={isGeneratingImage}
+                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold text-xs sm:text-sm shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                      >
+                        {isGeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                        <span>सर्टिफिकेट HD इमेज (PNG) डाउनलोड करें</span>
+                      </button>
+
+                      <button
+                        onClick={handleDownloadCertificatePdf}
+                        disabled={isGeneratingImage}
+                        className="px-5 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs sm:text-sm shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                      >
+                        {isGeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        <span>सर्टिफिकेट PDF (1 पृष्ठ) डाउनलोड करें</span>
+                      </button>
+
+                      <button
+                        onClick={handleShareCertificateImage}
+                        disabled={isGeneratingImage}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                      >
+                        {isGeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                        <span>सर्टिफिकेट इमेज शेयर करें</span>
+                      </button>
+
+                      <button
+                        onClick={handlePrintCertificate}
+                        className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-700/60 text-amber-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                      >
+                        <Download className="w-4 h-4 text-amber-400" />
+                        <span>डायरेक्ट प्रिंट</span>
+                      </button>
+
+                      <button
+                        onClick={() => setQuizSubTab('leaderboard')}
+                        className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-200 font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Trophy className="w-4 h-4 text-amber-400" />
+                        <span>लीडरबोर्ड देखें</span>
+                      </button>
+
+                      <button
+                        onClick={handleResetQuiz}
+                        className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-200 font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        <span>पुनः क्विज़ दें</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* HIGH-RES PRESTIGIOUS ELEGANT LIGHT VISUAL CERTIFICATE TEMPLATE */}
+                  <div className="printable-certificate print:m-0 print:p-0 print:shadow-none transition-all" id="printable-certificate-card">
+                    <div className="bg-gradient-to-br from-[#FFFDF7] via-[#FAF5E8] to-[#F5EEDC] border-[10px] border-double border-[#B45309] p-8 sm:p-12 md:p-16 rounded-3xl text-slate-900 relative shadow-2xl font-serif text-center overflow-hidden">
+                      
+                      {/* Subtle Background Watermark Text */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.05] select-none font-black text-6xl md:text-8xl text-amber-900 uppercase tracking-widest leading-none rotate-[-12deg]">
+                        माँ ताप्ती पवारी शोध संस्थान 2026
+                      </div>
+
+                  {/* Inner Fine Gold Line Frame */}
+                  <div className="absolute inset-3 border border-amber-600/40 rounded-2xl pointer-events-none" />
+
+                  {/* Decorative Filigree Corner Ornaments */}
+                  <div className="absolute top-4 left-4 w-10 h-10 border-t-2 border-l-2 border-amber-700/80 flex items-start justify-start p-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                  </div>
+                  <div className="absolute top-4 right-4 w-10 h-10 border-t-2 border-r-2 border-amber-700/80 flex items-start justify-end p-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                  </div>
+                  <div className="absolute bottom-4 left-4 w-10 h-10 border-b-2 border-l-2 border-amber-700/80 flex items-end justify-start p-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                  </div>
+                  <div className="absolute bottom-4 right-4 w-10 h-10 border-b-2 border-r-2 border-amber-700/80 flex items-end justify-end p-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                  </div>
+
+                  {/* Top Institution Banner */}
+                  <div className="relative z-10 space-y-2 mb-6">
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100/90 border border-amber-400 text-amber-950 font-sans text-xs font-bold uppercase tracking-widest shadow-sm">
+                      <Award className="w-4 h-4 text-amber-700 shrink-0" />
+                      <span>🚩 माँ ताप्ती पवारी शोध संस्थान, मुलताई (बैतूल) • म.प्र. 🚩</span>
+                    </div>
+
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#78350F] tracking-wide drop-shadow-sm font-serif">
+                      राष्ट्रीय पवारी संस्कृति ई-प्रमाण-पत्र
                     </h2>
-                    <p className="text-xs text-amber-300/80 font-sans">
-                      (Pawari Cultural Heritage Quiz Certificate of Merit — Refereed Journal)
+
+                    <p className="text-xs sm:text-sm text-amber-800/90 font-sans tracking-wide uppercase font-semibold">
+                      NATIONAL E-CERTIFICATE OF CULTURAL & LINGUISTIC EXCELLENCE
                     </p>
                   </div>
 
-                  {/* Photo & Name Section */}
-                  <div className="my-6 space-y-4">
+                  {/* Grade & Score Badge Ribbon */}
+                  <div className="relative z-10 my-4 inline-flex items-center gap-3 px-5 py-2 rounded-2xl bg-amber-100/80 border border-amber-300 shadow-md">
+                    <div className="text-left font-sans">
+                      <p className="text-[10px] text-amber-800 font-bold uppercase tracking-wider">परिणाम / Grade:</p>
+                      <p className="text-sm font-bold text-amber-950">
+                        {certificateData?.percentage >= 90 ? 'उत्कृष्ट श्रेणी (Grade A+ Distinction)' : 'प्रथम श्रेणी (Grade A)'}
+                      </p>
+                    </div>
+                    <div className="h-8 w-px bg-amber-400/60" />
+                    <div className="text-right font-sans">
+                      <p className="text-[10px] text-amber-800 font-bold uppercase tracking-wider">प्राप्तांक / Score:</p>
+                      <p className="text-sm font-bold text-amber-900">
+                        {certificateData?.quiz_score} / {certificateData?.total_questions} ({certificateData?.percentage}%)
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Candidate Photo & Award Citation */}
+                  <div className="relative z-10 my-6 space-y-4">
                     {certificateData?.user_photo_url ? (
-                      <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-4 border-amber-400 shadow-xl bg-slate-900">
+                      <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full mx-auto overflow-hidden border-4 border-amber-500 shadow-xl bg-amber-100 ring-4 ring-amber-300/50">
                         <img 
                           src={certificateData.user_photo_url} 
                           alt={certificateData.user_name} 
+                          crossOrigin={certificateData.user_photo_url.startsWith('http') ? 'anonymous' : undefined}
                           className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
                         />
                       </div>
                     ) : (
-                      <div className="w-20 h-20 rounded-full mx-auto bg-amber-900/60 border-2 border-amber-500/50 flex items-center justify-center text-amber-300">
-                        <Award className="w-10 h-10" />
+                      <div className="w-24 h-24 rounded-full mx-auto bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-200 p-1 shadow-xl border-2 border-amber-300 flex items-center justify-center">
+                        <div className="w-full h-full rounded-full bg-amber-100 flex items-center justify-center text-amber-800">
+                          <Award className="w-12 h-12 text-amber-700" />
+                        </div>
                       </div>
                     )}
 
-                    <div>
-                      <p className="text-xs text-amber-300/80 font-sans uppercase tracking-wider">यह प्रमाण-पत्र सहर्ष प्रदान किया जाता है:</p>
-                      <h3 className="text-2xl md:text-3xl font-black text-amber-300 underline decoration-amber-500/50 underline-offset-8 mt-1">
+                    <div className="space-y-1">
+                      <p className="text-xs text-amber-900/80 font-sans uppercase tracking-widest font-semibold">
+                        यह प्रमाण-पत्र ससम्मान प्रदान किया जाता है (Presented To):
+                      </p>
+                      <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#881337] tracking-wide underline decoration-amber-500/80 underline-offset-8 py-1 drop-shadow-sm font-serif">
                         {certificateData?.user_name}
                       </h3>
                     </div>
                   </div>
 
-                  {/* Citation text */}
-                  <p className="text-sm md:text-base text-amber-100/90 max-w-xl mx-auto leading-relaxed my-4 font-normal">
-                    जिन्होंने पवारी भोयरी लोकसंस्कृति, लोकगीत, पहेली, शब्दकोश एवं शोध ग्रंथों पर आधारित ज्ञान परीक्षण में 
-                    <strong className="text-amber-300 font-bold mx-1">{certificateData?.percentage}% प्राप्तांक</strong> के साथ उत्कृष्ट प्रदर्शन कर पवारी भाषा के संरक्षण एवं संवर्धन में सराहनीय योगदान दिया है।
+                  {/* Formal Citation Text */}
+                  <p className="relative z-10 text-sm sm:text-base md:text-lg text-slate-800 max-w-2xl mx-auto leading-relaxed my-5 font-serif font-normal bg-white/80 p-4 rounded-2xl border border-amber-300/80 shadow-sm">
+                    जिन्होंने माँ ताप्ती पवारी शोध संस्थान द्वारा आयोजित <strong className="text-amber-900 font-bold">पवारी भोयरी संस्कृति ज्ञान ई-परीक्षा</strong> में 
+                    <strong className="text-amber-900 font-bold mx-1.5 underline decoration-amber-600">{certificateData?.percentage}% अंक</strong> प्राप्त कर सफलता अर्जित की है तथा पवारी भाषा, लोकगीत, पहेली एवं शब्दकोश संवर्धन में सराहनीय योगदान दिया है।
                   </p>
 
-                  {/* Seal and Signatures (Chief Editor & Patron) */}
-                  <div className="mt-8 pt-6 border-t border-amber-500/30 grid grid-cols-1 sm:grid-cols-3 items-center gap-6 font-sans text-xs">
-                    {/* Left: Chief Editor Signature */}
-                    <div className="text-left space-y-1">
-                      <p className="font-serif text-sm font-bold text-amber-200">प्रा. रूपेश पवार</p>
-                      <p className="text-amber-400 font-semibold">मुख्य संपादक (Chief Editor)</p>
-                      <p className="text-amber-300/70 text-[10px]">संपादकीय मण्डल, पवारी शोध पत्रिका</p>
-                      <p className="text-amber-400/50 text-[10px]">क्रमांक: {certificateData?.certificate_no}</p>
-                    </div>
+                  {/* Seal, Verification Code & Official Signatures */}
+                  <div className="relative z-10 mt-8 pt-6 border-t-2 border-amber-400/50 space-y-6 font-sans text-xs">
+                    
+                    {/* Dual Signatures & Seal Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 items-center justify-between gap-6">
+                      
+                      {/* Chief Editor Signature (मुख्य संपादक) */}
+                      <div className="text-center md:text-left space-y-1">
+                        <div className="inline-block border-b-2 border-amber-800/60 pb-1 mb-1 font-serif text-base font-extrabold text-amber-950 px-2">
+                          {chiefEditorMember ? (lang === 'hi' ? chiefEditorMember.name_hindi : chiefEditorMember.name_english) : 'प्रो. (डॉ.) रमाकांत शर्मा'}
+                        </div>
+                        <p className="text-amber-950 font-bold text-xs">
+                          {chiefEditorMember ? (lang === 'hi' ? (chiefEditorMember.designation_hindi || chiefEditorMember.role || 'मुख्य संपादक') : (chiefEditorMember.designation_english || chiefEditorMember.role || 'Chief Editor')) : 'मुख्य संपादक'}
+                        </p>
+                        <p className="text-amber-900/90 text-[11px] font-medium max-w-xs mx-auto md:mx-0">
+                          {chiefEditorMember ? (lang === 'hi' ? (chiefEditorMember.affiliation_hindi || 'पवारी शोध पत्रिका') : (chiefEditorMember.affiliation_english || 'Pawari Shodh Patrika')) : 'पवारी शोध पत्रिका'}
+                        </p>
+                      </div>
 
-                    {/* Center: Gold Emblem Seal */}
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-600 p-0.5 shadow-xl">
-                        <div className="w-full h-full rounded-full bg-amber-950 flex flex-col items-center justify-center text-amber-300 p-1 text-center border border-amber-400/50">
-                          <Award className="w-6 h-6 text-amber-400" />
-                          <span className="text-[8px] font-bold tracking-tighter uppercase mt-0.5 leading-none text-amber-200">
-                            प्रमाणित सील 2026
-                          </span>
-                          <span className="text-[7px] text-amber-400/80 leading-none mt-0.5">बैतूल (म.प्र.)</span>
+                      {/* Center: Official Seal & Verification Details */}
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <div className="relative group shrink-0">
+                          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-500 via-amber-300 to-amber-200 text-amber-950 p-1 shadow-xl border-4 border-amber-100 flex items-center justify-center">
+                            <div className="w-full h-full rounded-full border-2 border-dashed border-amber-900/60 p-1 flex flex-col items-center justify-center text-center bg-amber-300/90 shadow-inner">
+                              <Award className="w-5 h-5 text-amber-950 mb-0.5" />
+                              <span className="text-[8px] font-black uppercase tracking-tight leading-none text-amber-950">
+                                माँ ताप्ती पवारी
+                              </span>
+                              <span className="text-[7px] font-bold text-amber-900 uppercase">
+                                शोध संस्थान 2026
+                              </span>
+                              <span className="text-[6px] font-black text-amber-950 mt-0.5 border-t border-amber-800/40 pt-0.5 w-full">
+                                ★ आधिकारिक मोहर ★
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-center space-y-0.5">
+                          <div className="inline-block bg-amber-100/90 border border-amber-300 px-3 py-1 rounded-lg shadow-2xs">
+                            <p className="text-amber-950 font-mono font-bold text-[11px]">
+                              प्रमाण-पत्र क्र.: PST-2026-QUIZ-{certificateData?.certificate_no}
+                            </p>
+                            <p className="text-amber-900/80 text-[10px]">
+                              जारी तिथि: {certificateData?.issued_date}
+                            </p>
+                          </div>
+                          <p className="text-[9px] text-amber-800/80 font-mono uppercase tracking-wider block font-semibold">
+                            Verifiable Official Digital E-Certificate
+                          </p>
                         </div>
                       </div>
-                      <span className="text-[10px] text-amber-300/70 mt-1">जारी तिथि: {certificateData?.issued_date}</span>
+
+                      {/* Patron / Director Signature (संरक्षक / निदेशक) */}
+                      <div className="text-center md:text-right space-y-1">
+                        <div className="inline-block border-b-2 border-amber-800/60 pb-1 mb-1 font-serif text-base font-extrabold text-amber-950 px-2">
+                          {patronMember ? (lang === 'hi' ? patronMember.name_hindi : patronMember.name_english) : 'डॉ. बी. एल. पवार'}
+                        </div>
+                        <p className="text-amber-950 font-bold text-xs">
+                          {patronMember ? (lang === 'hi' ? (patronMember.designation_hindi || patronMember.role || 'संरक्षक / निदेशक') : (patronMember.designation_english || patronMember.role || 'Patron & Director')) : 'संरक्षक एवं संस्थापक निदेशक'}
+                        </p>
+                        <p className="text-amber-900/90 text-[11px] font-medium max-w-xs mx-auto md:ml-auto md:mr-0">
+                          {patronMember ? (lang === 'hi' ? (patronMember.affiliation_hindi || 'माँ ताप्ती पवारी शोध संस्थान, मुलताई') : (patronMember.affiliation_english || 'Maa Tapti Pawari Research Institute, Multai')) : 'माँ ताप्ती पवारी शोध संस्थान, मुलताई'}
+                        </p>
+                      </div>
+
                     </div>
 
-                    {/* Right: Patron / Director Signature */}
-                    <div className="text-right space-y-1">
-                      <p className="font-serif text-sm font-bold text-amber-200">डॉ. कैलाश पवार</p>
-                      <p className="text-amber-400 font-semibold">संरक्षक / निदेशक (Patron)</p>
-                      <p className="text-amber-300/70 text-[10px]">माँ ताप्ती पवारी शोध संस्थान</p>
-                      <p className="text-amber-400/50 text-[10px]">ISSN: Refereed Journal</p>
-                    </div>
                   </div>
+
                 </div>
               </div>
+
             </div>
           ) : (
             /* RETAKE QUIZ CARD FOR SCORES BELOW 60% */
@@ -1230,6 +2639,8 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
           )}
         </div>
       )}
+    </div>
+  )}
 
       {/* PUBLIC CONTRIBUTION MODAL FORM */}
       {isContribModalOpen && (

@@ -57,7 +57,6 @@ export interface BlogItem {
   tags: string[];
   likes_count?: number;
   slug?: string;
-  is_review?: boolean;
   status?: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'published' | 'rejected' | string;
   editorial_comments?: string;
   contributor_name?: string;

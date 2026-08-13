@@ -24,11 +24,7 @@ export function createSlug(title: string, fallbackId: string = ''): string {
 
 import { Article } from '../types';
 
-export function findGenericItem<T extends Record<string, any>>(
-  items: T[], 
-  identifier: string | null, 
-  extraFields: string[] = []
-): T | null {
+export function findArticle(articles: Article[], identifier: string | null): Article | null {
   if (!identifier) return null;
   let cleanId = identifier.trim().toLowerCase();
   try {
@@ -36,59 +32,26 @@ export function findGenericItem<T extends Record<string, any>>(
   } catch (e) {}
 
   if (!cleanId) return null;
-
-  // 1. Direct ID match
-  let found = items.find(item => item.id && String(item.id).toLowerCase() === cleanId);
+  
+  // 1. Exact ID match (case-insensitive)
+  let found = articles.find(a => a.id && a.id.toLowerCase() === cleanId);
   if (found) return found;
 
-  // 2. Direct Slug match
-  found = items.find(item => item.slug && String(item.slug).toLowerCase() === cleanId);
+  // 2. Exact slug match
+  found = articles.find(a => a.slug && a.slug.toLowerCase() === cleanId);
   if (found) return found;
 
-  // 3. Prefixed/suffixed ID match (e.g. "book-xyz", "blog-xyz", "writer-xyz", "art-xyz")
-  found = items.find(item => {
-    if (!item.id) return false;
-    const lowerId = String(item.id).toLowerCase();
-    return lowerId.endsWith(`-${cleanId}`) || lowerId === `item-${cleanId}` || lowerId === `art-${cleanId}`;
-  });
-  if (found) return found;
-
-  // 4. Normalized slugified title/name field match
+  // 3. Normalized slugified title match
   const targetSlug = createSlug(cleanId);
-  found = items.find(item => {
-    if (item.slug && createSlug(String(item.slug)) === targetSlug) return true;
-
-    const candidateValues = [
-      item.title,
-      item.title_hindi,
-      item.title_english,
-      item.name,
-      item.name_hindi,
-      item.name_english,
-      item.word_pawari,
-      item.riddle_pawari,
-      item.song_title_pawari,
-      ...extraFields.map(f => item[f])
-    ].filter(Boolean);
-
-    return candidateValues.some(val => createSlug(String(val)) === targetSlug);
+  found = articles.find(a => {
+    const slugHi = createSlug(a.title_hindi);
+    const slugEn = createSlug(a.title_english);
+    const slugStored = a.slug ? createSlug(a.slug) : '';
+    return slugStored === targetSlug || slugHi === targetSlug || slugEn === targetSlug;
   });
   if (found) return found;
 
-  // 5. Prefix/substring search on ID or slug for longer identifiers (>= 6 chars)
-  if (cleanId.length >= 6) {
-    found = items.find(item => {
-      const lowerId = item.id ? String(item.id).toLowerCase() : '';
-      const lowerSlug = item.slug ? String(item.slug).toLowerCase() : '';
-      return lowerId.startsWith(cleanId) || lowerSlug.startsWith(cleanId) || cleanId.startsWith(lowerSlug);
-    });
-  }
-
-  return found || null;
-}
-
-export function findArticle(articles: Article[], identifier: string | null): Article | null {
-  if (!identifier) return null;
+  // 4. Legacy slug mapping
   const legacyMap: Record<string, string> = {
     '1': articles[0]?.id || '',
     '2': articles[1]?.id || '',
@@ -97,41 +60,19 @@ export function findArticle(articles: Article[], identifier: string | null): Art
     'art-2': articles[1]?.id || '',
     'vol-1-issue-1-art-1': articles[0]?.id || ''
   };
-  let cleanId = identifier.trim().toLowerCase();
-  try {
-    cleanId = decodeURIComponent(cleanId).trim().toLowerCase();
-  } catch (e) {}
-
   if (legacyMap[cleanId]) {
-    const legacyFound = articles.find(a => a.id === legacyMap[cleanId]);
-    if (legacyFound) return legacyFound;
+    found = articles.find(a => a.id === legacyMap[cleanId]);
+    if (found) return found;
   }
 
-  return findGenericItem(articles, identifier, ['abstract_hindi', 'abstract_english']);
-}
-
-export function findBook<T extends Record<string, any>>(books: T[], identifier: string | null): T | null {
-  return findGenericItem(books, identifier, ['author_name', 'publisher']);
-}
-
-export function findBlog<T extends Record<string, any>>(blogs: T[], identifier: string | null): T | null {
-  return findGenericItem(blogs, identifier, ['author_name', 'category']);
-}
-
-export function findWriter<T extends Record<string, any>>(writers: T[], identifier: string | null): T | null {
-  return findGenericItem(writers, identifier, ['author_id', 'pen_name']);
-}
-
-export function findLokgeet<T extends Record<string, any>>(lokgeet: T[], identifier: string | null): T | null {
-  return findGenericItem(lokgeet, identifier, ['song_title_pawari', 'category']);
-}
-
-export function findPaheli<T extends Record<string, any>>(paheli: T[], identifier: string | null): T | null {
-  return findGenericItem(paheli, identifier, ['riddle_pawari', 'answer_hindi']);
-}
-
-export function findShabdkosh<T extends Record<string, any>>(shabdkosh: T[], identifier: string | null): T | null {
-  return findGenericItem(shabdkosh, identifier, ['word_pawari', 'meaning_hindi']);
+  // 5. Prefix search on ID or slug for long queries (>= 8 chars)
+  if (cleanId.length >= 8) {
+    found = articles.find(a => 
+      (a.id && a.id.toLowerCase().startsWith(cleanId)) ||
+      (a.slug && a.slug.toLowerCase().startsWith(cleanId))
+    );
+  }
+  return found || null;
 }
 
 export function ensureUniqueSlug(

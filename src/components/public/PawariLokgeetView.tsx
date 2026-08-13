@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useCms } from '../../lib/CmsContext';
-import { findLokgeet } from '../../lib/slugUtils';
 import { PawariLokgeetItem } from '../../types';
 import { SafeImage } from '../common/SafeImage';
 import { 
@@ -32,7 +31,7 @@ export const PawariLokgeetView: React.FC = () => {
     setActiveView 
   } = useCms();
 
-  const approvedLokgeet = (lokgeetList || []).filter(l => l.status === 'approved' || l.status === 'published' || l.status === 'active' || (!l.status && !l.id.startsWith('contrib_')));
+  const approvedLokgeet = (lokgeetList || []).filter(l => l.status === 'approved' || l.status === 'published' || (!l.status && !l.id.startsWith('contrib_')));
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -60,7 +59,11 @@ export const PawariLokgeetView: React.FC = () => {
         if (pathname.startsWith('/lokgeet/')) {
           const slugOrId = pathname.replace('/lokgeet/', '').trim();
           if (slugOrId) {
-            const found = findLokgeet(approvedLokgeet, slugOrId);
+            const found = approvedLokgeet.find(l => 
+              l.id.toLowerCase() === slugOrId || 
+              (l.slug && l.slug.toLowerCase() === slugOrId) ||
+              l.id.toLowerCase() === `lokgeet-${slugOrId}`
+            );
             if (found) {
               setSelectedItem(found);
               return;
