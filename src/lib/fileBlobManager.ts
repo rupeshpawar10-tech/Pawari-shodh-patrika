@@ -16,32 +16,23 @@ function openBlobDB(): Promise<IDBDatabase> {
     if (typeof window === 'undefined' || !window.indexedDB) {
       return reject(new Error('IndexedDB unavailable in current environment'));
     }
-    if (document.visibilityState === 'hidden') {
-      return reject(new Error('Document is hidden/closing'));
-    }
-    try {
-      const request = window.indexedDB.open(DB_NAME, 1);
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME);
-        }
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    } catch (err) {
-      reject(err);
-    }
+    const request = window.indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
   });
 }
 
 // Save Blob to IndexedDB
 export async function saveFileToIndexedDB(fileId: string, blob: Blob): Promise<void> {
   if (!fileId || !blob) return;
-  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-  let idb: IDBDatabase | null = null;
   try {
-    idb = await openBlobDB();
+    const idb = await openBlobDB();
     const tx = idb.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).put(blob, fileId);
     await new Promise((res, rej) => {
@@ -50,33 +41,22 @@ export async function saveFileToIndexedDB(fileId: string, blob: Blob): Promise<v
     });
   } catch (e) {
     console.warn('[FileBlobManager] IndexedDB save warning:', e);
-  } finally {
-    if (idb) {
-      try { idb.close(); } catch (_) {}
-    }
   }
 }
 
 // Retrieve Blob from IndexedDB
 export async function getFileFromIndexedDB(fileId: string): Promise<Blob | null> {
   if (!fileId) return null;
-  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return null;
-  let idb: IDBDatabase | null = null;
   try {
-    idb = await openBlobDB();
+    const idb = await openBlobDB();
     const tx = idb.transaction(STORE_NAME, 'readonly');
     const req = tx.objectStore(STORE_NAME).get(fileId);
-    const result = await new Promise<Blob | null>((res, rej) => {
+    return await new Promise((res, rej) => {
       req.onsuccess = () => res((req.result as Blob) || null);
       req.onerror = () => rej(req.error);
     });
-    return result;
   } catch (e) {
     return null;
-  } finally {
-    if (idb) {
-      try { idb.close(); } catch (_) {}
-    }
   }
 }
 
@@ -91,16 +71,9 @@ export function base64ToBlob(base64Data: string, contentType = 'application/pdf'
       const parts = base64Data.split(';base64,');
       type = parts[0].replace('data:', '') || contentType;
       cleanBase64 = parts[1];
-    } else if (base64Data.startsWith('http://') || base64Data.startsWith('https://') || base64Data.startsWith('/') || base64Data.startsWith('blob:')) {
-      return null;
     }
 
-    const trimmed = cleanBase64.trim().replace(/[\r\n\s]/g, '');
-    if (!trimmed || trimmed.length < 4 || !/^[A-Za-z0-9+/]*={0,2}$/.test(trimmed)) {
-      return null;
-    }
-
-    const binaryString = atob(trimmed);
+    const binaryString = atob(cleanBase64.trim().replace(/[\r\n\s]/g, ''));
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
@@ -108,6 +81,7 @@ export function base64ToBlob(base64Data: string, contentType = 'application/pdf'
     }
     return new Blob([bytes], { type });
   } catch (err) {
+    console.error('[FileBlobManager] Failed base64ToBlob:', err);
     return null;
   }
 }

@@ -22,19 +22,14 @@ export const CurrentIssueView: React.FC = () => {
 
   const currentIssue = issues.find(i => i.status === 'current') || issues[0];
 
-  const allPublished = articles.filter(a => a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted');
-
   const issueArticles = currentIssue 
-    ? articles.filter(a => Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number) && (a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted'))
-    : allPublished;
-
-  const displayArticles = issueArticles.length > 0 ? issueArticles : allPublished;
+    ? articles.filter(a => a.volume === currentIssue.volume && a.issue === currentIssue.issue_number && a.status === 'published')
+    : [];
 
   const handleArticleClick = (artId: string) => {
-    const art = articles.find(a => a.id === artId || a.slug === artId);
-    const targetId = art?.id || artId;
-    incrementArticleViews(targetId);
-    setActiveView('article_detail', art?.slug || targetId);
+    setSelectedArticleId(artId);
+    incrementArticleViews(artId);
+    setActiveView('article_detail');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -67,11 +62,7 @@ export const CurrentIssueView: React.FC = () => {
         <div className="w-28 sm:w-52 aspect-3/4 mx-auto md:mx-0 rounded-xl overflow-hidden border-2 border-amber-400/50 shadow-xl flex-shrink-0 bg-black">
           <SafeImage 
             src={currentIssue.cover_image_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80'} 
-            alt="Current Journal Issue Cover"
-            loading="eager"
-            fetchPriority="high"
-            width={208}
-            height={277}
+            alt="Current Issue Cover"
             className="w-full h-full object-cover" 
           />
         </div>
@@ -112,12 +103,12 @@ export const CurrentIssueView: React.FC = () => {
             {lang === 'hi' ? 'अनुक्रमणिका एवं शोध पत्र सूची (Table of Contents)' : 'Table of Contents & Research Articles'}
           </h2>
           <span className="text-xs font-mono font-semibold bg-amber-100 text-amber-900 px-3 py-1 rounded-full">
-            {displayArticles.length} {lang === 'hi' ? 'शोध पत्र' : 'Papers'}
+            {issueArticles.length} {lang === 'hi' ? 'शोध पत्र' : 'Papers'}
           </span>
         </div>
 
         <div className="space-y-4">
-          {displayArticles.map((art, idx) => (
+          {issueArticles.map((art, idx) => (
             <div 
               key={art.id}
               onClick={() => handleArticleClick(art.id)}
@@ -169,24 +160,20 @@ export const CurrentIssueView: React.FC = () => {
                   <Share2 className="w-4 h-4 text-emerald-200" />
                   <span>{lang === 'hi' ? 'शेयर' : 'Share'}</span>
                 </button>
-                {art.pdf_url && art.pdf_url.trim() !== '' && art.pdf_url !== '#' && !art.pdf_url.includes('undefined') && (
-                  <>
-                    <button
-                      onClick={(e) => handlePdfView(e, art)}
-                      className="px-3 py-2 bg-slate-100 hover:bg-red-900 hover:text-white text-slate-800 text-xs font-bold rounded-lg border border-slate-300 transition flex items-center space-x-1.5"
-                    >
-                      <Eye className="w-4 h-4" />
-                      <span>View PDF</span>
-                    </button>
-                    <button
-                      onClick={(e) => handlePdfDownload(e, art.id, art.pdf_url || '')}
-                      className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-red-950 text-xs font-bold rounded-lg transition flex items-center space-x-1.5"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Download</span>
-                    </button>
-                  </>
-                )}
+                <button
+                  onClick={(e) => handlePdfView(e, art)}
+                  className="px-3 py-2 bg-slate-100 hover:bg-red-900 hover:text-white text-slate-800 text-xs font-bold rounded-lg border border-slate-300 transition flex items-center space-x-1.5"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>View PDF</span>
+                </button>
+                <button
+                  onClick={(e) => handlePdfDownload(e, art.id, art.pdf_url || '')}
+                  className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-red-950 text-xs font-bold rounded-lg transition flex items-center space-x-1.5"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download</span>
+                </button>
               </div>
             </div>
           ))}

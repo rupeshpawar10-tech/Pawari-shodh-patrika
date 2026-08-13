@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Article } from '../../types';
 import { 
   X, 
   Copy, 
   Check, 
   Share2, 
-  CheckCircle2
+  ExternalLink, 
+  BookOpen, 
+  Award, 
+  CheckCircle2,
+  Send,
+  MessageCircle
 } from 'lucide-react';
 
 interface SharePaperModalProps {
@@ -31,17 +36,6 @@ export const SharePaperModal: React.FC<SharePaperModalProps> = ({
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedNotice, setCopiedNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   if (!isOpen || !article) return null;
 
@@ -112,13 +106,7 @@ export const SharePaperModal: React.FC<SharePaperModalProps> = ({
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="share-paper-modal-title"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
         className="bg-white border border-amber-900/20 rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden flex flex-col max-h-[90vh]"
         onClick={e => e.stopPropagation()}
@@ -130,7 +118,7 @@ export const SharePaperModal: React.FC<SharePaperModalProps> = ({
               <Share2 className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <h3 id="share-paper-modal-title" className="font-serif font-bold text-sm sm:text-base text-amber-100">
+              <h3 className="font-serif font-bold text-sm sm:text-base text-amber-100">
                 {lang === 'hi' ? 'शोध पत्र शेयर करें (Share Research Paper)' : 'Share Research Paper'}
               </h3>
               <p className="text-[11px] text-amber-300/80">
@@ -139,9 +127,7 @@ export const SharePaperModal: React.FC<SharePaperModalProps> = ({
             </div>
           </div>
           <button
-            type="button"
             onClick={onClose}
-            aria-label="Close dialog"
             className="p-1.5 text-amber-200/70 hover:text-amber-100 hover:bg-white/10 rounded-full transition"
           >
             <X className="w-5 h-5" />

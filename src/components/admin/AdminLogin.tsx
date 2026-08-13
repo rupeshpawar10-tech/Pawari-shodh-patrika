@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../lib/AuthContext';
+import { useAuth, AUTHORIZED_SUPER_ADMIN_EMAIL } from '../../lib/AuthContext';
 import { useCms } from '../../lib/CmsContext';
-import { ShieldCheck, ArrowLeft, ShieldAlert, Mail, Lock, LogIn, Globe } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, ShieldAlert, Mail, Lock, LogIn } from 'lucide-react';
 
 export const AdminLogin: React.FC = () => {
   const { googleLogin, login } = useAuth();
@@ -10,18 +10,13 @@ export const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'email' | 'google'>('email');
 
   const handleEmailPasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Please enter both email address and password.');
-      return;
-    }
+    if (!email || !password) return;
     setError(null);
-    setUnauthorizedDomain(null);
     setLoading(true);
     try {
       await login(email, password);
@@ -40,19 +35,15 @@ export const AdminLogin: React.FC = () => {
 
   const handleGoogleSignIn = async () => {
     setError(null);
-    setUnauthorizedDomain(null);
     setLoading(true);
     try {
       await googleLogin();
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
+      const code = err?.code || 'auth/unauthorized';
       const msg = err?.message || 'Google sign-in failed.';
       
-      if (msg.startsWith('AUTH_UNAUTHORIZED_DOMAIN:')) {
-        const domain = msg.split(':')[1] || (typeof window !== 'undefined' ? window.location.hostname : 'domain');
-        setUnauthorizedDomain(domain);
-        setError(`Domain Authorization Notice: "${domain}" is not listed under Firebase Authentication Authorized Domains.`);
-      } else if (msg.includes('Unauthorized account') || err?.code === 'auth/unauthorized') {
+      if (msg.includes('Unauthorized admin account') || code === 'auth/unauthorized') {
         setError(`Unauthorized account. Access is allowed ONLY for registered CMS staff.`);
       } else {
         setError(msg);
@@ -80,33 +71,12 @@ export const AdminLogin: React.FC = () => {
             </p>
           </div>
           <p className="text-sm text-slate-600 font-medium leading-relaxed pt-1">
-            Sign in with your Email &amp; Password or Google account to access your assigned dashboard.
+            Sign in with your CMS credentials or Google account to access your assigned dashboard.
           </p>
         </div>
 
-        {/* Unauthorized Domain Specific Banner */}
-        {unauthorizedDomain && (
-          <div className="p-4 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-2.5 animate-in slide-in-from-top-1">
-            <div className="font-bold text-amber-950 flex items-center space-x-1.5 text-sm">
-              <Globe className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Firebase Domain Authorization Notice</span>
-            </div>
-            <p className="text-slate-700 leading-relaxed">
-              The domain <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-amber-950">{unauthorizedDomain}</code> is not added to Firebase Authentication Authorized Domains.
-            </p>
-            <div className="p-2.5 bg-white border border-amber-200 rounded-lg text-slate-600 space-y-1 text-[11px] font-medium">
-              <p className="font-bold text-slate-800">To authorize this domain in Firebase Console:</p>
-              <ol className="list-decimal list-inside space-y-0.5 text-slate-600">
-                <li>Go to <strong>Firebase Console &gt; Authentication &gt; Settings</strong></li>
-                <li>Scroll to <strong>Authorized domains</strong></li>
-                <li>Add <code className="font-mono text-slate-900 font-bold">{unauthorizedDomain}</code>, <code className="font-mono text-slate-900 font-bold">pawari-shodh-patrika.vercel.app</code>, &amp; <code className="font-mono text-slate-900 font-bold">localhost</code></li>
-              </ol>
-            </div>
-          </div>
-        )}
-
-        {/* Standard Error Message */}
-        {error && !unauthorizedDomain && (
+        {/* Unauthorized / Error Message (Only shown when error occurs) */}
+        {error && (
           <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-900 font-medium space-y-1 animate-in slide-in-from-top-1">
             <div className="font-bold flex items-center space-x-1.5 text-red-950">
               <ShieldAlert className="w-4 h-4 text-red-600 shrink-0" />
@@ -120,17 +90,17 @@ export const AdminLogin: React.FC = () => {
         <div className="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
           <button
             type="button"
-            onClick={() => { setMode('email'); setUnauthorizedDomain(null); setError(null); }}
+            onClick={() => setMode('email')}
             className={`py-2 rounded-lg transition ${mode === 'email' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
           >
             Email & Password
           </button>
           <button
             type="button"
-            onClick={() => { setMode('google'); setUnauthorizedDomain(null); setError(null); }}
+            onClick={() => setMode('google')}
             className={`py-2 rounded-lg transition ${mode === 'google' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
           >
-            Google Sign-In (Gmail)
+            Google Sign-In
           </button>
         </div>
 
@@ -139,13 +109,12 @@ export const AdminLogin: React.FC = () => {
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1">
                 <Mail className="w-3.5 h-3.5 text-slate-500" />
-                <span>User Email Address</span>
+                <span>Email Address</span>
               </label>
               <input
                 type="email"
                 required
-                aria-label="Email Address"
-                placeholder="staff@pawarijournal.org"
+                placeholder="editor@pawari.org"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-amber-500 focus:bg-white"
@@ -160,7 +129,6 @@ export const AdminLogin: React.FC = () => {
               <input
                 type="password"
                 required
-                aria-label="Password"
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -174,7 +142,7 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3 px-4 bg-red-950 hover:bg-red-900 text-amber-100 font-bold rounded-xl transition shadow-xs flex items-center justify-center space-x-2 text-xs focus:ring-2 focus:ring-amber-500 active:scale-[0.99]"
             >
               <LogIn className="w-4 h-4" />
-              <span>{loading ? 'Authenticating...' : 'Sign In with Email & Password'}</span>
+              <span>{loading ? 'Signing in...' : 'Sign In with Email'}</span>
             </button>
           </form>
         ) : (
@@ -191,11 +159,8 @@ export const AdminLogin: React.FC = () => {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
-              <span>{loading ? 'Authenticating...' : 'Sign In with Gmail (Google)'}</span>
+              <span>{loading ? 'Authenticating...' : 'Continue with Google'}</span>
             </button>
-            <p className="text-[11px] text-slate-500 text-center leading-relaxed">
-              Super Admin &amp; authorized Gmail accounts can log in using Google OAuth.
-            </p>
           </div>
         )}
 

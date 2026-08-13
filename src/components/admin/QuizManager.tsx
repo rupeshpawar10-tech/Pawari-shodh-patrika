@@ -131,18 +131,18 @@ export const QuizManager: React.FC = () => {
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {['all', 'shabdkosh', 'paheli', 'lokgeet', 'writers', 'articles', 'books'].map(sec => (
+        <div className="flex items-center gap-2">
+          {['all', 'shabdkosh', 'paheli', 'lokgeet'].map(sec => (
             <button
               key={sec}
               onClick={() => setSelectedSection(sec)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-colors ${
                 selectedSection === sec 
                   ? 'bg-amber-500 text-amber-950 font-bold' 
                   : 'bg-slate-800 text-amber-200 hover:bg-slate-700'
               }`}
             >
-              {sec === 'all' ? 'सभी वर्ग' : sec === 'shabdkosh' ? 'शब्दकोश' : sec === 'paheli' ? 'पहेली' : sec === 'lokgeet' ? 'लोकगीत' : sec === 'writers' ? 'साहित्यकार/लेखक' : sec === 'articles' ? 'शोध पत्र' : 'पुस्तकें'}
+              {sec === 'all' ? 'सभी वर्ग' : sec === 'shabdkosh' ? 'शब्दकोश' : sec === 'paheli' ? 'पहेली' : 'लोकगीत'}
             </button>
           ))}
         </div>
@@ -283,9 +283,6 @@ export const QuizManager: React.FC = () => {
                   <option value="shabdkosh">शब्दकोश (Shabdkosh)</option>
                   <option value="paheli">पहेली (Paheli)</option>
                   <option value="lokgeet">लोकगीत (Lokgeet)</option>
-                  <option value="writers">साहित्यकार एवं लेखक (Writers & Authors)</option>
-                  <option value="articles">शोध पत्र एवं आलेख (Research Papers)</option>
-                  <option value="books">ग्रन्थ एवं पुस्तकें (Books)</option>
                 </select>
               </div>
 

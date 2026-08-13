@@ -42,40 +42,40 @@ export const Footer: React.FC = () => {
 
           </div>
 
-          {/* Col 2: Digitalization & Cultural Links */}
+          {/* Col 2: Navigation Links */}
           <div>
             <h4 className="text-sm font-serif font-semibold text-amber-300 uppercase tracking-wider mb-4 border-b border-amber-500/30 pb-1.5 inline-block">
-              {lang === 'hi' ? 'डिजिटल साहित्य व लोक संस्कृति' : 'Digital Literature & Culture'}
+              {lang === 'hi' ? 'महत्वपूर्ण लिंक' : 'Quick Navigation'}
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href={getUrlForView('books_blogs')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('books_blogs'); } }} className="hover:text-amber-300 transition block font-medium">
-                  {lang === 'hi' ? '📚 पुस्तकें एवं साहित्य कोष' : 'Books & Literature'}
+                <a href={getUrlForView('home')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('home'); } }} className="hover:text-amber-300 transition block">
+                  {lang === 'hi' ? 'मुख्य पृष्ठ' : 'Home'}
                 </a>
               </li>
               <li>
-                <a href={getUrlForView('pawari_writers')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('pawari_writers'); } }} className="hover:text-amber-300 transition block font-medium">
-                  {lang === 'hi' ? '✍️ लेखक एवं साहित्यकार' : 'Writers & Authors'}
+                <a href={getUrlForView('about')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('about'); } }} className="hover:text-amber-300 transition block">
+                  {lang === 'hi' ? 'पत्रिका परिचय' : 'About Journal'}
                 </a>
               </li>
               <li>
-                <a href={getUrlForView('pawari_shabdkosh')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('pawari_shabdkosh'); } }} className="hover:text-amber-300 transition block font-medium">
-                  {lang === 'hi' ? '📖 पवारी शब्दकोश (Shabdkosh)' : 'Pawari Dictionary'}
+                <a href={getUrlForView('current_issue')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('current_issue'); } }} className="hover:text-amber-300 transition block">
+                  {lang === 'hi' ? 'वर्तमान अंक' : 'Current Issue'}
                 </a>
               </li>
               <li>
-                <a href={getUrlForView('pawari_paheli')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('pawari_paheli'); } }} className="hover:text-amber-300 transition block font-medium">
-                  {lang === 'hi' ? '🧩 पवारी पहेलियाँ (Paheli)' : 'Pawari Riddles'}
+                <a href={getUrlForView('archive')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('archive'); } }} className="hover:text-amber-300 transition block">
+                  {lang === 'hi' ? 'पुराने अंक (संग्रह)' : 'Archived Issues'}
                 </a>
               </li>
               <li>
-                <a href={getUrlForView('pawari_lokgeet')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('pawari_lokgeet'); } }} className="hover:text-amber-300 transition block font-medium">
-                  {lang === 'hi' ? '🎵 पवारी लोकगीत' : 'Pawari Folk Songs'}
+                <a href={getUrlForView('articles')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('articles'); } }} className="hover:text-amber-300 transition block">
+                  {lang === 'hi' ? 'शोध पत्र सूची' : 'Articles Index'}
                 </a>
               </li>
               <li>
-                <a href={getUrlForView('pawari_quiz')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('pawari_quiz'); } }} className="hover:text-amber-300 transition block font-medium">
-                  {lang === 'hi' ? '🏆 पवारी संस्कृति प्रश्नोत्तरी' : 'Cultural Quiz'}
+                <a href={getUrlForView('author_guidelines')} onClick={(e) => { if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); handleNav('author_guidelines'); } }} className="hover:text-amber-300 transition block">
+                  {lang === 'hi' ? 'लेखक निर्देश' : 'Author Guidelines'}
                 </a>
               </li>
             </ul>
@@ -146,8 +146,6 @@ export const Footer: React.FC = () => {
           </div>
 
         </div>
-
-
 
         {/* Bottom copyright line */}
         <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-amber-200/70 gap-3 pt-4 border-t border-amber-500/10">

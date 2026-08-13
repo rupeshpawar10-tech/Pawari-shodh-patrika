@@ -138,19 +138,13 @@ export const ManuscriptReviewModal: React.FC<ManuscriptReviewModalProps> = ({
     setSaving(true);
     setPublishSuccessMessage(null);
     try {
-      // Reuse existing converted_article_id if already present to prevent duplicate article creation
-      const existingArt = sub.converted_article_id 
-        ? articles.find(a => a.id === sub.converted_article_id)
-        : null;
-      
-      const articleId = existingArt ? existingArt.id : (sub.converted_article_id || ('art_sub_' + Date.now()));
+      const articleId = 'art_sub_' + Date.now();
       
       const newArticle: Article = {
-        ...(existingArt || {}),
         id: articleId,
         title_hindi: sub.title_hindi || sub.title,
         title_english: sub.title,
-        slug: existingArt?.slug || ('paper-' + Date.now()),
+        slug: 'paper-' + Date.now(),
         authors: [{
           name: sub.author_name,
           email: sub.email,
@@ -160,16 +154,16 @@ export const ManuscriptReviewModal: React.FC<ManuscriptReviewModalProps> = ({
         abstract_hindi: sub.abstract_hindi || sub.abstract || '',
         abstract_english: sub.abstract || '',
         keywords: ['पवारी शोध', 'Peer-Reviewed', sub.category || 'Linguistics'],
-        doi: existingArt?.doi || `10.5281/zenodo.psp.2026.${Math.floor(1000 + Math.random() * 9000)}`,
-        pdf_url: sub.file_url || existingArt?.pdf_url || '',
+        doi: `10.5281/zenodo.psp.2026.${Math.floor(1000 + Math.random() * 9000)}`,
+        pdf_url: sub.file_url || '',
         volume: targetVolume,
         issue: targetIssue,
         year: targetYear,
         category: sub.category || 'Pawari Linguistics & Literature',
         language: 'Hindi',
         status: 'published',
-        page_numbers: existingArt?.page_numbers || '01–12',
-        created_at: existingArt?.created_at || new Date().toISOString().split('T')[0],
+        page_numbers: '01–12',
+        created_at: new Date().toISOString().split('T')[0],
         updated_at: new Date().toISOString().split('T')[0]
       };
 
@@ -183,7 +177,7 @@ export const ManuscriptReviewModal: React.FC<ManuscriptReviewModalProps> = ({
 
       await saveSubmission(updatedSub);
       setSub(updatedSub);
-      setPublishSuccessMessage(`Paper successfully ${existingArt ? 'updated and saved' : 'converted and published'} as Article ID: ${articleId}!`);
+      setPublishSuccessMessage(`Paper successfully converted and published as Article ID: ${articleId}!`);
     } catch (err) {
       console.error('Failed to publish submission as article:', err);
     } finally {

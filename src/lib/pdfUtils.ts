@@ -20,14 +20,8 @@ export function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer | null {
     let base64 = dataUrl;
     if (dataUrl.includes(';base64,')) {
       base64 = dataUrl.split(';base64,')[1];
-    } else if (dataUrl.startsWith('http://') || dataUrl.startsWith('https://') || dataUrl.startsWith('/') || dataUrl.startsWith('blob:')) {
-      return null;
     }
-    const trimmed = base64.trim().replace(/[\r\n\s]/g, '');
-    if (!trimmed || trimmed.length < 4 || !/^[A-Za-z0-9+/]*={0,2}$/.test(trimmed)) {
-      return null;
-    }
-    const binaryString = atob(trimmed);
+    const binaryString = atob(base64.trim().replace(/[\r\n\s]/g, ''));
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
@@ -35,6 +29,7 @@ export function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer | null {
     }
     return bytes.buffer;
   } catch (err) {
+    console.error('Failed to convert base64 to ArrayBuffer:', err);
     return null;
   }
 }
@@ -84,57 +79,25 @@ export function getEmbeddablePdfUrl(rawUrl: string): { displayUrl: string; isBlo
 export async function downloadPdf(rawUrl: string, fileName = 'article.pdf') {
   if (!rawUrl) return;
 
-  try {
-    const resolved = await resolvePdfSource(rawUrl);
-    const cleanFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+  const resolved = await resolvePdfSource(rawUrl);
+  const cleanFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
 
-    let downloadUrl = resolved;
-    let tempBlobUrl = '';
-
-    if (resolved.startsWith('data:')) {
-      const blob = dataUrlToBlob(resolved);
-      if (blob) {
-        tempBlobUrl = URL.createObjectURL(blob);
-        downloadUrl = tempBlobUrl;
-      }
-    }
-
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = cleanFileName;
-    a.target = '_blank';
-    a.rel = 'noreferrer';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    if (tempBlobUrl) {
-      setTimeout(() => URL.revokeObjectURL(tempBlobUrl), 15000);
-    }
-  } catch (err) {
-    console.error('downloadPdf error:', err);
-  }
+  const a = document.createElement('a');
+  a.href = resolved;
+  a.download = cleanFileName;
+  a.target = '_blank';
+  a.rel = 'noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
-// Opens PDF in a new tab safely using Blob URL to prevent Chrome data: URL top frame navigation blocking
+// Opens PDF in a new tab safely
 export async function openPdfInNewTab(rawUrl: string) {
   if (!rawUrl) return;
 
-  try {
-    const resolved = await resolvePdfSource(rawUrl);
-    if (resolved.startsWith('data:')) {
-      const blob = dataUrlToBlob(resolved);
-      if (blob) {
-        const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
-        return;
-      }
-    }
-    window.open(resolved, '_blank');
-  } catch (err) {
-    console.error('openPdfInNewTab error:', err);
-  }
+  const resolved = await resolvePdfSource(rawUrl);
+  window.open(resolved, '_blank');
 }
 
 /**

@@ -1,28 +1,16 @@
 import React from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { SafeImage } from '../common/SafeImage';
-import { DEFAULT_PAWARI_MEMBER_AVATAR } from '../../data/seedData';
 import { Mail, Award, BookOpen, GraduationCap, Building, ExternalLink, ShieldCheck, Globe, Sparkles } from 'lucide-react';
 
 export const EditorialBoardView: React.FC = () => {
   const { lang, editorialMembers } = useCms();
 
-  const sortedMembers = [...(editorialMembers || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+  const sortedMembers = [...editorialMembers].sort((a, b) => a.order - b.order);
 
-  const getRoleStr = (m: typeof editorialMembers[0]) => (m.role || m.designation_english || m.designation_hindi || '').toLowerCase();
-
-  // Grouping by Role safely
-  const chiefEditors = sortedMembers.filter(m => {
-    const r = getRoleStr(m);
-    return r.includes('chief') || r.includes('patron') || r.includes('director') || r.includes('संरक्षक') || r.includes('संस्थापक') || r.includes('अध्यक्ष') || r.includes('निदेशक');
-  });
-
-  const associateEditors = sortedMembers.filter(m => {
-    if (chiefEditors.includes(m)) return false;
-    const r = getRoleStr(m);
-    return r.includes('associate') || r.includes('managing') || r.includes('executive') || r.includes('co-editor') || r.includes('editor') || r.includes('संपादक');
-  });
-
+  // Grouping by Role for academic structure
+  const chiefEditors = sortedMembers.filter(m => m.role.toLowerCase().includes('chief') || m.role.toLowerCase().includes('patron') || m.role.toLowerCase().includes('director'));
+  const associateEditors = sortedMembers.filter(m => m.role.toLowerCase().includes('associate') || m.role.toLowerCase().includes('managing') || m.role.toLowerCase().includes('editor'));
   const advisoryBoard = sortedMembers.filter(m => !chiefEditors.includes(m) && !associateEditors.includes(m));
 
   const renderMemberCard = (member: typeof editorialMembers[0]) => (
@@ -35,14 +23,10 @@ export const EditorialBoardView: React.FC = () => {
         <div className="flex items-start space-x-3 sm:space-x-4">
           <div className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-amber-500/40 shadow-md flex-shrink-0 bg-slate-100 group-hover:scale-105 transition transform duration-200">
             <SafeImage 
-              src={member.photo_url || DEFAULT_PAWARI_MEMBER_AVATAR} 
-              alt={member.name_english || member.name_hindi || 'Editorial Board Member'} 
-              loading="lazy"
-              decoding="async"
-              width={80}
-              height={80}
+              src={member.photo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'} 
+              alt={member.name_english} 
               className="w-full h-full object-cover"
-              fallbackSrc={DEFAULT_PAWARI_MEMBER_AVATAR}
+              fallbackSrc="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
             />
           </div>
 
@@ -76,26 +60,19 @@ export const EditorialBoardView: React.FC = () => {
           )}
         </div>
 
-        {/* Research Expertise & Subject Areas Tags */}
-        {((member.research_areas && member.research_areas.length > 0) || (member.subject_areas && member.subject_areas.length > 0)) && (
+        {/* Research Expertise Tags */}
+        {member.research_areas && member.research_areas.length > 0 && (
           <div className="pt-2">
-            <span className="text-[10px] font-mono font-bold text-amber-900 uppercase tracking-wider block mb-1">
-              {lang === 'hi' ? 'शोध क्षेत्र एवं विषय (Research Interests & Subject Areas):' : 'Research Interests & Subject Areas:'}
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              {lang === 'hi' ? 'विशेषज्ञता क्षेत्र (Research Domains):' : 'Areas of Expertise:'}
             </span>
             <div className="flex flex-wrap gap-1">
-              {[...(member.research_areas || []), ...(member.subject_areas || [])].map((area, i) => (
-                <span key={i} className="text-[10px] bg-amber-50 text-amber-950 px-2.5 py-0.5 rounded-md font-medium border border-amber-200/80 shadow-2xs">
+              {member.research_areas.map((area, i) => (
+                <span key={i} className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-mono border border-slate-200">
                   {area}
                 </span>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Member Bio / Profile Summary */}
-        {(lang === 'hi' ? (member.bio_hindi || member.bio_english) : (member.bio_english || member.bio_hindi)) && (
-          <div className="pt-2 text-xs text-slate-600 italic leading-relaxed bg-amber-50/40 p-3 rounded-xl border border-amber-200/60">
-            "{lang === 'hi' ? (member.bio_hindi || member.bio_english) : (member.bio_english || member.bio_hindi)}"
           </div>
         )}
 

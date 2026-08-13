@@ -29,8 +29,6 @@ export const PublicContributionsManager: React.FC = () => {
     lokgeetList, 
     blogs, 
     books, 
-    writers,
-    quizQuestions,
     submissions,
     updateContributionStatus, 
     saveShabdkosh,
@@ -43,13 +41,11 @@ export const PublicContributionsManager: React.FC = () => {
     deleteBlog,
     saveBook,
     deleteBook,
-    deleteWriter,
-    deleteQuizQuestion,
     saveSubmission,
     deleteSubmission
   } = useCms();
 
-  type TabType = 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'writers' | 'cultural_quizzes' | 'submissions';
+  type TabType = 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'submissions';
 
   const [activeTab, setActiveTab] = useState<TabType>('shabdkosh');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -66,8 +62,6 @@ export const PublicContributionsManager: React.FC = () => {
     lokgeet: lokgeetList.filter(i => i.status === 'pending').length,
     blogs: blogs.filter(b => b.status === 'pending').length,
     books: books.filter(b => b.status === 'pending').length,
-    writers: writers.filter(w => w.status === 'pending').length,
-    cultural_quizzes: quizQuestions.filter(q => q.status === 'pending').length,
     submissions: submissions.filter(s => s.status === 'pending').length
   };
 
@@ -80,8 +74,6 @@ export const PublicContributionsManager: React.FC = () => {
     if (activeTab === 'lokgeet') return lokgeetList;
     if (activeTab === 'blogs') return blogs;
     if (activeTab === 'books') return books;
-    if (activeTab === 'writers') return writers.map(w => ({ ...w, title_hindi: w.name_hindi, contributor_name: w.name_hindi }));
-    if (activeTab === 'cultural_quizzes') return quizQuestions.map(q => ({ ...q, title_hindi: q.question_pawari || q.question_hindi, contributor_name: 'क्विज़ प्रश्न' }));
     return submissions.map(s => ({
       ...s,
       title_pawari: s.title_hindi || s.title,
@@ -107,11 +99,6 @@ export const PublicContributionsManager: React.FC = () => {
 
   const handleStatusChange = async (id: string, status: 'approved' | 'pending' | 'rejected') => {
     await updateContributionStatus(activeTab, id, status);
-    if (status === 'approved') {
-      alert('प्रविष्टि सफलतापूर्वक स्वीकृत कर दी गई है और सार्वजनिक (Public) दृष्टिकोण पर लाइव हो गई है!');
-    } else if (status === 'rejected') {
-      alert('प्रविष्टि अस्वीकृत कर दी गई है।');
-    }
   };
 
   const handleDelete = async (id: string) => {
@@ -121,8 +108,6 @@ export const PublicContributionsManager: React.FC = () => {
       else if (activeTab === 'lokgeet') await deleteLokgeet(id);
       else if (activeTab === 'blogs') await deleteBlog(id);
       else if (activeTab === 'books') await deleteBook(id);
-      else if (activeTab === 'writers') await deleteWriter(id);
-      else if (activeTab === 'cultural_quizzes') await deleteQuizQuestion(id);
       else if (activeTab === 'submissions') await deleteSubmission(id);
     }
   };
@@ -265,40 +250,6 @@ export const PublicContributionsManager: React.FC = () => {
           {pendingCount.books > 0 && (
             <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-black bg-amber-950 text-amber-300 border border-amber-700">
               {pendingCount.books}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('writers')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
-            activeTab === 'writers'
-              ? 'bg-amber-500 text-amber-950 shadow-lg scale-[1.02]'
-              : 'bg-slate-900 text-amber-200 hover:bg-slate-800 border border-amber-900/30'
-          }`}
-        >
-          <Users className="w-4 h-4 text-amber-300" />
-          <span>साहित्यकार प्रोफाइल ({writers.length})</span>
-          {pendingCount.writers > 0 && (
-            <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-black bg-amber-950 text-amber-300 border border-amber-700">
-              {pendingCount.writers}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('cultural_quizzes')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
-            activeTab === 'cultural_quizzes'
-              ? 'bg-amber-500 text-amber-950 shadow-lg scale-[1.02]'
-              : 'bg-slate-900 text-amber-200 hover:bg-slate-800 border border-amber-900/30'
-          }`}
-        >
-          <HelpCircle className="w-4 h-4 text-amber-300" />
-          <span>क्विज़ प्रश्न ({quizQuestions.length})</span>
-          {pendingCount.cultural_quizzes > 0 && (
-            <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-black bg-amber-950 text-amber-300 border border-amber-700">
-              {pendingCount.cultural_quizzes}
             </span>
           )}
         </button>

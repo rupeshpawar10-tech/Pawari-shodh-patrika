@@ -2,169 +2,117 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isSuperAdmin() {
-      return isSignedIn() && (
-        ('email' in request.auth.token && request.auth.token.email != null && request.auth.token.email.lower() == 'rupeshpawar10@gmail.com') ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'super_admin')
-      );
-    }
-
-    function isCmsStaff() {
-      return isSignedIn() && (
-        isSuperAdmin() ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') in [
-           'super_admin', 'director', 'editorial', 'editor', 'book_editor', 'blog_editor', 'other_manager'
-         ])
-      );
-    }
-
     // Settings collection
     match /settings/{settingId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // Pages collection
     match /pages/{pageId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // Homepage sections layout config
     match /homepage_sections/{sectionId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // Articles collection
     match /articles/{articleId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // Issues collection
     match /issues/{issueId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // Editorial Board collections
     match /editorial_board/{memberId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
     match /editorial_members/{memberId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // Announcements collection
     match /announcements/{announcementId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
-    // Contact Messages - Public create, CMS staff read/write
+    // Contact Messages
     match /contact_messages/{messageId} {
-      allow create: if true;
-      allow read, update, delete: if isCmsStaff();
+      allow read, write: if true;
     }
 
-    // Submissions / Reader Contributions - Public create, CMS staff read/write
+    // Submissions
     match /submissions/{submissionId} {
-      allow create: if true;
-      allow read, update, delete: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // Roles collection
     match /roles/{roleId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // Media Library
     match /media/{mediaId} {
-      allow read: if true;
-      allow write: if isCmsStaff();
+      allow read, write: if true;
     }
 
-    // Books collection
+    // Books & Blogs collections
     match /books/{bookId} {
       allow read, write: if true;
     }
 
-    // Blogs collection
     match /blogs/{blogId} {
       allow read, write: if true;
     }
 
-    // Pawari Writers / Authors collection
-    match /writers/{writerId} {
+    // Pawari Culture collections
+    match /shabdkosh/{shabdkoshId} {
       allow read, write: if true;
     }
 
-    // Shabdkosh dictionary collection
-    match /shabdkosh/{itemId} {
+    match /paheli/{paheliId} {
       allow read, write: if true;
     }
 
-    // Paheli riddles collection
-    match /paheli/{itemId} {
+    match /lokgeet/{lokgeetId} {
       allow read, write: if true;
     }
 
-    // Lokgeet folk songs collection
-    match /lokgeet/{itemId} {
+    match /quizzes/{quizId} {
       allow read, write: if true;
     }
 
-    // Cultural Quiz Questions collections
-    match /quizQuestions/{questionId} {
+    match /quiz_certificates/{certId} {
       allow read, write: if true;
     }
 
-    match /quiz_questions/{questionId} {
+    match /public_contributions/{contribId} {
       allow read, write: if true;
     }
 
-    // Quiz Leaderboard & Certificates
-    match /quiz_leaderboard/{entryId} {
-      allow read: if true;
-      allow create: if true;
-      allow update, delete: if isCmsStaff();
-    }
-
-    // Activity Logs
     match /activity_logs/{logId} {
-      allow read: if isCmsStaff();
-      allow create: if true;
-      allow update, delete: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // User Files collection (Base64 file storage in Firestore)
     match /user_files/{fileId} {
-      allow read: if true;
-      allow create: if true;
-      allow update, delete: if isCmsStaff();
+      allow read, write: if true;
     }
 
     // Users Collection (RBAC Profiles)
     match /users/{userId} {
-      allow read: if true;
-      allow create, update: if isSignedIn() && (request.auth.uid == userId || isCmsStaff());
-      allow delete: if isSuperAdmin();
+      allow read, write: if true;
+    }
+
+    // Catch-all rule for all other CMS collections
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
+

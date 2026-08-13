@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-// @ts-ignore
-import pdfWorkerRaw from 'pdfjs-dist/build/pdf.worker.min.mjs?raw';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -11,12 +9,7 @@ import {
   ExternalLink, 
   FileText, 
   Loader2, 
-  AlertCircle,
-  Printer,
-  BookOpen,
-  ShieldAlert,
-  RotateCw,
-  Eye
+  AlertCircle
 } from 'lucide-react';
 import { 
   dataUrlToArrayBuffer, 
@@ -26,19 +19,12 @@ import {
   resolvePdfSource 
 } from '../../lib/pdfUtils';
 
-// Configure pdfjs worker using a local Blob URL generated from raw bundled worker code.
-// This guarantees zero cross-origin issues, zero worker load failures, and zero Chrome security blocks!
-let globalWorkerBlobUrl = '';
+// Configure pdfjs worker
 try {
-  if (pdfWorkerRaw) {
-    const workerBlob = new Blob([pdfWorkerRaw], { type: 'text/javascript' });
-    globalWorkerBlobUrl = URL.createObjectURL(workerBlob);
-    pdfjsLib.GlobalWorkerOptions.workerSrc = globalWorkerBlobUrl;
-  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version || '4.10.38'}/build/pdf.worker.min.mjs`;
 } catch (e) {
-  console.warn('pdfjs local worker blob init note:', e);
+  console.warn('pdfjs worker init note:', e);
 }
-
 
 interface PdfCanvasViewerProps {
   url: string;
@@ -76,11 +62,8 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
     let createdBlobUrl = '';
 
     async function loadPdf() {
-      if (!url || url.trim() === '' || url === '#' || url.includes('undefined')) {
-        if (isMounted) {
-          setLoading(false);
-          setUseIframeFallback(true);
-        }
+      if (!url) {
+        if (isMounted) setLoading(false);
         return;
       }
 
@@ -88,18 +71,12 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
         const resolved = await resolvePdfSource(url);
         if (!isMounted) return;
 
-        if (!resolved || resolved.trim() === '' || resolved === '#') {
-          setUseIframeFallback(true);
-          setLoading(false);
-          return;
-        }
-
         setResolvedSource(resolved);
 
-        let pdfDataBuffer: Uint8Array | null = null;
+        let loadingTask: any;
 
-        // 1. Handle Base64 Data URL or raw base64 string
-        if (resolved.startsWith('data:') || (!resolved.startsWith('http') && !resolved.startsWith('blob:') && resolved.length > 100)) {
+        // Base64 Data URL or raw base64 string
+        if (resolved.startsWith('data:') || (!resolved.startsWith('http') && !resolved.startsWith('blob:') && resolved.length > 200)) {
           const arrayBuffer = dataUrlToArrayBuffer(resolved);
           const blob = dataUrlToBlob(resolved);
           
@@ -108,37 +85,15 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
             setBlobUrl(createdBlobUrl);
           }
 
-          if (arrayBuffer) {
-            pdfDataBuffer = new Uint8Array(arrayBuffer);
+          if (!arrayBuffer) {
+            throw new Error('Could not parse base64 file data');
           }
-        } 
-        // 2. Handle HTTP / HTTPS URL by converting to ArrayBuffer via fetch if possible
-        else if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
-          try {
-            const res = await fetch(resolved, { mode: 'cors' });
-            if (res.ok) {
-              const buffer = await res.arrayBuffer();
-              pdfDataBuffer = new Uint8Array(buffer);
-              const blob = new Blob([buffer], { type: 'application/pdf' });
-              createdBlobUrl = URL.createObjectURL(blob);
-              setBlobUrl(createdBlobUrl);
-            }
-          } catch (fetchErr) {
-            console.warn('[PdfCanvasViewer] Direct fetch failed, trying url directly:', fetchErr);
-          }
-        }
-
-        let loadingTask: any;
-
-        if (pdfDataBuffer) {
-          loadingTask = pdfjsLib.getDocument({ 
-            data: pdfDataBuffer,
-            cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/cmaps/',
-            cMapPacked: true
-          });
-        } else if (createdBlobUrl) {
-          loadingTask = pdfjsLib.getDocument({ url: createdBlobUrl });
+          loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
+        } else if (resolved.startsWith('blob:')) {
+          setBlobUrl(resolved);
+          loadingTask = pdfjsLib.getDocument({ url: resolved });
         } else {
+          // HTTP/HTTPS URL
           loadingTask = pdfjsLib.getDocument({ url: resolved });
         }
 
@@ -149,29 +104,10 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
         pdfDocRef.current = pdf;
         setNumPages(pdf.numPages);
         setLoading(false);
-        setUseIframeFallback(false);
       } catch (err: any) {
-        console.warn('[PdfCanvasViewer Load Warning]:', err?.message || err);
+        console.warn('[PdfCanvasViewer Load Warning] Falling back to embedded iframe viewer:', err?.message || err);
         if (isMounted) {
-          // If initial attempt failed, try fallback without worker or display fallback card
-          try {
-            const resolved = await resolvePdfSource(url);
-            const arrayBuffer = dataUrlToArrayBuffer(resolved);
-            if (arrayBuffer) {
-              const retryTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
-              const pdf = await retryTask.promise;
-              if (isMounted) {
-                pdfDocRef.current = pdf;
-                setNumPages(pdf.numPages);
-                setLoading(false);
-                setUseIframeFallback(false);
-                return;
-              }
-            }
-          } catch (retryErr) {
-            console.error('[PdfCanvasViewer Retry Exception]:', retryErr);
-          }
-
+          // Switch to embedded browser PDF iframe fallback smoothly
           setUseIframeFallback(true);
           setLoading(false);
         }
@@ -351,53 +287,11 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
         )}
 
         {!loading && useIframeFallback && (
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-700/80 rounded-2xl p-6 sm:p-8 text-center shadow-2xl space-y-6 my-auto animate-in fade-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto text-amber-400">
-              <BookOpen className="w-8 h-8" />
-            </div>
-
-            <div>
-              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold rounded-full">
-                पवारी शोध पत्रिका (Pawari Shodh Patrika)
-              </span>
-              <h3 className="text-lg sm:text-xl font-bold text-slate-100 mt-3 leading-snug">
-                {title}
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Peer-Reviewed Refereed Multidisciplinary Journal Document
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-950/80 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-2 text-left">
-              <div className="flex items-center space-x-2 text-amber-400 font-semibold">
-                <ShieldAlert className="w-4 h-4 flex-shrink-0" />
-                <span>PDF दस्तावेज़ सुरक्षित देखें (Document Access Ready)</span>
-              </div>
-              <p className="text-slate-400 leading-relaxed">
-                शोध पत्र की PDF फाइल पूरी तरह सुरक्षित और उपलब्ध है। आप इसे सीधे डाउनलोड कर सकते हैं या नई ब्राउज़र विंडो में पूर्ण रूप से खोल सकते हैं:
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleDownload}
-                className="w-full sm:w-auto flex items-center justify-center space-x-2 px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold rounded-xl transition shadow-lg hover:shadow-amber-600/20"
-              >
-                <Download className="w-4 h-4" />
-                <span>PDF डाउनलोड करें (Download PDF)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleOpenNewTab}
-                className="w-full sm:w-auto flex items-center justify-center space-x-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-sm font-semibold rounded-xl transition"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>नई विंडो में खोलें (Open Full Window)</span>
-              </button>
-            </div>
-          </div>
+          <iframe
+            src={embedUrl}
+            className="w-full h-full min-h-[500px] rounded-lg shadow-lg border border-slate-800 bg-white"
+            title={title}
+          />
         )}
 
         {!loading && !useIframeFallback && (
