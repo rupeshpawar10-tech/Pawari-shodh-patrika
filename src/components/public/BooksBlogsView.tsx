@@ -507,8 +507,11 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
         {/* Action Bar / Main Navigation Tabs inside View */}
         <div className="relative z-10 pt-2 flex items-center overflow-x-auto no-scrollbar touch-scroll whitespace-nowrap gap-2 border-t border-amber-500/20 py-1">
           <button
-            onClick={() => setActiveTab('all')}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
+            onClick={() => {
+              setActiveTab('all');
+              window.scrollTo({ top: 280, behavior: 'smooth' });
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active cursor-pointer ${
               activeTab === 'all' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -519,8 +522,11 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('books')}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
+            onClick={() => {
+              setActiveTab('books');
+              window.scrollTo({ top: 280, behavior: 'smooth' });
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active cursor-pointer ${
               activeTab === 'books' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -531,8 +537,11 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('blogs')}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
+            onClick={() => {
+              setActiveTab('blogs');
+              window.scrollTo({ top: 280, behavior: 'smooth' });
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active cursor-pointer ${
               activeTab === 'blogs' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -543,8 +552,11 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('writers')}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
+            onClick={() => {
+              setActiveTab('writers');
+              window.scrollTo({ top: 280, behavior: 'smooth' });
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active cursor-pointer ${
               activeTab === 'writers' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -555,8 +567,11 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('shabdkosh')}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
+            onClick={() => {
+              setActiveTab('shabdkosh');
+              window.scrollTo({ top: 280, behavior: 'smooth' });
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active cursor-pointer ${
               activeTab === 'shabdkosh' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -567,8 +582,11 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('paheli')}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
+            onClick={() => {
+              setActiveTab('paheli');
+              window.scrollTo({ top: 280, behavior: 'smooth' });
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active cursor-pointer ${
               activeTab === 'paheli' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -579,8 +597,11 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('lokgeet')}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active ${
+            onClick={() => {
+              setActiveTab('lokgeet');
+              window.scrollTo({ top: 280, behavior: 'smooth' });
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active cursor-pointer ${
               activeTab === 'lokgeet' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'

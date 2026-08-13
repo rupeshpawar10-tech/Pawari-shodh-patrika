@@ -881,6 +881,25 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!booksSnap.empty) {
           loadedBooks = booksSnap.docs.map(d => ({ id: d.id, ...d.data() } as BookItem));
         }
+        const cachedBooksStr = localStorage.getItem('local_books_cache');
+        if (cachedBooksStr) {
+          try {
+            const cachedBooks: BookItem[] = JSON.parse(cachedBooksStr);
+            if (Array.isArray(cachedBooks)) {
+              cachedBooks.forEach(cb => {
+                const idx = loadedBooks.findIndex(b => b.id === cb.id);
+                if (idx !== -1) {
+                  const s = cb.status as string;
+                  if (s === 'approved' || s === 'published' || s === 'rejected') {
+                    loadedBooks[idx] = { ...loadedBooks[idx], ...cb };
+                  }
+                } else {
+                  loadedBooks.push(cb);
+                }
+              });
+            }
+          } catch (e) {}
+        }
         SAMPLE_BOOKS.forEach(sb => {
           if (!loadedBooks.some(b => b.id === sb.id)) {
             loadedBooks.push(sb);
@@ -891,7 +910,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           try { localStorage.setItem('local_books_cache', JSON.stringify(loadedBooks)); } catch (e) {}
         }
       } catch (e) {
-        // Fallback silently
+        const cached = localStorage.getItem('local_books_cache');
+        if (cached && isMounted) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) setBooks(parsed);
+          } catch (err) {}
+        }
       }
 
       // 3.2 Blogs
@@ -900,6 +925,25 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         let loadedBlogs: BlogItem[] = [];
         if (!blogsSnap.empty) {
           loadedBlogs = blogsSnap.docs.map(d => ({ id: d.id, ...d.data() } as BlogItem));
+        }
+        const cachedBlogsStr = localStorage.getItem('local_blogs_cache');
+        if (cachedBlogsStr) {
+          try {
+            const cachedBlogs: BlogItem[] = JSON.parse(cachedBlogsStr);
+            if (Array.isArray(cachedBlogs)) {
+              cachedBlogs.forEach(cb => {
+                const idx = loadedBlogs.findIndex(b => b.id === cb.id);
+                if (idx !== -1) {
+                  const s = cb.status as string;
+                  if (s === 'approved' || s === 'published' || s === 'rejected') {
+                    loadedBlogs[idx] = { ...loadedBlogs[idx], ...cb };
+                  }
+                } else {
+                  loadedBlogs.push(cb);
+                }
+              });
+            }
+          } catch (e) {}
         }
         SAMPLE_BLOGS.forEach(sb => {
           if (!loadedBlogs.some(b => b.id === sb.id)) {
@@ -911,7 +955,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           try { localStorage.setItem('local_blogs_cache', JSON.stringify(loadedBlogs)); } catch (e) {}
         }
       } catch (e) {
-        // Fallback silently
+        const cached = localStorage.getItem('local_blogs_cache');
+        if (cached && isMounted) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) setBlogs(parsed);
+          } catch (err) {}
+        }
       }
 
       // 3.3 Writers & Authors
@@ -920,6 +970,25 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         let loadedWriters: PawariWriterItem[] = [];
         if (!writersSnap.empty) {
           loadedWriters = writersSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariWriterItem));
+        }
+        const cachedWritersStr = localStorage.getItem('pawari_writers_cache');
+        if (cachedWritersStr) {
+          try {
+            const cachedWriters: PawariWriterItem[] = JSON.parse(cachedWritersStr);
+            if (Array.isArray(cachedWriters)) {
+              cachedWriters.forEach(cw => {
+                const idx = loadedWriters.findIndex(w => w.id === cw.id);
+                if (idx !== -1) {
+                  const s = cw.status as string;
+                  if (s === 'approved' || s === 'published' || s === 'rejected') {
+                    loadedWriters[idx] = { ...loadedWriters[idx], ...cw };
+                  }
+                } else {
+                  loadedWriters.push(cw);
+                }
+              });
+            }
+          } catch (e) {}
         }
         SAMPLE_WRITERS.forEach(sw => {
           if (!loadedWriters.some(w => w.id === sw.id)) {
@@ -931,7 +1000,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           try { localStorage.setItem('pawari_writers_cache', JSON.stringify(loadedWriters)); } catch (e) {}
         }
       } catch (e) {
-        // Fallback silently
+        const cached = localStorage.getItem('pawari_writers_cache');
+        if (cached && isMounted) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) setWriters(parsed);
+          } catch (err) {}
+        }
       }
 
       // 3.4 Shabdkosh
@@ -940,6 +1015,25 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         let loadedShabdkosh: PawariShabdkoshItem[] = [];
         if (!shabdkoshSnap.empty) {
           loadedShabdkosh = shabdkoshSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariShabdkoshItem));
+        }
+        const cachedShabdkoshStr = localStorage.getItem('pawari_shabdkosh_cache');
+        if (cachedShabdkoshStr) {
+          try {
+            const cachedShabdkosh: PawariShabdkoshItem[] = JSON.parse(cachedShabdkoshStr);
+            if (Array.isArray(cachedShabdkosh)) {
+              cachedShabdkosh.forEach(cs => {
+                const idx = loadedShabdkosh.findIndex(s => s.id === cs.id);
+                if (idx !== -1) {
+                  const s = cs.status as string;
+                  if (s === 'approved' || s === 'published' || s === 'rejected') {
+                    loadedShabdkosh[idx] = { ...loadedShabdkosh[idx], ...cs };
+                  }
+                } else {
+                  loadedShabdkosh.push(cs);
+                }
+              });
+            }
+          } catch (e) {}
         }
         SAMPLE_SHABDKOSH.forEach(ss => {
           if (!loadedShabdkosh.some(s => s.id === ss.id)) {
@@ -950,7 +1044,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setShabdkoshList(loadedShabdkosh);
           try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(loadedShabdkosh)); } catch (e) {}
         }
-      } catch (e) {}
+      } catch (e) {
+        const cached = localStorage.getItem('pawari_shabdkosh_cache');
+        if (cached && isMounted) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) setShabdkoshList(parsed);
+          } catch (err) {}
+        }
+      }
 
       // 3.5 Paheli
       try {
@@ -958,6 +1060,25 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         let loadedPaheli: PawariPaheliItem[] = [];
         if (!paheliSnap.empty) {
           loadedPaheli = paheliSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariPaheliItem));
+        }
+        const cachedPaheliStr = localStorage.getItem('pawari_paheli_cache');
+        if (cachedPaheliStr) {
+          try {
+            const cachedPaheli: PawariPaheliItem[] = JSON.parse(cachedPaheliStr);
+            if (Array.isArray(cachedPaheli)) {
+              cachedPaheli.forEach(cp => {
+                const idx = loadedPaheli.findIndex(p => p.id === cp.id);
+                if (idx !== -1) {
+                  const s = cp.status as string;
+                  if (s === 'approved' || s === 'published' || s === 'rejected') {
+                    loadedPaheli[idx] = { ...loadedPaheli[idx], ...cp };
+                  }
+                } else {
+                  loadedPaheli.push(cp);
+                }
+              });
+            }
+          } catch (e) {}
         }
         SAMPLE_PAHELI.forEach(sp => {
           if (!loadedPaheli.some(p => p.id === sp.id)) {
@@ -968,7 +1089,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setPaheliList(loadedPaheli);
           try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(loadedPaheli)); } catch (e) {}
         }
-      } catch (e) {}
+      } catch (e) {
+        const cached = localStorage.getItem('pawari_paheli_cache');
+        if (cached && isMounted) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) setPaheliList(parsed);
+          } catch (err) {}
+        }
+      }
 
       // 3.6 Lokgeet
       try {
@@ -976,6 +1105,25 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         let loadedLokgeet: PawariLokgeetItem[] = [];
         if (!lokgeetSnap.empty) {
           loadedLokgeet = lokgeetSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
+        }
+        const cachedLokgeetStr = localStorage.getItem('pawari_lokgeet_cache');
+        if (cachedLokgeetStr) {
+          try {
+            const cachedLokgeet: PawariLokgeetItem[] = JSON.parse(cachedLokgeetStr);
+            if (Array.isArray(cachedLokgeet)) {
+              cachedLokgeet.forEach(cl => {
+                const idx = loadedLokgeet.findIndex(l => l.id === cl.id);
+                if (idx !== -1) {
+                  const s = cl.status as string;
+                  if (s === 'approved' || s === 'published' || s === 'rejected') {
+                    loadedLokgeet[idx] = { ...loadedLokgeet[idx], ...cl };
+                  }
+                } else {
+                  loadedLokgeet.push(cl);
+                }
+              });
+            }
+          } catch (e) {}
         }
         SAMPLE_LOKGEET.forEach(sl => {
           if (!loadedLokgeet.some(l => l.id === sl.id)) {
@@ -986,7 +1134,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setLokgeetList(loadedLokgeet);
           try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(loadedLokgeet)); } catch (e) {}
         }
-      } catch (e) {}
+      } catch (e) {
+        const cached = localStorage.getItem('pawari_lokgeet_cache');
+        if (cached && isMounted) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) setLokgeetList(parsed);
+          } catch (err) {}
+        }
+      }
 
       // 3.7 Quiz Questions
       try {
@@ -1960,7 +2116,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateSubmissionStatus = async (id: string, status: import('../types').Submission['status']) => {
     setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status } : s));
     try {
-      await updateDoc(doc(db, 'submissions', id), { status });
+      await setDoc(doc(db, 'submissions', id), { status }, { merge: true });
     } catch (e) {
       console.error('Error updating submission status:', e);
     }
@@ -2225,42 +2381,66 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const updated = shabdkoshList.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setShabdkoshList(updated);
       try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'shabdkosh', id), updatePayload); } catch (e) { console.error(e); }
+      const targetItem = updated.find(i => i.id === id);
+      if (targetItem) {
+        try { await setDoc(doc(db, 'shabdkosh', id), targetItem, { merge: true }); } catch (e) { console.error(e); }
+      }
     } else if (type === 'paheli') {
       const updated = paheliList.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setPaheliList(updated);
       try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'paheli', id), updatePayload); } catch (e) { console.error(e); }
+      const targetItem = updated.find(i => i.id === id);
+      if (targetItem) {
+        try { await setDoc(doc(db, 'paheli', id), targetItem, { merge: true }); } catch (e) { console.error(e); }
+      }
     } else if (type === 'lokgeet') {
       const updated = lokgeetList.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setLokgeetList(updated);
       try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'lokgeet', id), updatePayload); } catch (e) { console.error(e); }
+      const targetItem = updated.find(i => i.id === id);
+      if (targetItem) {
+        try { await setDoc(doc(db, 'lokgeet', id), targetItem, { merge: true }); } catch (e) { console.error(e); }
+      }
     } else if (type === 'blogs') {
       const updated = blogs.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setBlogs(updated);
       try { localStorage.setItem('local_blogs_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'blogs', id), updatePayload); } catch (e) { console.error(e); }
+      const targetItem = updated.find(i => i.id === id);
+      if (targetItem) {
+        try { await setDoc(doc(db, 'blogs', id), targetItem, { merge: true }); } catch (e) { console.error(e); }
+      }
     } else if (type === 'books') {
       const updated = books.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setBooks(updated);
       try { localStorage.setItem('local_books_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'books', id), updatePayload); } catch (e) { console.error(e); }
+      const targetItem = updated.find(i => i.id === id);
+      if (targetItem) {
+        try { await setDoc(doc(db, 'books', id), targetItem, { merge: true }); } catch (e) { console.error(e); }
+      }
     } else if (type === 'writers') {
       const updated = writers.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setWriters(updated);
       try { localStorage.setItem('pawari_writers_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'writers', id), updatePayload); } catch (e) { console.error(e); }
+      const targetItem = updated.find(i => i.id === id);
+      if (targetItem) {
+        try { await setDoc(doc(db, 'writers', id), targetItem, { merge: true }); } catch (e) { console.error(e); }
+      }
     } else if (type === 'cultural_quizzes') {
       const updated = quizQuestions.map(item => item.id === id ? { ...item, ...updatePayload } : item);
       setQuizQuestions(updated);
       try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'quiz_questions', id), updatePayload); } catch (e) { console.error(e); }
+      const targetItem = updated.find(i => i.id === id);
+      if (targetItem) {
+        try { await setDoc(doc(db, 'quiz_questions', id), targetItem, { merge: true }); } catch (e) { console.error(e); }
+      }
     } else if (type === 'submissions') {
       const mappedStatus = status === 'approved' || status === 'published' ? 'accepted' : status === 'rejected' ? 'rejected' : 'pending';
       const updated = submissions.map(item => item.id === id ? { ...item, status: mappedStatus as any } : item);
       setSubmissions(updated);
-      try { await updateDoc(doc(db, 'submissions', id), { status: mappedStatus }); } catch (e) { console.error(e); }
+      const targetItem = updated.find(i => i.id === id);
+      if (targetItem) {
+        try { await setDoc(doc(db, 'submissions', id), targetItem, { merge: true }); } catch (e) { console.error(e); }
+      }
     }
 
     logActivity({

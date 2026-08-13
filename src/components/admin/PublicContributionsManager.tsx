@@ -107,6 +107,11 @@ export const PublicContributionsManager: React.FC = () => {
 
   const handleStatusChange = async (id: string, status: 'approved' | 'pending' | 'rejected') => {
     await updateContributionStatus(activeTab, id, status);
+    if (status === 'approved') {
+      alert('प्रविष्टि सफलतापूर्वक स्वीकृत कर दी गई है और सार्वजनिक (Public) दृष्टिकोण पर लाइव हो गई है!');
+    } else if (status === 'rejected') {
+      alert('प्रविष्टि अस्वीकृत कर दी गई है।');
+    }
   };
 
   const handleDelete = async (id: string) => {
