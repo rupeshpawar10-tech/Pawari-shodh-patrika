@@ -183,7 +183,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           authors: subForm.authorName,
           publisher: subForm.publisher || 'पावारी शोध संस्थान प्रकाशन',
           publication_year: new Date().getFullYear().toString(),
-          isbn: subForm.isbn || ('ISBN-978-81-' + Math.floor(1000000 + Math.random() * 9000000)),
+          isbn: subForm.isbn || ('ISBN-987-81-' + Math.floor(1000000 + Math.random() * 9000000)),
           pages: parseInt(subForm.pages) || 150,
           category: subForm.category,
           cover_image: coverUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600',
@@ -332,351 +332,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
   };
 
   /* =========================================================================
-     1️⃣ DEDICATED FULL-PAGE BOOK READER VIEW
-     ========================================================================= */
-  if (selectedBook) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 space-y-8 animate-in fade-in duration-200">
-        {/* Top Back Navigation Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-900 border border-amber-500/30 rounded-2xl text-amber-100 shadow-xl sticky top-4 z-40 backdrop-blur-md">
-          <button
-            onClick={() => setSelectedBook(null)}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs rounded-xl transition flex items-center space-x-2 cursor-pointer shadow-md"
-          >
-            <ArrowRight className="w-4 h-4 rotate-180" />
-            <span>{lang === 'hi' ? '← वापस पवारी साहित्य एवं ब्लॉग संग्रह पर जाएं' : '← Back to Pawari Literature Collection'}</span>
-          </button>
-
-          <div className="flex items-center space-x-3 text-xs font-bold text-amber-300">
-            <span className="bg-amber-500/20 px-3 py-1 rounded-full border border-amber-500/40 font-mono">
-              ISBN: {selectedBook.isbn}
-            </span>
-          </div>
-        </div>
-
-        {/* Book Header Hero Banner */}
-        <div className="bg-gradient-to-br from-red-950 via-amber-950 to-slate-950 border-2 border-amber-500/40 p-6 sm:p-10 rounded-3xl text-amber-100 shadow-2xl relative overflow-hidden space-y-6">
-          <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
-            {/* Book Cover */}
-            <div className="w-44 sm:w-52 aspect-3/4 shrink-0 rounded-2xl overflow-hidden border-4 border-amber-400/60 shadow-2xl bg-slate-950 mx-auto md:mx-0">
-              <SafeImage src={selectedBook.cover_image} alt={selectedBook.title_english} className="w-full h-full object-cover" />
-            </div>
-
-            {/* Book Details */}
-            <div className="space-y-4 flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="bg-amber-500 text-amber-950 font-bold text-xs px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                  {selectedBook.category}
-                </span>
-                <span className="bg-slate-900/80 border border-amber-500/30 text-amber-300 text-xs px-3 py-1 rounded-full font-mono">
-                  {selectedBook.publication_year}
-                </span>
-                <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/40 text-xs px-3 py-1 rounded-full font-semibold">
-                  {selectedBook.price || 'Open Access'}
-                </span>
-              </div>
-
-              <h1 className="text-2xl sm:text-4xl font-serif font-black text-amber-200 leading-tight">
-                {lang === 'hi' ? selectedBook.title_hindi : selectedBook.title_english}
-              </h1>
-
-              <div className="flex items-center space-x-2 text-sm font-bold text-amber-300">
-                <User className="w-4 h-4 text-amber-400" />
-                <span>लेखक / सम्पादक: {selectedBook.authors}</span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-slate-950/70 rounded-2xl border border-amber-500/20 text-xs font-mono text-amber-200/90">
-                <div>
-                  <span className="text-amber-400/70 block text-[10px] uppercase">प्रकाशक</span>
-                  <span className="font-bold">{selectedBook.publisher}</span>
-                </div>
-                <div>
-                  <span className="text-amber-400/70 block text-[10px] uppercase">कुल पृष्ठ</span>
-                  <span className="font-bold">{selectedBook.pages} पृष्ठ</span>
-                </div>
-                <div>
-                  <span className="text-amber-400/70 block text-[10px] uppercase">ISBN</span>
-                  <span className="font-bold text-[11px]">{selectedBook.isbn}</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                {selectedBook.sample_pdf_url && (
-                  <a
-                    href={selectedBook.sample_pdf_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 font-bold text-xs rounded-xl shadow-xl flex items-center space-x-2 transition cursor-pointer"
-                  >
-                    <FileText className="w-4 h-4 text-amber-950" />
-                    <span>📄 पूर्ण ग्रंथ PDF देखें / डाउनलोड करें</span>
-                  </a>
-                )}
-
-                <button
-                  onClick={() => handleShareArticle('whatsapp', selectedBook.title_hindi)}
-                  className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center space-x-1.5 cursor-pointer transition"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>WhatsApp शेयर</span>
-                </button>
-
-                <button
-                  onClick={() => handleShareArticle('copy', selectedBook.title_hindi)}
-                  className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-amber-200 font-bold text-xs rounded-xl border border-amber-500/30 flex items-center space-x-1.5 cursor-pointer transition"
-                >
-                  <Copy className="w-4 h-4" />
-                  <span>{copiedArticleLink ? 'लिंक कॉपी हो गया!' : 'लिंक कॉपी करें'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Synopsis & Table of Contents */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Main Synopsis Body */}
-          <div className="md:col-span-2 space-y-6">
-            <div className="bg-white border border-amber-900/15 p-6 sm:p-8 rounded-3xl shadow-sm space-y-4">
-              <h2 className="text-xl font-serif font-bold text-slate-900 pb-3 border-b border-amber-900/10 flex items-center space-x-2">
-                <BookOpen className="w-5 h-5 text-red-950" />
-                <span>ग्रंथ परिचय एवं विस्तृत सारांश (Synopsis & Overview)</span>
-              </h2>
-
-              <div className="prose prose-amber max-w-none text-slate-800 leading-relaxed font-serif space-y-4 text-base">
-                {(selectedBook.synopsis_hindi || selectedBook.synopsis_english).split('\n\n').map((para, i) => (
-                  <p key={i} className="leading-relaxed">
-                    {para}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Table of Contents Sidebar */}
-          <div className="space-y-6">
-            {selectedBook.table_of_contents_hindi && (
-              <div className="bg-amber-50/70 border border-amber-300 p-6 rounded-3xl space-y-4 shadow-sm">
-                <h3 className="font-serif font-bold text-slate-900 text-base flex items-center space-x-2 pb-2 border-b border-amber-200">
-                  <Layers className="w-4 h-4 text-amber-700" />
-                  <span>विषय अनुक्रमणिका (Table of Contents)</span>
-                </h3>
-
-                <ul className="space-y-2.5 text-xs text-slate-800 font-medium">
-                  {selectedBook.table_of_contents_hindi.map((item, idx) => (
-                    <li key={idx} className="flex items-start space-x-2 bg-white p-2.5 rounded-xl border border-amber-200 shadow-2xs">
-                      <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="bg-gradient-to-br from-red-950 to-amber-950 p-6 rounded-3xl text-amber-100 space-y-3 shadow-xl border border-amber-500/30">
-              <h4 className="font-serif font-bold text-amber-200 text-sm">शोध ग्रंथ ओपन एक्सेस प्रति</h4>
-              <p className="text-xs text-amber-200/80 leading-relaxed">
-                यह शोध ग्रंथ माँ ताप्ती पवारी शोध संस्थान के शोध संकलन का हिस्सा है। अकादमिक सन्दर्भ हेतु इसका निःशुल्क उपयोग किया जा सकता है।
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /* =========================================================================
-     2️⃣ DEDICATED FULL-PAGE BLOG READER VIEW (WITH WORD COPY-PASTE FORMATTING)
-     ========================================================================= */
-  if (selectedBlog) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-8 py-8 space-y-8 animate-in fade-in duration-200">
-        {/* Sticky Back Navigation Header Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-900 border border-amber-500/30 rounded-2xl text-amber-100 shadow-xl sticky top-4 z-40 backdrop-blur-md">
-          <button
-            onClick={() => setSelectedBlog(null)}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs rounded-xl transition flex items-center space-x-2 cursor-pointer shadow-md"
-          >
-            <ArrowRight className="w-4 h-4 rotate-180" />
-            <span>{lang === 'hi' ? '← वापस पवारी साहित्य एवं ब्लॉग संग्रह पर जाएं' : '← Back to Pawari Blog List'}</span>
-          </button>
-
-          {/* Reader Controls: Font Size Scaling */}
-          <div className="flex items-center space-x-3 text-xs font-bold text-amber-200">
-            <span>अक्षर आकार:</span>
-            <button
-              onClick={() => setReaderFontSize(prev => Math.max(14, prev - 2))}
-              className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold flex items-center justify-center border border-amber-500/30"
-              title="अक्षर छोटा करें"
-            >
-              A-
-            </button>
-            <span className="font-mono text-xs text-amber-400">{readerFontSize}px</span>
-            <button
-              onClick={() => setReaderFontSize(prev => Math.min(26, prev + 2))}
-              className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold flex items-center justify-center border border-amber-500/30"
-              title="अक्षर बड़ा करें"
-            >
-              A+
-            </button>
-          </div>
-        </div>
-
-        {/* Blog Article Banner */}
-        <div className="space-y-6 bg-white border border-amber-900/15 p-6 sm:p-10 rounded-3xl shadow-md">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="bg-red-950 text-amber-300 font-bold text-xs px-3 py-1 rounded-full uppercase tracking-wider border border-amber-400/30 font-mono">
-                {selectedBlog.category}
-              </span>
-              <span className="text-xs text-slate-500 flex items-center space-x-1 font-mono">
-                <Clock className="w-3.5 h-3.5 text-amber-600" />
-                <span>{selectedBlog.read_time}</span>
-              </span>
-            </div>
-
-            <h1 className="text-2xl sm:text-4xl font-serif font-black text-slate-900 leading-tight">
-              {lang === 'hi' ? selectedBlog.title_hindi : selectedBlog.title_english}
-            </h1>
-
-            {/* Author Profile Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 border-2 border-amber-500 shrink-0 shadow-sm">
-                  <SafeImage src={selectedBlog.author_avatar || ''} alt={selectedBlog.author} className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                    <span>{selectedBlog.author}</span>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 inline" />
-                  </h4>
-                  <p className="text-xs text-slate-500 font-mono">{selectedBlog.author_role || 'लेखक एवं शोधकर्ता'}</p>
-                </div>
-              </div>
-
-              <div className="text-xs font-mono text-slate-500 flex items-center space-x-1">
-                <Calendar className="w-3.5 h-3.5 text-amber-600" />
-                <span>प्रकाशन तिथि: {selectedBlog.date}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Article Cover Image */}
-          {selectedBlog.cover_image && (
-            <div className="w-full h-72 sm:h-96 rounded-2xl overflow-hidden border border-amber-500/20 shadow-lg bg-slate-950">
-              <SafeImage src={selectedBlog.cover_image} alt={selectedBlog.title_english} className="w-full h-full object-cover" />
-            </div>
-          )}
-
-          {/* MAIN RICH TEXT ARTICLE BODY (Supports MS Word / Docs Copy-Paste HTML Formatting) */}
-          <div 
-            style={{ fontSize: `${readerFontSize}px`, lineHeight: 1.8 }}
-            className="prose prose-amber max-w-none text-slate-800 font-serif space-y-6 pt-4 border-t border-slate-100"
-          >
-            {/* HTML DangerouslySetInnerHTML Render if Contains HTML Tags */}
-            {selectedBlog.content_hindi && (selectedBlog.content_hindi.includes('<p>') || selectedBlog.content_hindi.includes('<div>') || selectedBlog.content_hindi.includes('<strong>') || selectedBlog.content_hindi.includes('<h1>')) ? (
-              <div dangerouslySetInnerHTML={{ __html: selectedBlog.content_hindi }} />
-            ) : (
-              /* Line break text parsing with markdown style bold & headings */
-              selectedBlog.content_hindi.split('\n\n').map((paragraph, i) => {
-                if (paragraph.startsWith('###') || paragraph.startsWith('##')) {
-                  return (
-                    <h3 key={i} className="font-serif font-bold text-red-950 text-xl sm:text-2xl mt-6 mb-3 border-b border-amber-200 pb-1">
-                      {paragraph.replace(/#/g, '').trim()}
-                    </h3>
-                  );
-                }
-                if (paragraph.startsWith('- ') || paragraph.startsWith('* ')) {
-                  return (
-                    <li key={i} className="ml-6 list-disc text-slate-800 font-medium my-1">
-                      {paragraph.replace(/^[-*]\s*/, '').trim()}
-                    </li>
-                  );
-                }
-                return (
-                  <p key={i} className="text-slate-800 leading-relaxed font-normal">
-                    {paragraph.trim()}
-                  </p>
-                );
-              })
-            )}
-          </div>
-
-          {/* Article PDF File Download Bar */}
-          {selectedBlog.pdf_url && (
-            <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xs">
-              <div className="flex items-center space-x-3 text-xs font-bold text-red-950">
-                <FileText className="w-6 h-6 text-amber-600 shrink-0" />
-                <div>
-                  <p className="text-sm">{lang === 'hi' ? 'मूल शोध लेख PDF फ़ाइल डाउनलोड करें' : 'Download Original Article PDF'}</p>
-                  <p className="text-xs text-slate-500 font-normal">{lang === 'hi' ? 'अकादमिक अध्ययन हेतु अधिकृत प्रति' : 'Official PDF Document'}</p>
-                </div>
-              </div>
-              <a
-                href={selectedBlog.pdf_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-5 py-2.5 bg-red-950 hover:bg-red-900 text-amber-200 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 shadow-md"
-              >
-                <Download className="w-4 h-4 text-amber-400" />
-                <span>{lang === 'hi' ? 'PDF डाउनलोड करें' : 'Download PDF'}</span>
-              </a>
-            </div>
-          )}
-
-          {/* Tags & Category Badges */}
-          <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-100">
-            <Tag className="w-4 h-4 text-slate-400" />
-            {selectedBlog.tags.map((tag, i) => (
-              <span key={i} className="text-xs bg-amber-50 text-amber-900 font-mono px-3 py-1 rounded-full border border-amber-200">
-                #{tag}
-              </span>
-            ))}
-          </div>
-
-          {/* Bottom Action Bar: Like & Social Share */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-200">
-            <button
-              onClick={(e) => handleLikeBlog(e, selectedBlog.id, selectedBlog.likes_count)}
-              className="px-5 py-2.5 bg-rose-50 text-rose-700 font-bold text-xs rounded-xl hover:bg-rose-100 transition flex items-center space-x-2 border border-rose-200 cursor-pointer shadow-2xs"
-            >
-              <Heart className="w-4 h-4 fill-rose-600 text-rose-600" />
-              <span>{lang === 'hi' ? 'पसंद करें' : 'Like'} ({likedBlogs[selectedBlog.id] || selectedBlog.likes_count || 0})</span>
-            </button>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => handleShareArticle('whatsapp', selectedBlog.title_hindi)}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center space-x-1.5 cursor-pointer transition"
-              >
-                <Share2 className="w-4 h-4" />
-                <span>WhatsApp</span>
-              </button>
-
-              <button
-                onClick={() => handleShareArticle('facebook', selectedBlog.title_hindi)}
-                className="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white font-bold text-xs rounded-xl shadow-md flex items-center space-x-1.5 cursor-pointer transition"
-              >
-                <span>Facebook</span>
-              </button>
-
-              <button
-                onClick={() => handleShareArticle('copy', selectedBlog.title_hindi)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-200 font-bold text-xs rounded-xl border border-amber-500/30 flex items-center space-x-1.5 cursor-pointer transition"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span>{copiedArticleLink ? 'लिंक कॉपी हो गया!' : 'लिंक कॉपी करें'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /* =========================================================================
-     3️⃣ MAIN PAWARI LITERATURE CATALOG & HUB VIEW
+     MAIN PAWARI LITERATURE CATALOG & HUB VIEW WITH INLINE READER SHOWCASE
      ========================================================================= */
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-8 animate-in fade-in duration-200">
@@ -824,6 +480,131 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
         </div>
       </div>
 
+      {/* ---------------- INLINE FEATURED BOOK READER VIEW ---------------- */}
+      {selectedBook && (
+        <div className="bg-gradient-to-br from-red-950 via-amber-950 to-slate-950 border-2 border-amber-500 p-6 sm:p-8 rounded-3xl text-amber-100 shadow-2xl relative space-y-6 animate-in slide-in-from-top-4 duration-200">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between border-b border-amber-500/30 pb-4">
+            <div className="flex items-center space-x-2 text-amber-300 font-bold text-xs font-mono">
+              <BookOpen className="w-4 h-4 text-amber-400" />
+              <span>ग्रंथ विवरण एवं सारांश (Selected Book Details)</span>
+            </div>
+            <button
+              onClick={() => setSelectedBook(null)}
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs rounded-xl transition flex items-center space-x-1 cursor-pointer shadow-md"
+            >
+              <X className="w-4 h-4" />
+              <span>{lang === 'hi' ? '✕ बंद करें' : '✕ Close'}</span>
+            </button>
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            <div className="w-36 sm:w-44 aspect-3/4 shrink-0 rounded-2xl overflow-hidden border-2 border-amber-400/60 shadow-xl bg-slate-950 mx-auto md:mx-0">
+              <SafeImage src={selectedBook.cover_image} alt={selectedBook.title_english} className="w-full h-full object-cover" />
+            </div>
+
+            <div className="space-y-3 flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="bg-amber-500 text-amber-950 font-bold text-xs px-3 py-0.5 rounded-full uppercase font-mono">
+                  {selectedBook.category}
+                </span>
+                <span className="bg-slate-900 border border-amber-500/30 text-amber-300 text-xs px-3 py-0.5 rounded-full font-mono">
+                  {selectedBook.publication_year}
+                </span>
+                <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/40 text-xs px-3 py-0.5 rounded-full font-semibold">
+                  {selectedBook.price || 'Open Access'}
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-3xl font-serif font-black text-amber-200 leading-tight">
+                {lang === 'hi' ? selectedBook.title_hindi : selectedBook.title_english}
+              </h2>
+
+              <p className="text-xs font-bold text-amber-300">
+                लेखक / सम्पादक: {selectedBook.authors}
+              </p>
+
+              <div className="p-3 bg-slate-950/80 rounded-xl border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed font-serif">
+                {(selectedBook.synopsis_hindi || selectedBook.synopsis_english)}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                {selectedBook.sample_pdf_url && (
+                  <a
+                    href={selectedBook.sample_pdf_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 font-bold text-xs rounded-xl shadow-lg flex items-center space-x-2 transition"
+                  >
+                    <FileText className="w-4 h-4 text-amber-950" />
+                    <span>📄 पूर्ण ग्रंथ PDF देखें / डाउनलोड करें</span>
+                  </a>
+                )}
+
+                <button
+                  onClick={() => handleShareArticle('whatsapp', selectedBook.title_hindi)}
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center space-x-1.5 cursor-pointer transition"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>WhatsApp शेयर</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- INLINE FEATURED BLOG READER VIEW ---------------- */}
+      {selectedBlog && (
+        <div className="bg-white border-2 border-amber-500 p-6 sm:p-8 rounded-3xl text-slate-900 shadow-2xl relative space-y-6 animate-in slide-in-from-top-4 duration-200">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+            <div className="flex items-center space-x-3 text-xs font-bold text-slate-700">
+              <span className="bg-red-950 text-amber-300 px-3 py-1 rounded-full font-mono">{selectedBlog.category}</span>
+              <span>अक्षर आकार:</span>
+              <button onClick={() => setReaderFontSize(prev => Math.max(14, prev - 2))} className="w-7 h-7 rounded bg-slate-100 font-bold">A-</button>
+              <span className="font-mono">{readerFontSize}px</span>
+              <button onClick={() => setReaderFontSize(prev => Math.min(26, prev + 2))} className="w-7 h-7 rounded bg-slate-100 font-bold">A+</button>
+            </div>
+            <button
+              onClick={() => setSelectedBlog(null)}
+              className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+              <span>{lang === 'hi' ? '✕ बंद करें' : '✕ Close'}</span>
+            </button>
+          </div>
+
+          <h2 className="text-xl sm:text-3xl font-serif font-bold text-slate-900 leading-tight">
+            {lang === 'hi' ? selectedBlog.title_hindi : selectedBlog.title_english}
+          </h2>
+
+          <div className="flex items-center space-x-3 text-xs text-slate-500 font-mono border-b border-slate-100 pb-3">
+            <span>लेखक: <strong>{selectedBlog.author}</strong></span>
+            <span>•</span>
+            <span>प्रकाशन: {selectedBlog.date}</span>
+          </div>
+
+          <div 
+            style={{ fontSize: `${readerFontSize}px`, lineHeight: 1.8 }}
+            className="prose prose-amber max-w-none text-slate-800 font-serif space-y-4"
+          >
+            {selectedBlog.content_hindi.split('\n\n').map((paragraph, i) => (
+              <p key={i} className="leading-relaxed">{paragraph}</p>
+            ))}
+          </div>
+
+          {selectedBlog.pdf_url && (
+            <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-center justify-between">
+              <span className="text-xs font-bold text-red-950">मूल आलेख PDF फ़ाइल उपलब्ध है</span>
+              <a href={selectedBlog.pdf_url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-red-950 text-amber-200 text-xs font-bold rounded-xl flex items-center space-x-1.5">
+                <Download className="w-4 h-4" />
+                <span>PDF डाउनलोड करें</span>
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ---------------- SEARCH & FILTER BAR ---------------- */}
       <div className="bg-white border border-amber-900/10 rounded-2xl p-4 shadow-2xs space-y-3">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -935,7 +716,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
                 <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
                   <span className="text-slate-500 font-mono text-[11px]">ISBN: {book.isbn}</span>
                   <span className="text-red-900 font-bold group-hover:underline flex items-center space-x-1">
-                    <span>{lang === 'hi' ? 'पूरा ग्रंथ पढ़ें →' : 'Read Book →'}</span>
+                    <span>{lang === 'hi' ? 'ग्रंथ का विवरण देखें →' : 'View Book Details →'}</span>
                   </span>
                 </div>
               </div>
@@ -994,7 +775,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
                   </div>
 
                   <span className="text-red-900 font-bold group-hover:underline">
-                    {lang === 'hi' ? 'पूरा आलेख पढ़ें →' : 'Read Article →'}
+                    {lang === 'hi' ? 'आलेख पढ़ें →' : 'Read Article →'}
                   </span>
                 </div>
               </div>
