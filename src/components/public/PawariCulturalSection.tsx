@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
-import { findShabdkosh, findPaheli } from '../../lib/slugUtils';
+import { findShabdkosh, findPaheli, findLokgeet } from '../../lib/slugUtils';
 import { PawariShabdkoshItem, PawariPaheliItem, PawariLokgeetItem, QuizQuestion, QuizCertificate } from '../../types';
 import { SafeImage } from '../common/SafeImage';
 import { 
@@ -386,11 +386,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
         if (pathname.startsWith('/lokgeet/')) {
           const slugOrId = pathname.replace('/lokgeet/', '').trim();
           if (slugOrId) {
-            const found = approvedLokgeet.find(l => 
-              l.id.toLowerCase() === slugOrId || 
-              (l.slug && l.slug.toLowerCase() === slugOrId) ||
-              l.id.toLowerCase() === `lokgeet-${slugOrId}`
-            );
+            const found = findLokgeet(approvedLokgeet, slugOrId);
             if (found) {
               setSelectedLokgeet(found);
               setActiveTab('lokgeet');
