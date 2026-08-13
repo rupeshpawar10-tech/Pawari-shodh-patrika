@@ -177,6 +177,12 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   } = useCms();
   const [activeTab, setActiveTab] = useState<'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz'>(initialTab);
 
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   // Dynamic Patron / Director and Chief Editor from CMS Editorial Members
   const patronMember = (editorialMembers || []).find(m => 
     (m.role && (m.role.toLowerCase().includes('patron') || m.role.includes('संरक्षक'))) || 

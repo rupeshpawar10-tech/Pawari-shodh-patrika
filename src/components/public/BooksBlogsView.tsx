@@ -591,38 +591,47 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('quiz')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => {
+              setActiveTab('quiz');
+              window.scrollTo({ top: 280, behavior: 'smooth' });
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active cursor-pointer ${
               activeTab === 'quiz' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
-            <Award className="w-3.5 h-3.5 text-amber-300" />
+            <Award className="w-4 h-4 text-amber-300" />
             <span>{lang === 'hi' ? '🏆 क्विज़' : 'Quiz'}</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('reviews')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => {
+              setActiveTab('reviews');
+              window.scrollTo({ top: 280, behavior: 'smooth' });
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active cursor-pointer ${
               activeTab === 'reviews' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-4 h-4 text-amber-300" />
             <span>{lang === 'hi' ? '📑 समीक्षाएं' : 'Reviews'}</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('research_papers')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => {
+              setActiveTab('research_papers');
+              window.scrollTo({ top: 280, behavior: 'smooth' });
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-1.5 shrink-0 min-h-[42px] touch-active cursor-pointer ${
               activeTab === 'research_papers' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
             }`}
           >
-            <BookOpen className="w-3.5 h-3.5" />
+            <BookOpen className="w-4 h-4 text-amber-300" />
             <span>{lang === 'hi' ? '📄 शोध पत्र' : 'Research Papers'}</span>
           </button>
         </div>
