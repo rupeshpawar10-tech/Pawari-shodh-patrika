@@ -58,10 +58,22 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
   const [activeTab, setActiveTab] = useState<'all' | 'books' | 'blogs' | 'reviews' | 'research_papers' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz'>(initialTab);
 
   React.useEffect(() => {
-    if (initialTab) {
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlTab = searchParams.get('tab') as any;
+    if (urlTab && ['all', 'books', 'blogs', 'reviews', 'research_papers', 'shabdkosh', 'paheli', 'lokgeet', 'quiz'].includes(urlTab)) {
+      setActiveTab(urlTab);
+    } else if (initialTab) {
       setActiveTab(initialTab);
     }
   }, [initialTab]);
+
+  const handleTabChange = (tabKey: 'all' | 'books' | 'blogs' | 'reviews' | 'research_papers' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'quiz') => {
+    setActiveTab(tabKey);
+    const newUrl = tabKey === 'all' ? '/books-literature' : `/books-literature?tab=${tabKey}`;
+    if (window.location.pathname + window.location.search !== newUrl) {
+      window.history.pushState({ tab: tabKey }, '', newUrl);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -703,8 +715,8 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
         {/* Action Bar / Main Navigation Tabs inside View */}
         <div className="relative z-10 pt-2 flex flex-wrap items-center gap-2 border-t border-amber-500/20">
           <button
-            onClick={() => setActiveTab('all')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => handleTabChange('all')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
               activeTab === 'all' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -715,8 +727,8 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('books')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => handleTabChange('books')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
               activeTab === 'books' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -727,8 +739,8 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('blogs')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => handleTabChange('blogs')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
               activeTab === 'blogs' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -739,8 +751,8 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('shabdkosh')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => handleTabChange('shabdkosh')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
               activeTab === 'shabdkosh' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -751,8 +763,8 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('paheli')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => handleTabChange('paheli')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
               activeTab === 'paheli' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -763,8 +775,8 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('lokgeet')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => handleTabChange('lokgeet')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
               activeTab === 'lokgeet' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -775,8 +787,8 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('quiz')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => handleTabChange('quiz')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
               activeTab === 'quiz' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -787,8 +799,8 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('reviews')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => handleTabChange('reviews')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
               activeTab === 'reviews' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
@@ -799,8 +811,8 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
           </button>
 
           <button
-            onClick={() => setActiveTab('research_papers')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+            onClick={() => handleTabChange('research_papers')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
               activeTab === 'research_papers' 
                 ? 'bg-amber-500 text-red-950 shadow-md' 
                 : 'bg-black/30 hover:bg-black/50 text-amber-100 border border-amber-500/30'
