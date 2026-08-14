@@ -1,4 +1,5 @@
 import { PawariShabdkoshItem, PawariPaheliItem, PawariLokgeetItem, QuizQuestion } from '../types';
+import { GOPINATH_KALBHOR_LOKGEET_COLLECTION } from './pawariLokgeetGopinathData';
 
 export const SAMPLE_SHABDKOSH: PawariShabdkoshItem[] = [
   {
@@ -4387,62 +4388,7 @@ export const SAMPLE_PAHELI: PawariPaheliItem[] = [
 ];
 
 export const SAMPLE_LOKGEET: PawariLokgeetItem[] = [
-  {
-    id: 'lokgeet-1',
-    title_pawari: 'माँ ताप्ती स्तुति एवं पवारी बधावा लोकगीत',
-    title_hindi: 'माँ ताप्ती की वंदना एवं मंगल बधावा',
-    category: 'भजन / भक्ति गीत',
-    lyrics_pawari: `सूरज सुता ताप्ती माई, मुलताई मा दर्शन पाई।
-जल निर्मल बहे धार मा, सुख उपजे पवारी द्वार मा।
-
-हे ताप्ती माई, तोरो अंचरा छायो है,
-पवारी सुत सब तोरो गुण गायो है।
-हर भाद्रपद भुजरिया पर्व मनावे,
-घर-घर मंगल बधावा गावे।`,
-    lyrics_hindi_meaning: 'सूर्य पुत्री माँ ताप्ती मुलताई में प्रकट हुई हैं। उनके निर्मल जल से पवारी अंचल के प्रत्येक घर में सुख-समृद्धि आती है। पवारी पुत्र आपकी महिमा गाते हैं और भाद्रपद मास में भुजरिया विसर्जन पर मंगल बधावा गाते हैं।',
-    singer_or_collector: 'संग्रहकर्ता: डॉ. कैलाश पवार (गायन: लोक गायिका विमला बाई)',
-    youtube_url: 'https://www.youtube.com/watch?v=sample1',
-    image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400&auto=format&fit=crop&q=80',
-    contributor_name: 'माँ ताप्ती शोध संस्थान',
-    status: 'approved',
-    created_at: '2026-01-01T09:00:00.000Z'
-  },
-  {
-    id: 'lokgeet-2',
-    title_pawari: 'पवारी विवाह लग्न एवं हल्दी लोकगीत',
-    title_hindi: 'पवारी पारंपरिक विवाह एवं हल्दी रस्म गीत',
-    category: 'विवाह गीत',
-    lyrics_pawari: `सोने की कटोरी मा हल्दी घोरी,
-लाडो तोरे अंग मा हल्दी लगावे जोरी।
-
-बाबा जी बैठा है मण्डप छांव मा,
-काका जी बोले है पवारी गांव मा।
-हल्दी चढ़े री मोरी लाडो का आज,
-सजे है सुहागन और पवारी समाज।`,
-    lyrics_hindi_meaning: 'सोने की कटोरी में हल्दी घोली गई है और लाडली बेटी के अंगों पर प्यार से हल्दी लगाई जा रही है। मंडप की छांव में बुजुर्ग बैठे हैं और पूरा पवारी समाज इस पावन लग्न का साक्षी बन रहा है।',
-    singer_or_collector: 'संग्रहकर्ता: श्रीमती सावित्री पवार, बैतूल',
-    image_url: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=400&auto=format&fit=crop&q=80',
-    contributor_name: 'अनिता मालवीय',
-    status: 'approved',
-    created_at: '2026-01-07T14:00:00.000Z'
-  },
-  {
-    id: 'lokgeet-3',
-    title_pawari: 'रोपनी एवं खेती-किसानी पवारी लोकगीत',
-    title_hindi: 'धान रोपाई एवं लहलहाती फसल का लोकगीत',
-    category: 'खेती-किसानी गीत',
-    lyrics_pawari: `बरखा रानी आई रे, खेत मा हरियाली छाई रे।
-हल जोते पवारी भैया, धान रोपे बहिनिया रे।
-
-ताप्ती माई का पानी आवत, खेत-खलियान लहरावत।
-मेहनत का फल मीठा होवे, अन्नदाता मुस्कावत रे।`,
-    lyrics_hindi_meaning: 'वर्षा ऋतु के आगमन पर खेतों में हरियाली छा गई है। पवारी किसान भाई हल चला रहे हैं और बहनें धान की रोपाई कर रही हैं। माँ ताप्ती के जल से लहलहाती फसल देखकर किसान प्रसन्नाचित्त हैं।',
-    singer_or_collector: 'संग्रहकर्ता: प्रो. संतराम चौधरी, छिंदवाड़ा',
-    image_url: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400&auto=format&fit=crop&q=80',
-    contributor_name: 'संतराम चौधरी',
-    status: 'approved',
-    created_at: '2026-01-16T11:20:00.000Z'
-  }
+  ...GOPINATH_KALBHOR_LOKGEET_COLLECTION
 ];
 
 export const SAMPLE_QUIZ_QUESTIONS: QuizQuestion[] = [

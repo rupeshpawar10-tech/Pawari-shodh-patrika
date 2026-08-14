@@ -7,7 +7,8 @@ import {
   setDoc, 
   updateDoc, 
   deleteDoc, 
-  increment
+  increment,
+  onSnapshot
 } from 'firebase/firestore';
 import { ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage, auth, firebaseConfig } from './firebase';
@@ -577,7 +578,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('pawari_lokgeet_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map((p: any) => p.id));
+          const missingSamples = SAMPLE_LOKGEET.filter(s => !existingIds.has(s.id));
+          return [...parsed, ...missingSamples];
+        }
       }
     } catch (e) {}
     return SAMPLE_LOKGEET;
@@ -585,10 +590,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const DEFAULT_LOKGEET_CATEGORIES = [
     'भजन / भक्ति गीत',
-    'विवाह गीत',
-    'खेती-किसानी गीत',
-    'भुजरिया / त्यौहार गीत',
     'बधावा एवं जन्मोत्सव गीत',
+    'विवाह एवं सगाई गीत',
+    'खेती-किसानी एवं श्रम गीत',
+    'भुजरिया / त्यौहार गीत',
+    'ऋतु व बरखा गीत',
+    'विरह व संदेश गीत',
+    'लोरी व बालगीत',
+    'हास्य व नक़ल गीत',
     'अन्य'
   ];
 
@@ -920,8 +929,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const lokgeetSnap = await getDocs(collection(db, 'lokgeet'));
         if (!lokgeetSnap.empty && isMounted) {
           const loaded = lokgeetSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
-          setLokgeetList(loaded);
-          try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(loaded)); } catch (e) {}
+          const loadedIds = new Set(loaded.map(l => l.id));
+          const missingSamples = SAMPLE_LOKGEET.filter(s => !loadedIds.has(s.id));
+          const fullList = [...loaded, ...missingSamples];
+          setLokgeetList(fullList);
+          try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(fullList)); } catch (e) {}
         }
       } catch (e) {}
 
@@ -974,47 +986,44 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           loadedBoard = boardSnap.docs.map(d => ({ id: d.id, ...d.data() } as EditorialMember));
         }
 
-        const cached = localStorage.getItem('local_editorial_members_cache');
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              parsed.forEach((cachedMember: EditorialMember) => {
-                const idx = loadedBoard.findIndex(m => m.id === cachedMember.id);
-                if (idx !== -1) {
-                  // Prefer cached photo if available
-                  if (cachedMember.photo_url) loadedBoard[idx].photo_url = cachedMember.photo_url;
-                  if (cachedMember.name_hindi) loadedBoard[idx].name_hindi = cachedMember.name_hindi;
-                  if (cachedMember.name_english) loadedBoard[idx].name_english = cachedMember.name_english;
-                  if (cachedMember.role) loadedBoard[idx].role = cachedMember.role;
-                } else {
-                  loadedBoard.push(cachedMember);
-                }
-              });
-            }
-          } catch (e) {}
-        }
-
         if (loadedBoard.length > 0 && isMounted) {
           loadedBoard.sort((a, b) => (a.order || 0) - (b.order || 0));
           setEditorialMembers(loadedBoard);
           try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(loadedBoard)); } catch (e) {}
-        } else if (isMounted) {
-          // Auto-seed SAMPLE_EDITORIAL_BOARD to Firestore if completely empty
-          SAMPLE_EDITORIAL_BOARD.forEach(member => {
-            const clean = JSON.parse(JSON.stringify(member));
-            setDoc(doc(db, 'editorial_members', member.id), clean).catch(() => {});
-            setDoc(doc(db, 'editorial_board', member.id), clean).catch(() => {});
-          });
-          setEditorialMembers(SAMPLE_EDITORIAL_BOARD);
-          try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(SAMPLE_EDITORIAL_BOARD)); } catch (e) {}
+        } else {
+          // If Firestore is empty, check localStorage cache first
+          const cached = localStorage.getItem('local_editorial_members_cache');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0 && isMounted) {
+                parsed.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+                setEditorialMembers(parsed);
+                loadedBoard = parsed;
+              }
+            } catch (e) {}
+          }
+
+          if (loadedBoard.length === 0 && isMounted) {
+            // Auto-seed SAMPLE_EDITORIAL_BOARD to Firestore if completely empty
+            SAMPLE_EDITORIAL_BOARD.forEach(member => {
+              const clean = JSON.parse(JSON.stringify(member));
+              setDoc(doc(db, 'editorial_members', member.id), clean).catch(() => {});
+              setDoc(doc(db, 'editorial_board', member.id), clean).catch(() => {});
+            });
+            setEditorialMembers(SAMPLE_EDITORIAL_BOARD);
+            try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(SAMPLE_EDITORIAL_BOARD)); } catch (e) {}
+          }
         }
       } catch (e) {
         const cached = localStorage.getItem('local_editorial_members_cache');
         if (cached && isMounted) {
           try {
             const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) setEditorialMembers(parsed);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+              setEditorialMembers(parsed);
+            }
           } catch (err) {}
         }
       }
@@ -1072,8 +1081,30 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     fetchData();
 
+    // Setup real-time listener for editorial members so changes in admin appear immediately on public site
+    let unsubscribeEditorial: (() => void) | null = null;
+    try {
+      unsubscribeEditorial = onSnapshot(collection(db, 'editorial_members'), (snapshot) => {
+        if (!snapshot.empty && isMounted) {
+          const liveMembers = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as EditorialMember));
+          liveMembers.sort((a, b) => (a.order || 0) - (b.order || 0));
+          setEditorialMembers(liveMembers);
+          try {
+            localStorage.setItem('local_editorial_members_cache', JSON.stringify(liveMembers));
+          } catch (e) {}
+        }
+      }, (err) => {
+        console.warn('Realtime editorial listener notice:', err);
+      });
+    } catch (e) {
+      console.warn('Could not attach realtime editorial listener:', e);
+    }
+
     return () => {
       isMounted = false;
+      if (unsubscribeEditorial) {
+        unsubscribeEditorial();
+      }
     };
   }, []);
 

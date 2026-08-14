@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { PawariLokgeetItem } from '../../types';
 import { SafeImage } from '../common/SafeImage';
@@ -11,7 +11,10 @@ import {
   Check, 
   ExternalLink, 
   Volume2, 
+  VolumeX,
   Play, 
+  Pause,
+  RotateCcw,
   ChevronLeft, 
   ChevronRight, 
   Link2, 
@@ -20,7 +23,9 @@ import {
   BookOpen,
   Filter,
   Layers,
-  Heart
+  Heart,
+  Award,
+  BookMarked
 } from 'lucide-react';
 
 export const PawariLokgeetView: React.FC = () => {
@@ -36,13 +41,19 @@ export const PawariLokgeetView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedLetter, setSelectedLetter] = useState<string>('all');
+  const [collectorFilter, setCollectorFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'default' | 'title' | 'category'>('default');
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [lyricsFontSize, setLyricsFontSize] = useState<'sm' | 'base' | 'lg' | 'xl'>('lg');
   const ITEMS_PER_PAGE = 6;
 
   const [selectedItem, setSelectedItem] = useState<PawariLokgeetItem | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedLyricsId, setCopiedLyricsId] = useState<string | null>(null);
+
+  // Audio Speech Synthesis states
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [speechRate, setSpeechRate] = useState<number>(0.9);
 
   const HINDI_LETTERS = [
     'all',
@@ -50,6 +61,22 @@ export const PawariLokgeetView: React.FC = () => {
     'च', 'छ', 'ज', 'ट', 'ड', 'त', 'थ', 'द', 'न',
     'प', 'फ', 'ब', 'भ', 'म', 'य', 'र', 'ल', 'व', 'श', 'स', 'ह'
   ];
+
+  // Stop speech when navigating
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setIsPlayingAudio(false);
+    }
+  }, [selectedItem]);
 
   // Sync from URL path on mount & popstate
   useEffect(() => {
@@ -82,7 +109,7 @@ export const PawariLokgeetView: React.FC = () => {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedLetter, sortBy]);
+  }, [searchTerm, selectedCategory, selectedLetter, collectorFilter, sortBy]);
 
   const handleSelectItem = (item: PawariLokgeetItem, e?: React.MouseEvent) => {
     if (e) e.preventDefault();
@@ -114,7 +141,7 @@ export const PawariLokgeetView: React.FC = () => {
   };
 
   const handleCopyLyrics = (item: PawariLokgeetItem) => {
-    const text = `${item.title_pawari}\n${item.title_hindi ? '(' + item.title_hindi + ')\n' : ''}\n श्रेणी: ${item.category}\n ${item.singer_or_collector ? 'संग्रहकर्ता: ' + item.singer_or_collector + '\n' : ''}\n${item.lyrics_pawari}\n\n${item.lyrics_hindi_meaning ? 'भावार्थ:\n' + item.lyrics_hindi_meaning : ''}\n\n-- पवारी शोध पत्रिका (Pawari Shodh Patrika)`;
+    const text = `${item.title_pawari}\n${item.title_hindi ? '(' + item.title_hindi + ')\n' : ''}\nश्रेणी: ${item.category}\n${item.singer_or_collector ? item.singer_or_collector + '\n' : ''}\n\n[बोल / Lyrics]\n${item.lyrics_pawari}\n\n${item.lyrics_hindi_meaning ? '[भावार्थ / Meaning]\n' + item.lyrics_hindi_meaning : ''}\n\n-- पँवारी लोकगीत संग्रह (कविता कोश / पँवारी शोध पत्रिका)`;
     navigator.clipboard.writeText(text).then(() => {
       setCopiedLyricsId(item.id);
       setTimeout(() => setCopiedLyricsId(null), 2500);
@@ -124,8 +151,39 @@ export const PawariLokgeetView: React.FC = () => {
   const handleWhatsAppShare = (item: PawariLokgeetItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     const url = `${window.location.origin}/lokgeet/${item.slug || item.id}`;
-    const text = encodeURIComponent(`🎵 पवारी लोकगीत: *${item.title_pawari}*\nश्रेणी: ${item.category}\n\nपढ़ें और सुनें:\n${url}`);
+    const text = encodeURIComponent(`🎵 *${item.title_pawari}*\n(${item.title_hindi || 'पँवारी लोकगीत'})\nश्रेणी: ${item.category}\n${item.singer_or_collector ? 'संपादक: ' + item.singer_or_collector + '\n' : ''}\nपढ़ें एवं सुनें:\n${url}`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  };
+
+  const handleToggleSpeech = (text: string) => {
+    if (!('speechSynthesis' in window)) {
+      alert('आपके ब्राउज़र में स्पीच फीचर समर्थित नहीं है।');
+      return;
+    }
+
+    if (isPlayingAudio) {
+      window.speechSynthesis.cancel();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/[\n\r]+/g, ' । ');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'hi-IN';
+    utterance.rate = speechRate;
+    utterance.pitch = 1.0;
+
+    utterance.onend = () => {
+      setIsPlayingAudio(false);
+    };
+
+    utterance.onerror = () => {
+      setIsPlayingAudio(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+    setIsPlayingAudio(true);
   };
 
   // Filter and sort items
@@ -134,6 +192,7 @@ export const PawariLokgeetView: React.FC = () => {
       item.title_pawari.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.title_hindi && item.title_hindi.toLowerCase().includes(searchTerm.toLowerCase())) ||
       item.lyrics_pawari.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.lyrics_hindi_meaning && item.lyrics_hindi_meaning.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (item.singer_or_collector && item.singer_or_collector.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
@@ -142,7 +201,14 @@ export const PawariLokgeetView: React.FC = () => {
       item.title_pawari.trim().startsWith(selectedLetter) ||
       (item.title_hindi && item.title_hindi.trim().startsWith(selectedLetter));
 
-    return matchesSearch && matchesCategory && matchesLetter;
+    const matchesCollector = collectorFilter === 'all' || 
+      (collectorFilter === 'gopinath' && (
+        (item.singer_or_collector && item.singer_or_collector.includes('गोपीनाथ कालभोर')) ||
+        (item.contributor_name && item.contributor_name.includes('गोपीनाथ कालभोर')) ||
+        item.id.includes('gopinath')
+      ));
+
+    return matchesSearch && matchesCategory && matchesLetter && matchesCollector;
   });
 
   const sortedItems = [...filteredItems].sort((a, b) => {
@@ -152,12 +218,18 @@ export const PawariLokgeetView: React.FC = () => {
     if (sortBy === 'category') {
       return a.category.localeCompare(b.category, 'hi');
     }
-    // default newest
+    // default
     return b.created_at.localeCompare(a.created_at);
   });
 
   const totalPages = Math.ceil(sortedItems.length / ITEMS_PER_PAGE);
   const paginatedItems = sortedItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const gopinathCount = approvedLokgeet.filter(l => 
+    (l.singer_or_collector && l.singer_or_collector.includes('गोपीनाथ कालभोर')) ||
+    (l.contributor_name && l.contributor_name.includes('गोपीनाथ कालभोर')) ||
+    l.id.includes('gopinath')
+  ).length;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in duration-300">
@@ -169,7 +241,7 @@ export const PawariLokgeetView: React.FC = () => {
         </button>
         <span>/</span>
         <button onClick={handleBackToList} className="hover:text-red-900 transition">
-          {lang === 'hi' ? 'लोकसाहित्य अर्काइव' : 'Folklore Archive'}
+          {lang === 'hi' ? 'पँवारी लोकसाहित्य' : 'Pawari Literature'}
         </button>
         {selectedItem && (
           <>
@@ -187,7 +259,7 @@ export const PawariLokgeetView: React.FC = () => {
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <button
               onClick={handleBackToList}
-              className="inline-flex items-center space-x-2 text-xs font-bold text-red-900 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl transition"
+              className="inline-flex items-center space-x-2 text-xs font-bold text-red-900 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl transition cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>{lang === 'hi' ? 'लोकगीत सूची पर वापस जाएं' : 'Back to Lokgeet Archive'}</span>
@@ -196,14 +268,14 @@ export const PawariLokgeetView: React.FC = () => {
             <div className="flex items-center space-x-2">
               <button
                 onClick={(e) => handleWhatsAppShare(selectedItem, e)}
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-xl transition"
+                className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-xl transition cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 <span>{lang === 'hi' ? 'व्हाट्सएप शेयर' : 'Share'}</span>
               </button>
               <button
                 onClick={(e) => handleCopyLink(selectedItem, e)}
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl transition"
+                className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl transition cursor-pointer"
               >
                 {copiedId === selectedItem.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Link2 className="w-3.5 h-3.5" />}
                 <span>{copiedId === selectedItem.id ? (lang === 'hi' ? 'लिंक कॉपी हुआ' : 'Copied!') : (lang === 'hi' ? 'लिंक कॉपी' : 'Copy Link')}</span>
@@ -218,9 +290,9 @@ export const PawariLokgeetView: React.FC = () => {
                 🎵 {selectedItem.category}
               </span>
               {selectedItem.singer_or_collector && (
-                <span className="text-xs text-slate-600 font-medium flex items-center space-x-1 bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">
-                  <User className="w-3.5 h-3.5 text-amber-700" />
-                  <span>{lang === 'hi' ? 'संग्रहकर्ता / गवैया:' : 'Collector/Singer:'} {selectedItem.singer_or_collector}</span>
+                <span className="text-xs text-slate-700 font-medium flex items-center space-x-1 bg-amber-50/80 px-3 py-1 rounded-lg border border-amber-200/80">
+                  <Award className="w-3.5 h-3.5 text-amber-700" />
+                  <span>{selectedItem.singer_or_collector}</span>
                 </span>
               )}
             </div>
@@ -235,23 +307,65 @@ export const PawariLokgeetView: React.FC = () => {
             )}
           </div>
 
-          {/* Optional Media */}
+          {/* Optional Image */}
           {selectedItem.image_url && (
             <div className="max-h-80 rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100">
               <SafeImage src={selectedItem.image_url} alt={selectedItem.title_pawari} className="w-full h-full object-cover" />
             </div>
           )}
 
+          {/* Text to Speech Voice Player Bar */}
+          <div className="bg-gradient-to-r from-red-950 to-red-900 text-amber-100 p-4 sm:p-5 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => handleToggleSpeech(`${selectedItem.title_pawari}। ${selectedItem.lyrics_pawari}। ${selectedItem.lyrics_hindi_meaning ? 'भावार्थ: ' + selectedItem.lyrics_hindi_meaning : ''}`)}
+                className="w-11 h-11 rounded-full bg-amber-500 hover:bg-amber-400 text-red-950 flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer"
+                title={isPlayingAudio ? 'रोकें (Stop)' : 'गीत के बोल सुनें (Listen)'}
+              >
+                {isPlayingAudio ? <Pause className="w-5 h-5 fill-red-950" /> : <Play className="w-5 h-5 fill-red-950 ml-0.5" />}
+              </button>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-amber-200 flex items-center space-x-1.5">
+                  <Volume2 className="w-4 h-4 text-amber-400" />
+                  <span>{isPlayingAudio ? 'ऑडियो वाचन जारी है...' : 'पँवारी लोकगीत बोल सुनें (Audio Narration)'}</span>
+                </h4>
+                <p className="text-[11px] text-amber-300/80">
+                  {isPlayingAudio ? 'बोल का उच्चारण हो रहा है' : 'क्लिक करके देवनागरी पँवारी बोल का शुद्ध वाचन सुनें'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setSpeechRate(r => r === 0.8 ? 1.0 : r === 1.0 ? 1.2 : 0.8)}
+                className="px-3 py-1.5 bg-red-900/80 hover:bg-red-800 border border-amber-500/30 rounded-xl text-xs font-mono text-amber-200 transition"
+              >
+                गति: {speechRate}x
+              </button>
+              {isPlayingAudio && (
+                <button
+                  onClick={() => { window.speechSynthesis.cancel(); setIsPlayingAudio(false); }}
+                  className="p-2 bg-red-800/80 hover:bg-red-700 text-amber-200 rounded-xl transition"
+                  title="रोकें"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Custom Audio File if provided */}
           {selectedItem.audio_url && (
             <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-2xl space-y-2">
               <div className="flex items-center space-x-2 text-xs font-bold text-amber-900">
                 <Volume2 className="w-4 h-4 text-amber-700" />
-                <span>{lang === 'hi' ? 'पवारी लोकगीत ऑडियो सुनें:' : 'Listen Audio:'}</span>
+                <span>{lang === 'hi' ? 'पँवारी लोकगीत रिकॉर्डिंग:' : 'Folk Recording:'}</span>
               </div>
               <audio controls src={selectedItem.audio_url} className="w-full" />
             </div>
           )}
 
+          {/* YouTube Video Link if provided */}
           {selectedItem.youtube_url && (
             <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center space-x-2 text-xs font-medium text-slate-700">
@@ -272,31 +386,66 @@ export const PawariLokgeetView: React.FC = () => {
 
           {/* Lyrics Box */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="text-lg font-serif font-bold text-red-950 flex items-center space-x-2">
                 <Music className="w-5 h-5 text-amber-700" />
                 <span>{lang === 'hi' ? 'लोकगीत के सम्पूर्ण बोल (Lyrics)' : 'Complete Lyrics'}</span>
               </h2>
-              <button
-                onClick={() => handleCopyLyrics(selectedItem)}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-medium flex items-center space-x-1.5 transition"
-              >
-                {copiedLyricsId === selectedItem.id ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    <span className="text-emerald-700 font-bold">{lang === 'hi' ? 'कॉपी हुआ!' : 'Copied!'}</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5 text-amber-700" />
-                    <span>{lang === 'hi' ? 'बोल कॉपी करें' : 'Copy Lyrics'}</span>
-                  </>
-                )}
-              </button>
+
+              <div className="flex items-center space-x-2">
+                {/* Font Size Selector */}
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-700 space-x-1">
+                  <button
+                    onClick={() => setLyricsFontSize('sm')}
+                    className={`px-2 py-1 rounded-lg ${lyricsFontSize === 'sm' ? 'bg-white shadow-xs text-red-950' : 'hover:text-black'}`}
+                  >
+                    A-
+                  </button>
+                  <button
+                    onClick={() => setLyricsFontSize('base')}
+                    className={`px-2 py-1 rounded-lg ${lyricsFontSize === 'base' ? 'bg-white shadow-xs text-red-950' : 'hover:text-black'}`}
+                  >
+                    A
+                  </button>
+                  <button
+                    onClick={() => setLyricsFontSize('lg')}
+                    className={`px-2 py-1 rounded-lg ${lyricsFontSize === 'lg' ? 'bg-white shadow-xs text-red-950' : 'hover:text-black'}`}
+                  >
+                    A+
+                  </button>
+                  <button
+                    onClick={() => setLyricsFontSize('xl')}
+                    className={`px-2 py-1 rounded-lg ${lyricsFontSize === 'xl' ? 'bg-white shadow-xs text-red-950' : 'hover:text-black'}`}
+                  >
+                    A++
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => handleCopyLyrics(selectedItem)}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-medium flex items-center space-x-1.5 transition cursor-pointer"
+                >
+                  {copiedLyricsId === selectedItem.id ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-700 font-bold">{lang === 'hi' ? 'कॉपी हुआ!' : 'Copied!'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-amber-700" />
+                      <span>{lang === 'hi' ? 'बोल कॉपी करें' : 'Copy Lyrics'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
-            <div className="bg-amber-50/40 border border-amber-200/60 p-6 sm:p-8 rounded-2xl">
-              <pre className="text-base sm:text-lg font-serif text-slate-900 whitespace-pre-wrap leading-relaxed">
+            <div className="bg-amber-50/40 border border-amber-200/70 p-6 sm:p-8 rounded-2xl shadow-inner">
+              <pre className={`font-serif text-slate-900 whitespace-pre-wrap leading-relaxed ${
+                lyricsFontSize === 'sm' ? 'text-sm' :
+                lyricsFontSize === 'base' ? 'text-base' :
+                lyricsFontSize === 'lg' ? 'text-lg' : 'text-xl sm:text-2xl'
+              }`}>
                 {selectedItem.lyrics_pawari}
               </pre>
             </div>
@@ -304,12 +453,12 @@ export const PawariLokgeetView: React.FC = () => {
 
           {/* Hindi Meaning / भावार्थ */}
           {selectedItem.lyrics_hindi_meaning && (
-            <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-              <h3 className="text-sm font-serif font-bold text-slate-900 flex items-center space-x-2">
+            <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+              <h3 className="text-sm sm:text-base font-serif font-bold text-slate-900 flex items-center space-x-2">
                 <Sparkles className="w-4 h-4 text-amber-700" />
-                <span>{lang === 'hi' ? 'गीत का भावार्थ (हिंदी अर्थ):' : 'Meaning in Hindi:'}</span>
+                <span>{lang === 'hi' ? 'गीत का भावार्थ (हिंदी अर्थ एवं सांस्कृतिक संदर्भ):' : 'Meaning in Hindi:'}</span>
               </h3>
-              <p className="text-sm text-slate-700 font-serif leading-relaxed">
+              <p className="text-sm sm:text-base text-slate-700 font-serif leading-relaxed">
                 {selectedItem.lyrics_hindi_meaning}
               </p>
             </div>
@@ -327,7 +476,7 @@ export const PawariLokgeetView: React.FC = () => {
                   {prev ? (
                     <button
                       onClick={(e) => handleSelectItem(prev, e)}
-                      className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 flex items-center space-x-1.5 transition max-w-[48%]"
+                      className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 flex items-center space-x-1.5 transition max-w-[48%] cursor-pointer"
                     >
                       <ChevronLeft className="w-4 h-4 text-amber-700 shrink-0" />
                       <span className="truncate">{lang === 'hi' ? 'पिछला गीत: ' : 'Prev: '}{prev.title_pawari}</span>
@@ -337,7 +486,7 @@ export const PawariLokgeetView: React.FC = () => {
                   {next ? (
                     <button
                       onClick={(e) => handleSelectItem(next, e)}
-                      className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 flex items-center space-x-1.5 transition max-w-[48%] ml-auto"
+                      className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 flex items-center space-x-1.5 transition max-w-[48%] ml-auto cursor-pointer"
                     >
                       <span className="truncate">{lang === 'hi' ? 'अगला गीत: ' : 'Next: '}{next.title_pawari}</span>
                       <ChevronRight className="w-4 h-4 text-amber-700 shrink-0" />
@@ -353,24 +502,55 @@ export const PawariLokgeetView: React.FC = () => {
         /* ----------------- ARCHIVE LISTING VIEW ----------------- */
         <div className="space-y-6">
           
-          {/* Header & Intro */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <span className="px-3 py-1 bg-amber-100 text-amber-900 text-xs font-bold uppercase rounded-full tracking-wider">
-                {lang === 'hi' ? 'सांस्कृतिक अर्काइव' : 'Cultural Archive'}
-              </span>
-              <span className="text-xs text-slate-500 font-mono">
-                {approvedLokgeet.length} {lang === 'hi' ? 'लोकगीत संकलित' : 'Folk Songs'}
-              </span>
+          {/* Header & Tribute Banner for Gopinath Kalbhor Compilation */}
+          <div className="bg-gradient-to-br from-red-950 via-red-900 to-amber-950 text-amber-100 rounded-3xl p-6 sm:p-8 shadow-xl space-y-4 border border-amber-600/30">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center space-x-2">
+                <span className="px-3 py-1 bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold uppercase rounded-full tracking-wider">
+                  {lang === 'hi' ? 'कविता कोश एवं वाचिक साहित्य संकलन' : 'Oral Folklore Archive'}
+                </span>
+                <span className="text-xs text-amber-200/80 font-mono bg-red-900/60 px-2.5 py-1 rounded-full">
+                  {approvedLokgeet.length} {lang === 'hi' ? 'लोकगीत संकलित' : 'Songs'}
+                </span>
+              </div>
+
+              {/* Gopinath Kalbhor Badge */}
+              <div className="inline-flex items-center space-x-2 bg-amber-400/10 border border-amber-300/30 px-3 py-1.5 rounded-xl text-xs text-amber-200">
+                <BookMarked className="w-4 h-4 text-amber-400" />
+                <span>संकलन: <strong>स्व. गोपीनाथ कालभोर</strong></span>
+              </div>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-red-950 tracking-tight">
-              {lang === 'hi' ? 'पवारी लोकगीत (Pawari Lokgeet Archive)' : 'Pawari Lokgeet Archive'}
-            </h1>
-            <p className="text-sm text-slate-600 max-w-2xl leading-relaxed">
-              {lang === 'hi'
-                ? 'सतपुड़ा, ताप्ती अंचल और मध्य भारत की लोकगाथाओं, विवाह गीतों एवं पारंपरिक पवारी लोकसाहित्य का व्यवस्थित सांस्कृतिक अर्काइव।'
-                : 'A curated cultural archive of folk songs, marriage ballads, and traditional oral literature from the Tapti and Satpura region.'}
-            </p>
+
+            <div className="space-y-2">
+              <h1 className="text-3xl sm:text-5xl font-serif font-bold text-white tracking-tight leading-tight">
+                पँवारी लोकगीत संग्रह
+              </h1>
+              <p className="text-sm sm:text-base text-amber-200/90 max-w-3xl leading-relaxed font-serif">
+                बैतूल, सतपुड़ा, ताप्ती अंचल और मध्य भारत की पावन लोक परंपरा में गाए जाने वाले देवी वंदना, पांढरी माता स्तुति, सोहर, बधावा, सगाई-विवाह, हल्दी, विदाई, धान रोपाई, भुजरिया, आखाटी, फाग एवं श्रमगीतों का प्रामाणिक संकलन (संकलनकर्ता: गोपीनाथ कालभोर)।
+              </p>
+            </div>
+
+            {/* Quick action buttons */}
+            <div className="flex flex-wrap items-center gap-2.5 pt-2">
+              <button
+                onClick={() => { setCollectorFilter(collectorFilter === 'gopinath' ? 'all' : 'gopinath'); }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
+                  collectorFilter === 'gopinath' 
+                    ? 'bg-amber-400 text-red-950 shadow-md' 
+                    : 'bg-red-900/80 hover:bg-red-800 text-amber-100 border border-amber-500/30'
+                }`}
+              >
+                <Award className="w-3.5 h-3.5" />
+                <span>गोपीनाथ कालभोर संकलन ({gopinathCount})</span>
+              </button>
+
+              <button
+                onClick={() => { setSelectedCategory('all'); setCollectorFilter('all'); setSearchTerm(''); setSelectedLetter('all'); }}
+                className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold transition cursor-pointer"
+              >
+                सभी लोकगीत देखें ({approvedLokgeet.length})
+              </button>
+            </div>
           </div>
 
           {/* Browse Controls & Search Bar */}
@@ -381,7 +561,7 @@ export const PawariLokgeetView: React.FC = () => {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder={lang === 'hi' ? 'लोकगीत शीर्षक, श्रेणी या बोल खोजें...' : 'Search folk songs by title or lyrics...'}
+                  placeholder={lang === 'hi' ? 'लोकगीत शीर्षक, बोल, भावार्थ या श्रेणी खोजें...' : 'Search folk songs by title, lyrics or category...'}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-red-900 transition"
@@ -426,6 +606,7 @@ export const PawariLokgeetView: React.FC = () => {
                 </button>
                 {lokgeetCategories.map(cat => {
                   const count = approvedLokgeet.filter(l => l.category === cat).length;
+                  if (count === 0 && selectedCategory !== cat) return null;
                   return (
                     <button
                       key={cat}
@@ -465,19 +646,22 @@ export const PawariLokgeetView: React.FC = () => {
 
           </div>
 
-          {/* Results Count */}
+          {/* Results Count & Reset Filter */}
           <div className="flex justify-between items-center text-xs text-slate-500 px-1">
             <span>
-              {lang === 'hi' ? 'प्रदर्शित लोकगीत:' : 'Showing folk songs:'} <strong className="text-slate-900 font-serif">{sortedItems.length}</strong>
+              {lang === 'hi' ? 'प्रदर्शित लोकगीत:' : 'Showing folk songs:'} <strong className="text-slate-900 font-serif">{sortedItems.length}</strong> {collectorFilter === 'gopinath' ? '(गोपीनाथ कालभोर संकलन)' : ''}
             </span>
-            {selectedCategory !== 'all' && (
-              <button onClick={() => setSelectedCategory('all')} className="text-red-900 font-semibold hover:underline">
+            {(selectedCategory !== 'all' || collectorFilter !== 'all' || selectedLetter !== 'all' || searchTerm) && (
+              <button 
+                onClick={() => { setSelectedCategory('all'); setCollectorFilter('all'); setSelectedLetter('all'); setSearchTerm(''); }} 
+                className="text-red-900 font-semibold hover:underline cursor-pointer"
+              >
                 {lang === 'hi' ? 'फ़िल्टर रीसेट करें' : 'Reset Filter'}
               </button>
             )}
           </div>
 
-          {/* Clean Listing Cards (One content type archive style) */}
+          {/* Clean Listing Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {paginatedItems.map(item => {
               const lyricsClean = item.lyrics_pawari.replace(/\n+/g, ' ').trim();
@@ -506,7 +690,7 @@ export const PawariLokgeetView: React.FC = () => {
                         {item.title_pawari}
                       </h3>
                       {item.title_hindi && (
-                        <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        <p className="text-xs text-slate-500 font-medium mt-0.5 font-serif">
                           ({item.title_hindi})
                         </p>
                       )}
@@ -517,12 +701,12 @@ export const PawariLokgeetView: React.FC = () => {
                       "{snippet}"
                     </div>
 
-                    {/* Source / Contributor (Hide gracefully if unavailable) */}
+                    {/* Collector Info */}
                     {item.singer_or_collector && (
                       <div className="flex items-center space-x-1.5 text-xs text-slate-600 font-medium">
-                        <User className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                        <Award className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                         <span className="truncate">
-                          {lang === 'hi' ? 'संग्रहकर्ता / गवैया:' : 'Source:'} {item.singer_or_collector}
+                          {item.singer_or_collector}
                         </span>
                       </div>
                     )}
@@ -532,7 +716,7 @@ export const PawariLokgeetView: React.FC = () => {
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                     <button
                       onClick={(e) => handleSelectItem(item, e)}
-                      className="px-4 py-2 bg-red-950 hover:bg-red-900 text-amber-100 rounded-xl text-xs font-bold transition flex items-center space-x-1"
+                      className="px-4 py-2 bg-red-950 hover:bg-red-900 text-amber-100 rounded-xl text-xs font-bold transition flex items-center space-x-1 cursor-pointer"
                     >
                       <span>{lang === 'hi' ? 'पूरा देखें ➔' : 'View Full ➔'}</span>
                     </button>
@@ -541,14 +725,14 @@ export const PawariLokgeetView: React.FC = () => {
                       <button
                         onClick={(e) => handleCopyLink(item, e)}
                         title="लिंक कॉपी करें"
-                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition"
+                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition cursor-pointer"
                       >
                         {copiedId === item.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Link2 className="w-3.5 h-3.5" />}
                       </button>
                       <button
                         onClick={(e) => handleWhatsAppShare(item, e)}
                         title="व्हाट्सएप शेयर"
-                        className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg transition"
+                        className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg transition cursor-pointer"
                       >
                         <Share2 className="w-3.5 h-3.5" />
                       </button>
@@ -571,8 +755,8 @@ export const PawariLokgeetView: React.FC = () => {
                     : 'Try adjusting your search query or resetting filters.'}
                 </p>
                 <button
-                  onClick={() => { setSearchTerm(''); setSelectedCategory('all'); setSelectedLetter('all'); }}
-                  className="px-4 py-2 bg-red-950 text-amber-100 text-xs font-bold rounded-xl"
+                  onClick={() => { setSearchTerm(''); setSelectedCategory('all'); setSelectedLetter('all'); setCollectorFilter('all'); }}
+                  className="px-4 py-2 bg-red-950 text-amber-100 text-xs font-bold rounded-xl cursor-pointer"
                 >
                   {lang === 'hi' ? 'सभी लोकगीत दिखाएं' : 'Show All Folk Songs'}
                 </button>
@@ -591,7 +775,7 @@ export const PawariLokgeetView: React.FC = () => {
                 <button
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition"
+                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition cursor-pointer"
                 >
                   {lang === 'hi' ? 'पिछला' : 'Prev'}
                 </button>
@@ -600,7 +784,7 @@ export const PawariLokgeetView: React.FC = () => {
                   <button
                     key={pg}
                     onClick={() => setCurrentPage(pg)}
-                    className={`w-8 h-8 rounded-lg text-xs font-bold transition ${
+                    className={`w-8 h-8 rounded-lg text-xs font-bold transition cursor-pointer ${
                       currentPage === pg
                         ? 'bg-red-950 text-amber-100 shadow-xs'
                         : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
@@ -613,7 +797,7 @@ export const PawariLokgeetView: React.FC = () => {
                 <button
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition"
+                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition cursor-pointer"
                 >
                   {lang === 'hi' ? 'अगला' : 'Next'}
                 </button>

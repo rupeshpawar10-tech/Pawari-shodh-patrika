@@ -319,7 +319,7 @@ export const IssuesManager: React.FC = () => {
             <div className="flex items-center justify-between border-b pb-4">
               <div>
                 <h2 className="font-serif font-bold text-xl text-slate-900">
-                  {editingIssue.id.includes('Date.now()') ? 'Create New Journal Issue' : 'Edit Journal Issue'}
+                  {!issues.some(i => i.id === editingIssue.id) ? 'Create New Journal Issue' : 'Edit Journal Issue'}
                 </h2>
                 <p className="text-xs text-slate-500 font-mono">
                   Volume {editingIssue.volume}, Issue {editingIssue.issue_number} ({editingIssue.year})

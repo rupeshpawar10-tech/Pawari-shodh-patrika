@@ -19,13 +19,17 @@ export const CurrentIssueView: React.FC = () => {
   } = useCms();
 
   const [shareModalArticle, setShareModalArticle] = useState<any | null>(null);
+  const [selectedIssueId, setSelectedIssueId] = useState<string>(() => {
+    const active = issues.find(i => i.status === 'current');
+    return active ? active.id : (issues[0]?.id || '');
+  });
 
-  const currentIssue = issues.find(i => i.status === 'current') || issues[0];
+  const selectedIssue = issues.find(i => i.id === selectedIssueId) || issues.find(i => i.status === 'current') || issues[0];
 
   const allPublished = articles.filter(a => a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted');
 
-  const issueArticles = currentIssue 
-    ? articles.filter(a => Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number) && (a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted'))
+  const issueArticles = selectedIssue 
+    ? articles.filter(a => Number(a.volume) === Number(selectedIssue.volume) && Number(a.issue) === Number(selectedIssue.issue_number) && (a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted'))
     : allPublished;
 
   const displayArticles = issueArticles.length > 0 ? issueArticles : allPublished;
@@ -50,10 +54,10 @@ export const CurrentIssueView: React.FC = () => {
     downloadPdf(pdfUrl, title || 'article.pdf');
   };
 
-  if (!currentIssue) {
+  if (!selectedIssue) {
     return (
       <div className="max-w-4xl mx-auto p-12 text-center text-slate-500 font-serif">
-        <p>No current issue published yet.</p>
+        <p>No journal issue published yet.</p>
       </div>
     );
   }
@@ -61,12 +65,33 @@ export const CurrentIssueView: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-8 animate-in fade-in duration-200">
       
+      {/* Issues selector dropdown if multiple issues available */}
+      {issues.length > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-amber-50/80 border border-amber-900/10 p-3.5 rounded-xl text-xs">
+          <div className="flex items-center space-x-2 text-slate-700">
+            <BookOpen className="w-4 h-4 text-amber-700 shrink-0" />
+            <span className="font-semibold">{lang === 'hi' ? 'पत्रिका अंक चुनें:' : 'Select Journal Issue:'}</span>
+          </div>
+          <select
+            value={selectedIssue.id}
+            onChange={(e) => setSelectedIssueId(e.target.value)}
+            className="px-3 py-1.5 bg-white border border-amber-900/20 rounded-lg font-serif font-bold text-slate-900 focus:ring-1 focus:ring-amber-500 shadow-2xs cursor-pointer text-xs"
+          >
+            {issues.map(iss => (
+              <option key={iss.id} value={iss.id}>
+                {iss.status === 'current' ? '★ ' : ''}Vol {iss.volume} Issue {iss.issue_number} ({iss.year}) - {lang === 'hi' ? iss.title_hindi : iss.title_english}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Issue Header */}
       <div className="bg-gradient-to-r from-red-950 via-red-900 to-amber-950 text-amber-100 rounded-2xl p-6 sm:p-10 shadow-lg border border-amber-500/30 flex flex-col md:flex-row items-center gap-8">
         
         <div className="w-28 sm:w-52 aspect-3/4 mx-auto md:mx-0 rounded-xl overflow-hidden border-2 border-amber-400/50 shadow-xl flex-shrink-0 bg-black">
           <SafeImage 
-            src={currentIssue.cover_image_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80'} 
+            src={selectedIssue.cover_image_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80'} 
             alt="Current Journal Issue Cover"
             loading="eager"
             fetchPriority="high"
@@ -78,27 +103,30 @@ export const CurrentIssueView: React.FC = () => {
 
         <div className="space-y-4 text-center md:text-left flex-1">
           <div className="inline-block bg-amber-500 text-red-950 font-bold font-mono text-xs px-3 py-1 rounded-full uppercase tracking-wider">
-            {lang === 'hi' ? 'वर्तमान अंक (Current Issue)' : 'Current Issue'}
+            {selectedIssue.status === 'current' 
+              ? (lang === 'hi' ? '★ मुख्य वर्तमान अंक (Current Issue)' : '★ Active Current Issue')
+              : (lang === 'hi' ? `खंड ${selectedIssue.volume}, अंक ${selectedIssue.issue_number}` : `Volume ${selectedIssue.volume}, Issue ${selectedIssue.issue_number}`)
+            }
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-amber-100">
-            {lang === 'hi' ? currentIssue.title_hindi : currentIssue.title_english}
+            {lang === 'hi' ? selectedIssue.title_hindi : selectedIssue.title_english}
           </h1>
 
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs font-mono text-amber-300">
-            <span>Volume {currentIssue.volume}</span>
+            <span>Volume {selectedIssue.volume}</span>
             <span>•</span>
-            <span>Issue {currentIssue.issue_number}</span>
+            <span>Issue {selectedIssue.issue_number}</span>
             <span>•</span>
-            <span>{currentIssue.year}</span>
+            <span>{selectedIssue.year}</span>
             <span>•</span>
-            <span>Published: {currentIssue.publication_date}</span>
+            <span>Published: {selectedIssue.publication_date}</span>
           </div>
 
-          {(currentIssue.editorial_note_hindi || currentIssue.editorial_note_english) && (
+          {(selectedIssue.editorial_note_hindi || selectedIssue.editorial_note_english) && (
             <div className="bg-black/30 p-4 rounded-xl border border-amber-500/20 text-xs sm:text-sm text-amber-200/90 leading-relaxed">
               <p className="font-semibold text-amber-300 mb-1">{lang === 'hi' ? 'संपादकीय नोट:' : 'Editorial Note:'}</p>
-              <p>{lang === 'hi' ? currentIssue.editorial_note_hindi : currentIssue.editorial_note_english}</p>
+              <p>{lang === 'hi' ? selectedIssue.editorial_note_hindi : selectedIssue.editorial_note_english}</p>
             </div>
           )}
         </div>

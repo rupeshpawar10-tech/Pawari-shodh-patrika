@@ -129,7 +129,7 @@ export const HomeView: React.FC = () => {
 
   // Featured editorial leadership (top 4)
   const topEditors = (editorialMembers && editorialMembers.length > 0)
-    ? editorialMembers.slice(0, 4)
+    ? [...editorialMembers].sort((a, b) => (a.order || 0) - (b.order || 0)).slice(0, 4)
     : [];
 
   return (
