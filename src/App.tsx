@@ -16,6 +16,7 @@ const CurrentIssueView = React.lazy(() => import('./components/public/CurrentIss
 const ArchiveView = React.lazy(() => import('./components/public/ArchiveView').then(m => ({ default: m.ArchiveView })));
 const ArticlesView = React.lazy(() => import('./components/public/ArticlesView').then(m => ({ default: m.ArticlesView })));
 const BooksBlogsView = React.lazy(() => import('./components/public/BooksBlogsView').then(m => ({ default: m.BooksBlogsView })));
+const WriterProfileView = React.lazy(() => import('./components/public/WriterProfileView').then(m => ({ default: m.WriterProfileView })));
 const ArticleDetailView = React.lazy(() => import('./components/public/ArticleDetailView').then(m => ({ default: m.ArticleDetailView })));
 const EditorialBoardView = React.lazy(() => import('./components/public/EditorialBoardView').then(m => ({ default: m.EditorialBoardView })));
 const AuthorGuidelinesView = React.lazy(() => import('./components/public/AuthorGuidelinesView').then(m => ({ default: m.AuthorGuidelinesView })));
@@ -120,6 +121,7 @@ const MainContent: React.FC = () => {
     lang, 
     activeView, 
     selectedArticleId, 
+    selectedWriterId,
     articles, 
     issues,
     isNotFound, 
@@ -143,7 +145,7 @@ const MainContent: React.FC = () => {
 
   // Check if requested issue exists if viewing an issue path
   const isInvalidIssue = React.useMemo(() => {
-    if (activeView !== 'archive') return false;
+    if (activeView !== 'archive' && activeView !== 'current_issue') return false;
     const pathname = window.location.pathname.toLowerCase();
     const searchParams = new URLSearchParams(window.location.search);
     const issueId = searchParams.get('issue') || (pathname.startsWith('/issue/') ? pathname.replace('/issue/', '').trim() : null);
@@ -231,6 +233,7 @@ const MainContent: React.FC = () => {
       case 'articles': return <ArticlesView />;
       case 'books_blogs': return <BooksBlogsView />;
       case 'pawari_writers': return <BooksBlogsView initialTab="writers" />;
+      case 'writer_profile': return <WriterProfileView writerIdOrSlug={selectedWriterId} />;
       case 'pawari_shabdkosh': return <BooksBlogsView initialTab="shabdkosh" />;
       case 'pawari_paheli': return <BooksBlogsView initialTab="paheli" />;
       case 'pawari_lokgeet': return <PawariLokgeetView />;

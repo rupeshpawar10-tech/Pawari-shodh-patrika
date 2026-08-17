@@ -470,24 +470,36 @@ export interface PawariWriterItem {
   photo_url?: string;
   designation_hindi?: string;
   designation_english?: string;
+  designation?: string; // alias
   location_hindi?: string;
   location_english?: string;
+  region?: string; // alias
   bio_hindi: string;
   bio_english?: string;
-  specialization_hindi?: string;
+  biography_hindi?: string; // alias
+  specialization_hindi?: string | string[];
+  specialization?: string[]; // alias
   awards_hindi?: string[];
+  awards_honors?: string[]; // alias
   published_books?: string[];
   published_blogs?: string[];
   contact_email?: string;
+  email?: string; // alias
   contact_phone?: string;
+  phone?: string; // alias
   website_url?: string;
   social_links?: {
     facebook?: string;
     youtube?: string;
     wikipedia?: string;
+    twitter?: string;
+    instagram?: string;
+    linkedin?: string;
   };
+  books_count?: number;
   is_featured?: boolean;
-  status: 'approved' | 'pending' | 'rejected';
+  status: 'approved' | 'pending' | 'rejected' | string;
+  slug?: string;
   created_at: string;
 }
 

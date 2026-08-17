@@ -11,26 +11,29 @@ const DB_NAME = 'PatrikaFileStore';
 const STORE_NAME = 'file_blobs';
 
 // Open or initialize IndexedDB for storing local file Blobs
-function openBlobDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+function openBlobDB(): Promise<IDBDatabase | null> {
+  return new Promise((resolve) => {
     if (typeof window === 'undefined' || !window.indexedDB) {
-      return reject(new Error('IndexedDB unavailable in current environment'));
+      return resolve(null);
     }
-    if (document.visibilityState === 'hidden') {
-      return reject(new Error('Document is hidden/closing'));
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      return resolve(null);
     }
     try {
       const request = window.indexedDB.open(DB_NAME, 1);
       request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME);
-        }
+        try {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        } catch (_) {}
       };
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      request.onerror = () => resolve(null);
+      request.onblocked = () => resolve(null);
     } catch (err) {
-      reject(err);
+      resolve(null);
     }
   });
 }
@@ -42,14 +45,16 @@ export async function saveFileToIndexedDB(fileId: string, blob: Blob): Promise<v
   let idb: IDBDatabase | null = null;
   try {
     idb = await openBlobDB();
+    if (!idb) return;
     const tx = idb.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).put(blob, fileId);
-    await new Promise((res, rej) => {
-      tx.oncomplete = res;
-      tx.onerror = rej;
+    await new Promise<void>((res) => {
+      tx.oncomplete = () => res();
+      tx.onerror = () => res();
+      tx.onabort = () => res();
     });
   } catch (e) {
-    console.warn('[FileBlobManager] IndexedDB save warning:', e);
+    // Silent recovery
   } finally {
     if (idb) {
       try { idb.close(); } catch (_) {}
@@ -64,11 +69,12 @@ export async function getFileFromIndexedDB(fileId: string): Promise<Blob | null>
   let idb: IDBDatabase | null = null;
   try {
     idb = await openBlobDB();
+    if (!idb) return null;
     const tx = idb.transaction(STORE_NAME, 'readonly');
     const req = tx.objectStore(STORE_NAME).get(fileId);
-    const result = await new Promise<Blob | null>((res, rej) => {
+    const result = await new Promise<Blob | null>((res) => {
       req.onsuccess = () => res((req.result as Blob) || null);
-      req.onerror = () => rej(req.error);
+      req.onerror = () => res(null);
     });
     return result;
   } catch (e) {

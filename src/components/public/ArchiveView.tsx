@@ -26,6 +26,7 @@ export const ArchiveView: React.FC = () => {
     lang, 
     issues, 
     articles, 
+    setSelectedIssueId,
     setSelectedArticleId, 
     setActiveView, 
     openPdfViewer,
@@ -247,10 +248,10 @@ export const ArchiveView: React.FC = () => {
                 <div className="flex items-center space-x-2 self-start md:self-center">
                   <button
                     onClick={() => {
-                      setSelectedVolume(String(issue.volume));
-                      setActiveView('current_issue');
+                      setSelectedIssueId(issue.id);
+                      setActiveView('current_issue', null, issue.id);
                     }}
-                    className="px-4 py-2 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-xl transition shadow-2xs flex items-center space-x-1.5"
+                    className="px-4 py-2 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-xl transition shadow-2xs flex items-center space-x-1.5 cursor-pointer"
                   >
                     <span>{lang === 'hi' ? 'विषय-सूची देखें' : 'View Table of Contents'}</span>
                     <ChevronRight className="w-4 h-4 text-amber-400" />

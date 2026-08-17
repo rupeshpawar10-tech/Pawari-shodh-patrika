@@ -11,6 +11,8 @@ export const CurrentIssueView: React.FC = () => {
     lang, 
     issues, 
     articles, 
+    selectedIssueId,
+    setSelectedIssueId,
     setSelectedArticleId, 
     setActiveView, 
     openPdfViewer,
@@ -19,12 +21,19 @@ export const CurrentIssueView: React.FC = () => {
   } = useCms();
 
   const [shareModalArticle, setShareModalArticle] = useState<any | null>(null);
-  const [selectedIssueId, setSelectedIssueId] = useState<string>(() => {
-    const active = issues.find(i => i.status === 'current');
-    return active ? active.id : (issues[0]?.id || '');
-  });
 
-  const selectedIssue = issues.find(i => i.id === selectedIssueId) || issues.find(i => i.status === 'current') || issues[0];
+  const selectedIssue = React.useMemo(() => {
+    if (selectedIssueId) {
+      const found = issues.find(i => 
+        i.id === selectedIssueId || 
+        String(i.issue_number) === selectedIssueId ||
+        `vol-${i.volume}-iss-${i.issue_number}` === selectedIssueId ||
+        `${i.volume}-${i.issue_number}` === selectedIssueId
+      );
+      if (found) return found;
+    }
+    return issues.find(i => i.status === 'current') || issues[0];
+  }, [issues, selectedIssueId]);
 
   const allPublished = articles.filter(a => a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted');
 

@@ -403,6 +403,7 @@ Suresh Deshmukh’s work provides an indispensable guide for understanding Pawar
 export const SAMPLE_WRITERS: PawariWriterItem[] = [
   {
     id: 'writer-1',
+    slug: 'dr-kailash-pawar',
     name_hindi: 'डॉ. कैलाश पवार',
     name_english: 'Dr. Kailash Pawar',
     photo_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80',
@@ -430,6 +431,7 @@ export const SAMPLE_WRITERS: PawariWriterItem[] = [
   },
   {
     id: 'writer-2',
+    slug: 'prof-rameshwar-sharma',
     name_hindi: 'प्रो. रामेश्वर शर्मा',
     name_english: 'Prof. Rameshwar Sharma',
     photo_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
@@ -450,6 +452,7 @@ export const SAMPLE_WRITERS: PawariWriterItem[] = [
   },
   {
     id: 'writer-3',
+    slug: 'dr-anita-malviya',
     name_hindi: 'डॉ. अनिता मालवीय',
     name_english: 'Dr. Anita Malviya',
     photo_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&auto=format&fit=crop&q=80',
@@ -470,6 +473,7 @@ export const SAMPLE_WRITERS: PawariWriterItem[] = [
   },
   {
     id: 'writer-4',
+    slug: 'suresh-deshmukh',
     name_hindi: 'श्री सुरेश देशमुख',
     name_english: 'Shri Suresh Deshmukh',
     photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
