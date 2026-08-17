@@ -299,9 +299,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteCustomRole = async (roleId: string) => {
-    const target = roles.find(r => r.id === roleId);
-    if (target?.is_system) {
-      throw new Error('System default roles cannot be deleted.');
+    if (roleId === 'super_admin') {
+      throw new Error('The Super Admin role is protected and cannot be deleted.');
     }
 
     try {
