@@ -645,10 +645,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('lokgeet_categories_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const merged = Array.from(new Set([...DEFAULT_LOKGEET_CATEGORIES, ...parsed])).filter(Boolean);
-          return merged;
-        }
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
     return DEFAULT_LOKGEET_CATEGORIES;
@@ -656,47 +653,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const saveLokgeetCategory = async (catName: string) => {
     const trimmed = catName.trim();
-    if (!trimmed) return;
-    const updated = Array.from(new Set([...lokgeetCategories, trimmed])).filter(Boolean);
+    if (!trimmed || lokgeetCategories.includes(trimmed)) return;
+    const updated = [...lokgeetCategories, trimmed];
     setLokgeetCategories(updated);
     try { localStorage.setItem('lokgeet_categories_cache', JSON.stringify(updated)); } catch (e) {}
-    try { 
-      await setDoc(doc(db, 'settings', 'lokgeet_categories'), { 
-        categories: updated,
-        updatedAt: new Date().toISOString()
-      }, { merge: true }); 
-    } catch (e) {
-      console.error('Error saving lokgeet category to Firestore:', e);
-    }
-
-    logActivity({
-      category: 'lokgeet',
-      action: 'create',
-      title: `Added Lokgeet Category "${trimmed}"`,
-      details: `New category created in folk songs repository`
-    }).catch(console.warn);
+    try { await setDoc(doc(db, 'settings', 'lokgeet_categories'), { categories: updated }); } catch (e) {}
   };
 
   const deleteLokgeetCategory = async (catName: string) => {
     const updated = lokgeetCategories.filter(c => c !== catName);
-    const finalCats = updated.length > 0 ? updated : DEFAULT_LOKGEET_CATEGORIES;
-    setLokgeetCategories(finalCats);
-    try { localStorage.setItem('lokgeet_categories_cache', JSON.stringify(finalCats)); } catch (e) {}
-    try { 
-      await setDoc(doc(db, 'settings', 'lokgeet_categories'), { 
-        categories: finalCats,
-        updatedAt: new Date().toISOString()
-      }); 
-    } catch (e) {
-      console.error('Error deleting lokgeet category from Firestore:', e);
-    }
-
-    logActivity({
-      category: 'lokgeet',
-      action: 'delete',
-      title: `Deleted Lokgeet Category "${catName}"`,
-      details: `Removed category from folk songs repository`
-    }).catch(console.warn);
+    setLokgeetCategories(updated);
+    try { localStorage.setItem('lokgeet_categories_cache', JSON.stringify(updated)); } catch (e) {}
+    try { await setDoc(doc(db, 'settings', 'lokgeet_categories'), { categories: updated }); } catch (e) {}
   };
 
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(() => {
@@ -1001,86 +969,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } catch (e) {}
 
-      // 3.6 Lokgeet & Lokgeet Categories
+      // 3.6 Lokgeet
       try {
-        let dbCategories: string[] = [];
-        try {
-          const lokgeetCatSnap = await getDoc(doc(db, 'settings', 'lokgeet_categories'));
-          if (lokgeetCatSnap.exists()) {
-            const data = lokgeetCatSnap.data();
-            if (Array.isArray(data.categories)) {
-              dbCategories = data.categories.filter((c: any) => typeof c === 'string' && c.trim().length > 0);
-            }
-          }
-        } catch (catErr) {
-          console.warn('Error reading lokgeet_categories document:', catErr);
-        }
-
         const lokgeetSnap = await getDocs(collection(db, 'lokgeet'));
-        let loaded: PawariLokgeetItem[] = [];
-        if (!lokgeetSnap.empty) {
-          loaded = lokgeetSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
+        if (!lokgeetSnap.empty && isMounted) {
+          const loaded = lokgeetSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
+          const loadedIds = new Set(loaded.map(l => l.id));
+          const missingSamples = SAMPLE_LOKGEET.filter(s => !loadedIds.has(s.id));
+          const fullList = [...loaded, ...missingSamples];
+          setLokgeetList(fullList);
+          try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(fullList)); } catch (e) {}
         }
-
-        // Check local cache for newly added songs that may not be synced
-        const cachedLokgeet = localStorage.getItem('pawari_lokgeet_cache');
-        if (cachedLokgeet) {
-          try {
-            const parsed = JSON.parse(cachedLokgeet);
-            if (Array.isArray(parsed)) {
-              parsed.forEach((cItem: PawariLokgeetItem) => {
-                if (!loaded.some(l => l.id === cItem.id)) {
-                  loaded.unshift(cItem);
-                }
-              });
-            }
-          } catch (e) {}
-        }
-
-        const loadedIds = new Set(loaded.map(l => l.id));
-        const missingSamples = SAMPLE_LOKGEET.filter(s => !loadedIds.has(s.id));
-        const fullLokgeetList = [...loaded, ...missingSamples];
-
-        // Gather categories from all songs
-        const songCategories = fullLokgeetList
-          .map(l => l.category)
-          .filter((c): c is string => Boolean(c && typeof c === 'string' && c.trim().length > 0));
-
-        // Gather cached categories
-        let cachedCategories: string[] = [];
-        try {
-          const cachedCatStr = localStorage.getItem('lokgeet_categories_cache');
-          if (cachedCatStr) {
-            const parsed = JSON.parse(cachedCatStr);
-            if (Array.isArray(parsed)) cachedCategories = parsed;
-          }
-        } catch (e) {}
-
-        // Master union of categories
-        const masterCategories = Array.from(new Set([
-          ...DEFAULT_LOKGEET_CATEGORIES,
-          ...dbCategories,
-          ...cachedCategories,
-          ...songCategories
-        ])).filter(c => c && c.trim().length > 0);
-
-        if (isMounted) {
-          setLokgeetList(fullLokgeetList);
-          setLokgeetCategories(masterCategories);
-          try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(fullLokgeetList)); } catch (e) {}
-          try { localStorage.setItem('lokgeet_categories_cache', JSON.stringify(masterCategories)); } catch (e) {}
-        }
-
-        // Persist master categories to Firestore if new categories exist or db doc was empty
-        if (dbCategories.length === 0 || masterCategories.length > dbCategories.length) {
-          setDoc(doc(db, 'settings', 'lokgeet_categories'), { 
-            categories: masterCategories,
-            updatedAt: new Date().toISOString()
-          }, { merge: true }).catch(() => {});
-        }
-      } catch (e) {
-        console.error('Error fetching lokgeet and categories:', e);
-      }
+      } catch (e) {}
 
       // 3.7 Quiz Questions
       try {
@@ -1292,59 +1192,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('Could not attach realtime issues listener:', e);
     }
 
-    let unsubscribeLokgeetCategories: (() => void) | null = null;
-    try {
-      unsubscribeLokgeetCategories = onSnapshot(doc(db, 'settings', 'lokgeet_categories'), (snap) => {
-        if (snap.exists() && isMounted) {
-          const data = snap.data();
-          if (Array.isArray(data.categories) && data.categories.length > 0) {
-            const dbCats = data.categories.filter((c: any) => typeof c === 'string' && c.trim().length > 0);
-            setLokgeetCategories(prev => {
-              const merged = Array.from(new Set([...prev, ...dbCats])).filter(Boolean);
-              try { localStorage.setItem('lokgeet_categories_cache', JSON.stringify(merged)); } catch (e) {}
-              return merged;
-            });
-          }
-        }
-      }, (err) => {
-        console.warn('Realtime lokgeet categories listener notice:', err);
-      });
-    } catch (e) {
-      console.warn('Could not attach realtime lokgeet categories listener:', e);
-    }
-
-    let unsubscribeLokgeet: (() => void) | null = null;
-    try {
-      unsubscribeLokgeet = onSnapshot(collection(db, 'lokgeet'), (snapshot) => {
-        if (!snapshot.empty && isMounted) {
-          const liveLokgeet = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
-          const loadedIds = new Set(liveLokgeet.map(l => l.id));
-          const missingSamples = SAMPLE_LOKGEET.filter(s => !loadedIds.has(s.id));
-          const fullList = [...liveLokgeet, ...missingSamples];
-          setLokgeetList(fullList);
-          try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(fullList)); } catch (e) {}
-
-          const songCategories = fullList.map(l => l.category).filter((c): c is string => Boolean(c && typeof c === 'string' && c.trim().length > 0));
-          setLokgeetCategories(prev => {
-            const merged = Array.from(new Set([...prev, ...songCategories])).filter(Boolean);
-            try { localStorage.setItem('lokgeet_categories_cache', JSON.stringify(merged)); } catch (e) {}
-            return merged;
-          });
-        }
-      }, (err) => {
-        console.warn('Realtime lokgeet listener notice:', err);
-      });
-    } catch (e) {
-      console.warn('Could not attach realtime lokgeet listener:', e);
-    }
-
     return () => {
       isMounted = false;
       if (unsubscribeEditorial) unsubscribeEditorial();
       if (unsubscribeArticles) unsubscribeArticles();
       if (unsubscribeIssues) unsubscribeIssues();
-      if (unsubscribeLokgeetCategories) unsubscribeLokgeetCategories();
-      if (unsubscribeLokgeet) unsubscribeLokgeet();
     };
   }, []);
 
@@ -2283,22 +2135,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLokgeetList(updated);
     try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
     try { await setDoc(doc(db, 'lokgeet', itemToSave.id), itemToSave); } catch (e) { console.error(e); }
-
-    // Auto-register category into lokgeetCategories and Firestore if it's new
-    if (itemToSave.category && itemToSave.category.trim()) {
-      const catTrimmed = itemToSave.category.trim();
-      if (!lokgeetCategories.includes(catTrimmed)) {
-        const updatedCats = Array.from(new Set([...lokgeetCategories, catTrimmed]));
-        setLokgeetCategories(updatedCats);
-        try { localStorage.setItem('lokgeet_categories_cache', JSON.stringify(updatedCats)); } catch (e) {}
-        try {
-          await setDoc(doc(db, 'settings', 'lokgeet_categories'), {
-            categories: updatedCats,
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-        } catch (e) {}
-      }
-    }
 
     logActivity({
       category: 'lokgeet',

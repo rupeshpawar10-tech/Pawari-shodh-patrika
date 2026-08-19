@@ -606,6 +606,7 @@ export const PawariLokgeetView: React.FC = () => {
                 </button>
                 {lokgeetCategories.map(cat => {
                   const count = approvedLokgeet.filter(l => l.category === cat).length;
+                  if (count === 0 && selectedCategory !== cat) return null;
                   return (
                     <button
                       key={cat}
