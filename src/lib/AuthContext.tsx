@@ -614,82 +614,99 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const googleGsiLogin = async (): Promise<void> => {
     return new Promise((resolve, reject) => {
-      const loadGsiScript = (): Promise<void> => {
-        if ((window as any).google?.accounts?.oauth2) {
-          return Promise.resolve();
-        }
-        return new Promise((resScript, rejScript) => {
-          const existingScript = document.getElementById('gsi-client-script');
-          if (existingScript) {
-            existingScript.addEventListener('load', () => resScript());
-            existingScript.addEventListener('error', () => rejScript(new Error('Failed to load Google Sign-In script.')));
+      if (typeof window === 'undefined') {
+        return reject(new Error('Browser environment required.'));
+      }
+
+      const clientId = "747594245177-rgktn8e4o6o6qarvqcc92t8g2nrbe3s5.apps.googleusercontent.com";
+
+      const initAndRequest = () => {
+        try {
+          if (!(window as any).google?.accounts?.oauth2) {
+            reject(new Error('Google Sign-In SDK is not ready. Please use Email & Password or try opening the app in a new tab.'));
             return;
           }
+
+          const client = (window as any).google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: 'openid email profile',
+            error_callback: (err: any) => {
+              console.warn('[Google GSI Error]:', err);
+              if (err?.type === 'popup_failed_to_open' || err?.message?.includes('popup') || String(err).includes('popup')) {
+                reject(new Error('Google Sign-In popup was blocked by your browser. Please allow popups for this site, open the app in a new tab, or use Email & Password.'));
+              } else {
+                reject(new Error('Google Sign-In was not completed. Please try again or use Email & Password.'));
+              }
+            },
+            callback: async (tokenResponse: any) => {
+              if (tokenResponse.error) {
+                if (tokenResponse.error === 'popup_blocked_by_browser' || tokenResponse.error === 'popup_closed_by_user') {
+                  reject(new Error('Sign-In popup was closed or blocked by browser. Please allow popups or use Email & Password.'));
+                } else {
+                  reject(new Error(tokenResponse.error_description || 'Google sign-in was cancelled.'));
+                }
+                return;
+              }
+              try {
+                const accessToken = tokenResponse.access_token;
+                // Fetch user profile from Google userinfo API
+                const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                if (!userInfoRes.ok) {
+                  throw new Error('Failed to fetch user profile from Google.');
+                }
+                const googleUser = await userInfoRes.json();
+                if (!googleUser || !googleUser.email) {
+                  throw new Error('No email address provided by Google account.');
+                }
+
+                const userObj = {
+                  uid: 'google_' + (googleUser.sub || googleUser.email.replace(/[^a-z0-9]/g, '_')),
+                  email: googleUser.email,
+                  displayName: googleUser.name || googleUser.given_name || googleUser.email.split('@')[0],
+                  photoURL: googleUser.picture || null
+                };
+
+                try {
+                  const credential = GoogleAuthProvider.credential(null, accessToken);
+                  await signInWithCredential(auth, credential);
+                } catch (fbErr) {
+                  console.warn('Direct Firebase credential sign-in note:', fbErr);
+                }
+
+                await handleAuthenticatedFirebaseUser(userObj);
+                resolve();
+              } catch (authErr: any) {
+                reject(authErr);
+              }
+            }
+          });
+
+          client.requestAccessToken({ prompt: 'select_account' });
+        } catch (initErr: any) {
+          console.warn('[GSI Init Error]:', initErr);
+          reject(new Error('Browser popup was blocked. Please allow popups for this site or use Email & Password login.'));
+        }
+      };
+
+      if ((window as any).google?.accounts?.oauth2) {
+        initAndRequest();
+      } else {
+        const existingScript = document.getElementById('gsi-client-script');
+        if (existingScript) {
+          initAndRequest();
+        } else {
           const script = document.createElement('script');
           script.id = 'gsi-client-script';
           script.src = 'https://accounts.google.com/gsi/client';
           script.async = true;
           script.defer = true;
-          script.onload = () => resScript();
-          script.onerror = () => rejScript(new Error('Failed to load Google Sign-In script.'));
+          script.onload = () => initAndRequest();
+          script.onerror = () => reject(new Error('Failed to load Google Sign-In script. Please use Email & Password login.'));
           document.head.appendChild(script);
-        });
-      };
-
-      loadGsiScript().then(() => {
-        if (!(window as any).google?.accounts?.oauth2) {
-          reject(new Error('Google Sign-In SDK is unavailable. Please check your internet connection.'));
-          return;
         }
-
-        const clientId = "747594245177-rgktn8e4o6o6qarvqcc92t8g2nrbe3s5.apps.googleusercontent.com";
-
-        const client = (window as any).google.accounts.oauth2.initTokenClient({
-          client_id: clientId,
-          scope: 'openid email profile',
-          callback: async (tokenResponse: any) => {
-            if (tokenResponse.error) {
-              reject(new Error(tokenResponse.error_description || 'Google sign-in was cancelled or closed.'));
-              return;
-            }
-            try {
-              const accessToken = tokenResponse.access_token;
-              // Fetch user profile from Google userinfo API
-              const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { Authorization: `Bearer ${accessToken}` }
-              });
-              if (!userInfoRes.ok) {
-                throw new Error('Failed to fetch user profile from Google.');
-              }
-              const googleUser = await userInfoRes.json();
-              if (!googleUser || !googleUser.email) {
-                throw new Error('No email address provided by Google account.');
-              }
-
-              const userObj = {
-                uid: 'google_' + (googleUser.sub || googleUser.email.replace(/[^a-z0-9]/g, '_')),
-                email: googleUser.email,
-                displayName: googleUser.name || googleUser.given_name || googleUser.email.split('@')[0],
-                photoURL: googleUser.picture || null
-              };
-
-              try {
-                const credential = GoogleAuthProvider.credential(null, accessToken);
-                await signInWithCredential(auth, credential);
-              } catch (fbErr) {
-                console.warn('Direct Firebase credential sign-in skipped, using verified Google session:', fbErr);
-              }
-
-              await handleAuthenticatedFirebaseUser(userObj);
-              resolve();
-            } catch (authErr: any) {
-              reject(authErr);
-            }
-          }
-        });
-
-        client.requestAccessToken();
-      }).catch(reject);
+      }
     });
   };
 
@@ -700,8 +717,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await signInWithPopup(auth, provider);
       await handleAuthenticatedFirebaseUser(res.user);
     } catch (err: any) {
-      console.warn('Firebase popup login failed or domain restricted. Triggering Google OAuth client fallback...', err);
-      await googleGsiLogin();
+      const errCode = err?.code;
+      const errMsg = err?.message || '';
+      console.warn('Firebase popup login notice:', errCode, errMsg);
+
+      if (errCode === 'auth/popup-closed-by-user') {
+        throw new Error('Sign-in popup was closed before finishing login.');
+      }
+
+      // If Firebase Auth popup was blocked or domain not authorized, attempt GSI fallback
+      try {
+        await googleGsiLogin();
+      } catch (gsiErr: any) {
+        console.warn('GSI fallback notice:', gsiErr);
+        if (errMsg.includes('auth/unauthorized-domain')) {
+          const domain = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
+          throw new Error(`AUTH_UNAUTHORIZED_DOMAIN:${domain}`);
+        }
+        throw gsiErr;
+      }
     }
   };
 

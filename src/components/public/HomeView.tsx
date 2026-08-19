@@ -71,10 +71,10 @@ export const HomeView: React.FC = () => {
   const currentIssue = issues.find(i => i.status === 'current') || issues[0];
   
   // Articles in the current issue (published)
-  const publishedArticles = articles.filter(a => a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted');
+  const publishedArticles = articles.filter(a => !a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase()));
 
   const currentIssueArticles = currentIssue 
-    ? articles.filter(a => Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number) && (a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted'))
+    ? articles.filter(a => Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number) && (!a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase())))
     : publishedArticles.slice(0, 3);
 
   const displayCurrentIssueArticles = currentIssueArticles.length > 0 ? currentIssueArticles : publishedArticles.slice(0, 4);

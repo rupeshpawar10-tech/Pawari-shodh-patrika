@@ -66,7 +66,7 @@ export const Header: React.FC = () => {
     { key: 'about', label: lang === 'hi' ? navs.about_hindi : navs.about_english },
     { key: 'current_issue', label: lang === 'hi' ? navs.current_issue_hindi : navs.current_issue_english },
     { key: 'archive', label: lang === 'hi' ? navs.archive_hindi : navs.archive_english },
-    { key: 'books_blogs', label: lang === 'hi' ? '📚 पवारी साहित्य (पुस्तके, शब्दकोश, पहेली, लोकगीत)' : '📚 Pawari Cultural Hub & Books' },
+    { key: 'books_blogs', label: lang === 'hi' ? '📚 पवारी साहित्य' : '📚 Pawari Literature' },
     { key: 'editorial_board', label: lang === 'hi' ? navs.editorial_board_hindi : navs.editorial_board_english },
     { key: 'author_guidelines', label: lang === 'hi' ? navs.author_guidelines_hindi : navs.author_guidelines_english },
     { key: 'contact', label: lang === 'hi' ? navs.contact_hindi : navs.contact_english },

@@ -59,21 +59,50 @@ export const ArticlesView: React.FC = () => {
 
   const [shareModalArticle, setShareModalArticle] = useState<any | null>(null);
 
-  const publishedArticles = articles.filter(a => a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted');
+  const publishedArticles = articles.filter(a => !a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase()));
   const publishedIssues = issues.filter(i => i.status === 'published' || i.status === 'current');
 
-  // Group issues by volume
+  // Group issues by volume, ensuring all volumes from publishedArticles are also included
   const volumesMap = useMemo(() => {
     const grouped: Record<number, typeof issues> = {};
+    
+    // 1. Add published issues
     publishedIssues.forEach(iss => {
-      if (!grouped[iss.volume]) grouped[iss.volume] = [];
-      grouped[iss.volume].push(iss);
+      const vol = Number(iss.volume) || 1;
+      if (!grouped[vol]) grouped[vol] = [];
+      if (!grouped[vol].some(i => Number(i.issue_number) === Number(iss.issue_number))) {
+        grouped[vol].push(iss);
+      }
     });
+
+    // 2. Add fallback issue containers for articles that have volume/issue not in publishedIssues
+    publishedArticles.forEach(art => {
+      const vol = Number(art.volume) || 1;
+      const issNum = Number(art.issue) || 1;
+      if (!grouped[vol]) grouped[vol] = [];
+      if (!grouped[vol].some(i => Number(i.issue_number) === issNum)) {
+        grouped[vol].push({
+          id: `iss_vol${vol}_num${issNum}`,
+          volume: vol,
+          issue_number: issNum,
+          year: art.year || 2026,
+          month: 'Regular Issue',
+          title_hindi: `अंक ${issNum} (खण्ड ${vol})`,
+          title_english: `Issue ${issNum} (Volume ${vol})`,
+          description_hindi: 'शोध पत्रिका नियमित अंक',
+          description_english: 'Journal Regular Issue',
+          cover_image_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80',
+          published_date: art.created_at || '2026',
+          status: 'published'
+        });
+      }
+    });
+
     Object.keys(grouped).forEach(vol => {
-      grouped[Number(vol)].sort((a, b) => b.issue_number - a.issue_number);
+      grouped[Number(vol)].sort((a, b) => Number(b.issue_number) - Number(a.issue_number));
     });
     return grouped;
-  }, [publishedIssues]);
+  }, [publishedIssues, publishedArticles]);
 
   const volumeNumbers = useMemo(() => Object.keys(volumesMap).map(Number).sort((a, b) => b - a), [volumesMap]);
 
@@ -298,7 +327,7 @@ export const ArticlesView: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {volIssues.map(iss => {
                     const issueArticles = publishedArticles.filter(
-                      a => a.volume === iss.volume && a.issue === iss.issue_number
+                      a => Number(a.volume) === Number(iss.volume) && Number(a.issue) === Number(iss.issue_number)
                     );
 
                     const isFilterActive = selectedIssueFilter === `${iss.volume}_${iss.issue_number}`;

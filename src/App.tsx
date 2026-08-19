@@ -75,7 +75,7 @@ const AuthorArticleEditorView: React.FC<{
       issue: 1,
       year: 2026,
       language: 'Hindi',
-      status: 'draft',
+      status: 'published',
       submitted_date: new Date().toISOString().split('T')[0],
       sections: [
         { id: 'sec_abstract', section_type: 'abstract', section_title: 'Abstract / सार', content_html: '<p>यहाँ सार दर्ज करें...</p>', sort_order: 1 },
@@ -162,8 +162,8 @@ const MainContent: React.FC = () => {
   const isInvalidArticle = React.useMemo(() => {
     if (activeView !== 'article_detail' || !selectedArticleId) return false;
     if (!currentArticle) return !loadingData;
-    // Hide non-published articles from public visitors
-    if (!currentUser && currentArticle.status !== 'published') {
+    // Hide non-published articles from public visitors (only allow published or accepted)
+    if (!currentUser && currentArticle.status && currentArticle.status.toLowerCase() !== 'published' && currentArticle.status.toLowerCase() !== 'accepted') {
       return true;
     }
     return false;

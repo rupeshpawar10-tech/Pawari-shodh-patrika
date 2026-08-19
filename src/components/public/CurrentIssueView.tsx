@@ -35,10 +35,10 @@ export const CurrentIssueView: React.FC = () => {
     return issues.find(i => i.status === 'current') || issues[0];
   }, [issues, selectedIssueId]);
 
-  const allPublished = articles.filter(a => a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted');
+  const allPublished = articles.filter(a => !a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase()));
 
   const issueArticles = selectedIssue 
-    ? articles.filter(a => Number(a.volume) === Number(selectedIssue.volume) && Number(a.issue) === Number(selectedIssue.issue_number) && (a.status?.toLowerCase() === 'published' || a.status?.toLowerCase() === 'accepted'))
+    ? articles.filter(a => Number(a.volume) === Number(selectedIssue.volume) && Number(a.issue) === Number(selectedIssue.issue_number) && (!a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase())))
     : allPublished;
 
   const displayArticles = issueArticles.length > 0 ? issueArticles : allPublished;

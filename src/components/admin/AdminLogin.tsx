@@ -107,12 +107,21 @@ export const AdminLogin: React.FC = () => {
 
         {/* Standard Error Message */}
         {error && !unauthorizedDomain && (
-          <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-900 font-medium space-y-1 animate-in slide-in-from-top-1">
+          <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-900 font-medium space-y-2 animate-in slide-in-from-top-1">
             <div className="font-bold flex items-center space-x-1.5 text-red-950">
               <ShieldAlert className="w-4 h-4 text-red-600 shrink-0" />
-              <span>Access Denied</span>
+              <span>Sign-In Notice</span>
             </div>
             <p className="leading-relaxed text-xs text-slate-700">{error}</p>
+            {error.toLowerCase().includes('popup') && (
+              <div className="pt-1.5 border-t border-red-200/60 text-[11px] text-slate-600 space-y-1">
+                <p className="font-bold text-slate-800">💡 Quick Fix for Browser Popup Block:</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>Allow popups in your browser's address bar icon</li>
+                  <li>Or switch to <strong>Email &amp; Password</strong> login tab below</li>
+                </ul>
+              </div>
+            )}
           </div>
         )}
 

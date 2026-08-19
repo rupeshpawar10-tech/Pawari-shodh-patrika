@@ -682,7 +682,21 @@ export const ArticlesManager: React.FC = () => {
 
       {/* SECTION 1: Published Articles List Table */}
       {activeSection === 'published' && (
-        <div className="bg-white border border-amber-900/10 rounded-2xl shadow-2xs overflow-hidden">
+        <div className="space-y-4">
+          <div className="p-3.5 bg-amber-50 border border-amber-300/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-950 shadow-2xs">
+            <div className="flex items-center space-x-2.5">
+              <Info className="w-5 h-5 text-amber-700 shrink-0" />
+              <div>
+                <strong className="block font-serif text-slate-900">पब्लिक वेबसाइट विजिबिलिटी (Public Website Visibility):</strong>
+                <span>सार्वजनिक पाठकों को केवल <strong className="text-emerald-800">"Published"</strong> स्टेटस वाले शोध पत्र ही दिखते हैं। ड्राफ्ट (Draft) या पेंडिंग शोध पत्रों को सार्वजनिक रूप से दिखाने हेतु नीचे टेबल में स्टेटस को <strong className="text-emerald-800">"Published"</strong> चुनें।</span>
+              </div>
+            </div>
+            <span className="shrink-0 px-2.5 py-1 bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold rounded-lg text-[11px] font-mono">
+              {articles.filter(a => !a.status || a.status.toLowerCase() === 'published' || a.status.toLowerCase() === 'accepted').length} Published Papers Live
+            </span>
+          </div>
+
+          <div className="bg-white border border-amber-900/10 rounded-2xl shadow-2xs overflow-hidden">
           {filtered.length === 0 ? (
             <div className="p-12 text-center text-slate-500 space-y-3">
               <BookOpen className="w-12 h-12 mx-auto text-slate-300" />
@@ -698,7 +712,7 @@ export const ArticlesManager: React.FC = () => {
                     <th className="p-4">Authors</th>
                     <th className="p-4">Issue / Volume</th>
                     <th className="p-4">Content Type</th>
-                    <th className="p-4">Status</th>
+                    <th className="p-4">Status & Visibility</th>
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -732,13 +746,30 @@ export const ArticlesManager: React.FC = () => {
                       </td>
 
                       <td className="p-4">
-                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${
-                          art.status === 'published' ? 'bg-emerald-100 text-emerald-800' :
-                          art.status === 'draft' ? 'bg-amber-100 text-amber-800' :
-                          'bg-slate-100 text-slate-800'
-                        }`}>
-                          {art.status}
-                        </span>
+                        <div className="flex flex-col space-y-1.5 min-w-[130px]">
+                          <select
+                            value={art.status || 'published'}
+                            onChange={(e) => {
+                              const newStatus = e.target.value;
+                              saveArticle({ ...art, status: newStatus as any });
+                            }}
+                            className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition ${
+                              (art.status?.toLowerCase() === 'published' || art.status?.toLowerCase() === 'accepted' || !art.status)
+                                ? 'bg-emerald-50 text-emerald-900 border-emerald-300 focus:ring-emerald-400'
+                                : art.status === 'draft'
+                                ? 'bg-amber-50 text-amber-900 border-amber-300 focus:ring-amber-400'
+                                : 'bg-slate-50 text-slate-800 border-slate-300'
+                            }`}
+                          >
+                            <option value="published">✓ Published (सार्वजनिक)</option>
+                            <option value="draft">Draft (ड्राफ्ट - अप्रकाशित)</option>
+                            <option value="under_review">Under Review (समीक्षाधीन)</option>
+                            <option value="archived">Archived (संग्रहीत)</option>
+                          </select>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {(art.status?.toLowerCase() === 'published' || art.status?.toLowerCase() === 'accepted' || !art.status) ? '🟢 Live on website' : '🟡 Hidden from public'}
+                          </span>
+                        </div>
                       </td>
 
                       <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
@@ -800,6 +831,7 @@ export const ArticlesManager: React.FC = () => {
               </table>
             </div>
           )}
+          </div>
         </div>
       )}
 

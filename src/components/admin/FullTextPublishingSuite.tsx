@@ -872,6 +872,33 @@ export const FullTextPublishingSuite: React.FC<FullTextPublishingSuiteProps> = (
               </div>
             </div>
 
+            {/* Publication Status & Public Visibility */}
+            <div className="p-4 bg-amber-50/70 border border-amber-300 rounded-2xl space-y-2">
+              <label className="block font-bold text-slate-900 text-sm">प्रकाशन स्थिति (Publication Status & Public Visibility):</label>
+              <select
+                value={article.status || 'published'}
+                onChange={(e: any) => {
+                  setArticle({ ...article, status: e.target.value });
+                  notifyChange();
+                }}
+                className={`w-full p-3 border rounded-xl font-bold text-sm transition ${
+                  (article.status === 'published' || !article.status)
+                    ? 'bg-emerald-50 text-emerald-950 border-emerald-400'
+                    : 'bg-amber-50 text-amber-950 border-amber-400'
+                }`}
+              >
+                <option value="published">✓ Published (सार्वजनिक रूप से प्रकाशित - वेबसाइट पर दिखेगा)</option>
+                <option value="draft">Draft (ड्राफ्ट - केवल एडमिन पैनल में दिखेगा)</option>
+                <option value="under_review">Under Review (समीक्षाधीन)</option>
+                <option value="archived">Archived (संग्रहीत)</option>
+              </select>
+              <p className="text-xs text-slate-600">
+                {(article.status === 'published' || !article.status)
+                  ? '🟢 यह शोध पत्र वेबसाइट पर सभी सार्वजनिक पाठकों (Home, Current Issue, Archive) को दिखाई देगा।'
+                  : '🟡 यह शोध पत्र केवल एडमिन पैनल में दिखेगा, सार्वजनिक वेबसाइट पर छिपा रहेगा।'}
+              </p>
+            </div>
+
             {/* Article Type */}
             <div>
               <label className="block font-bold text-slate-800 mb-1">आलेख प्रकार (Article Type):</label>

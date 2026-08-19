@@ -1,24 +1,194 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isAuthenticated() {
+
+    // Helper functions
+    function isSignedIn() {
       return request.auth != null;
     }
-    match /{document=**} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
+
+    function isSuperAdmin() {
+      return isSignedIn() && (
+        ('email' in request.auth.token && request.auth.token.email != null && request.auth.token.email.lower() == 'rupeshpawar10@gmail.com') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'super_admin')
+      );
+    }
+
+    function isCmsStaff() {
+      return isSignedIn() && (
+        isSuperAdmin() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') in [
+           'super_admin', 'director', 'editorial', 'editor', 'book_editor', 'blog_editor', 'other_manager'
+         ])
+      );
+    }
+
+    // Settings collection
+    match /settings/{settingId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isCmsStaff();
+    }
+
+    // Pages collection
+    match /pages/{pageId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isCmsStaff();
+    }
+
+    // Homepage sections layout config
+    match /homepage_sections/{sectionId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isCmsStaff();
+    }
+
+    // Articles collection
+    match /articles/{articleId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isCmsStaff();
+    }
+
+    // Issues collection
+    match /issues/{issueId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isCmsStaff();
+    }
+
+    // Editorial Board collections
+    match /editorial_board/{memberId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isCmsStaff();
+    }
+
+    match /editorial_members/{memberId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isCmsStaff();
+    }
+
+    // Announcements collection
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isCmsStaff();
+    }
+
+    // Contact Messages - Public create, CMS staff read/write
     match /contact_messages/{messageId} {
       allow create: if true;
-      allow read, update, delete: if isAuthenticated();
+      allow read, update, delete: if isCmsStaff();
     }
+
+    // Submissions / Reader Contributions - Public create, CMS staff read/write
     match /submissions/{submissionId} {
       allow create: if true;
-      allow read, update, delete: if isAuthenticated();
+      allow read, update, delete: if isCmsStaff();
     }
-    match /public_contributions/{contribId} {
+
+    // Roles collection
+    match /roles/{roleId} {
+      allow read: if true;
+      allow write: if isCmsStaff();
+    }
+
+    // Media Library
+    match /media/{mediaId} {
+      allow read: if true;
+      allow write: if isCmsStaff();
+    }
+
+    // Books collection
+    match /books/{bookId} {
+      allow read: if true;
       allow create: if true;
-      allow read, update, delete: if isAuthenticated();
+      allow update, delete: if isCmsStaff();
+    }
+
+    // Blogs collection
+    match /blogs/{blogId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isCmsStaff();
+    }
+
+    // Pawari Writers / Authors collection
+    match /writers/{writerId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isCmsStaff();
+    }
+
+    // Shabdkosh dictionary collection
+    match /shabdkosh/{itemId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isCmsStaff();
+    }
+
+    // Paheli riddles collection
+    match /paheli/{itemId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isCmsStaff();
+    }
+
+    // Lokgeet folk songs collection
+    match /lokgeet/{itemId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isCmsStaff();
+    }
+
+    // Cultural Quiz Questions collections
+    match /quizQuestions/{questionId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isCmsStaff();
+    }
+
+    match /quiz_questions/{questionId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isCmsStaff();
+    }
+
+    // Quiz Leaderboard & Certificates
+    match /quiz_leaderboard/{entryId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isCmsStaff();
+    }
+
+    // Activity Logs
+    match /activity_logs/{logId} {
+      allow read: if isCmsStaff();
+      allow create: if true;
+      allow update, delete: if isCmsStaff();
+    }
+
+    // User Files collection (Base64 file storage in Firestore)
+    match /user_files/{fileId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isCmsStaff();
+    }
+
+    // Users Collection (RBAC Profiles)
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && (request.auth.uid == userId || isCmsStaff());
+      allow delete: if isSuperAdmin();
     }
   }
 }

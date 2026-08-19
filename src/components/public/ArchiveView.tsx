@@ -197,7 +197,7 @@ export const ArchiveView: React.FC = () => {
       <div className="space-y-10">
         {filteredIssues.map((issue) => {
           const issuePapers = articles.filter(
-            a => a.volume === issue.volume && a.issue === issue.issue_number && a.status === 'published'
+            a => Number(a.volume) === Number(issue.volume) && Number(a.issue) === Number(issue.issue_number) && (!a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase()))
           );
 
           return (
