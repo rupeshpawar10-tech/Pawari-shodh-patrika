@@ -65,7 +65,9 @@ export const ManuscriptSubmissionView: React.FC = () => {
 
   const isValidFile = (file: File) => {
     const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    return validTypes.includes(file.type);
+    const nameLower = (file.name || '').toLowerCase();
+    const hasValidExt = nameLower.endsWith('.pdf') || nameLower.endsWith('.docx') || nameLower.endsWith('.doc');
+    return validTypes.includes(file.type) || hasValidExt;
   };
 
   const removeFile = () => {

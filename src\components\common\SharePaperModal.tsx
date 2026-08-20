@@ -20,12 +20,9 @@ interface SharePaperModalProps {
   lang?: 'hi' | 'en';
 }
 
-export const getArticleShareUrl = (articleId: string): string => {
+export const getArticleShareUrl = (articleSlugOrId: string): string => {
   const origin = window.location.origin;
-  const pathname = window.location.pathname.endsWith('/') 
-    ? window.location.pathname 
-    : `${window.location.pathname}/`;
-  return `${origin}${pathname}?article=${encodeURIComponent(articleId)}`;
+  return `${origin}/articles/${encodeURIComponent(articleSlugOrId)}`;
 };
 
 export const SharePaperModal: React.FC<SharePaperModalProps> = ({
@@ -39,7 +36,7 @@ export const SharePaperModal: React.FC<SharePaperModalProps> = ({
 
   if (!isOpen || !article) return null;
 
-  const shareUrl = getArticleShareUrl(article.id);
+  const shareUrl = getArticleShareUrl(article.slug || article.id);
   const authorsText = article.authors.map(a => a.name).join(', ');
   const mainTitle = article.title_hindi || article.title_english;
   const secondaryTitle = article.title_hindi && article.title_english ? article.title_english : '';

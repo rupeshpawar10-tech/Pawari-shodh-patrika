@@ -169,9 +169,9 @@ export const ArticleDetailView: React.FC = () => {
   };
 
   const handleDownload = () => {
-    if (article.id && article.pdf_url) {
+    if (article.id && (displayPdfUrl || article.pdf_url)) {
       incrementArticleDownloads(article.id);
-      downloadPdf(article.pdf_url, `${article.title_english || 'article'}.pdf`);
+      downloadPdf(displayPdfUrl || article.pdf_url, `${article.title_english || 'article'}.pdf`);
     }
   };
 
