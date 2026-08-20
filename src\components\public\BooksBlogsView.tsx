@@ -93,10 +93,26 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
     window.history.pushState({ bookId: book.id }, '', getUrlForBook(book.id));
   };
 
+  const handleCloseBook = () => {
+    setSelectedBook(null);
+    const newUrl = activeTab === 'all' ? '/books-literature' : `/books-literature?tab=${activeTab}`;
+    if (window.location.pathname.startsWith('/book/') || window.location.search.includes('book=')) {
+      window.history.pushState({}, '', newUrl);
+    }
+  };
+
   const handleSelectBlog = (blog: BlogItem) => {
     setSelectedBlog(blog);
     setSelectedBook(null);
     window.history.pushState({ blogId: blog.id }, '', getUrlForBlog(blog.id));
+  };
+
+  const handleCloseBlog = () => {
+    setSelectedBlog(null);
+    const newUrl = activeTab === 'all' ? '/books-literature' : `/books-literature?tab=${activeTab}`;
+    if (window.location.pathname.startsWith('/blog/') || window.location.search.includes('blog=')) {
+      window.history.pushState({}, '', newUrl);
+    }
   };
 
   const handleTabChange = (tabKey: 'all' | 'books' | 'blogs' | 'reviews' | 'folklore' | 'research_papers') => {
@@ -479,7 +495,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
               <span>ग्रंथ विवरण एवं सारांश (Selected Book Details)</span>
             </div>
             <button
-              onClick={() => setSelectedBook(null)}
+              onClick={handleCloseBook}
               className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs rounded-xl transition flex items-center space-x-1 cursor-pointer shadow-md"
             >
               <X className="w-4 h-4" />
@@ -575,7 +591,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
               <button onClick={() => setReaderFontSize(prev => Math.min(26, prev + 2))} className="w-7 h-7 rounded bg-slate-100 font-bold">A+</button>
             </div>
             <button
-              onClick={() => setSelectedBlog(null)}
+              onClick={handleCloseBlog}
               className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1 cursor-pointer"
             >
               <X className="w-4 h-4" />

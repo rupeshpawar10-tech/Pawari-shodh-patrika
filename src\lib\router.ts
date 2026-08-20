@@ -150,7 +150,7 @@ export function parseRouteFromUrl(): RouteMatch {
       return { view: 'archive', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: issueId || null, tab: null, isNotFound: false };
     }
 
-    if (pathname === '/articles' || pathname === '/books-literature' || pathname === '/books-blogs') {
+    if (pathname === '/articles' || pathname === '/books-literature' || pathname === '/books-blogs' || pathname === '/writers' || pathname === '/authors' || pathname === '/literature') {
       const tab = searchParams.get('tab') || null;
       return { view: 'books_blogs', articleIdOrSlug: null, bookId: null, blogId: null, lokgeetId: null, shabdkoshId: null, paheliId: null, memberId: null, issueId: null, tab, isNotFound: false };
     }
