@@ -2,70 +2,83 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Helper functions
-    function isSignedIn() {
+    // Helper functions for security & validation
+    function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
-    }
-
     function isImage() {
-      return request.resource.contentType.matches('image/(jpeg|jpg|png|webp)');
+      return request.resource.contentType.matches('image/(jpeg|jpg|png|webp|gif|svg\\+xml)');
     }
 
     function isDocument() {
-      return request.resource.contentType.matches('application/(pdf|msword|vnd\\.openxmlformats-officedocument\\.wordprocessingml\\.document|octet-stream)');
+      return request.resource.contentType.matches('application/(pdf|msword|vnd\\.openxmlformats-officedocument\\.wordprocessingml\\.document|octet-stream|plain)');
     }
 
-    // User folder rules: users/{uid}/images/{filename}
+    function isAudioOrVideo() {
+      return request.resource.contentType.matches('(audio|video)/.*');
+    }
+
+    // User folder rules: users/{uid}/images/{fileName}
     match /users/{uid}/images/{fileName} {
-      allow read: if isSignedIn();
-      allow write, create, update: if isOwner(uid)
-        && request.resource.size <= 5 * 1024 * 1024
-        && isImage();
-      allow delete: if isOwner(uid);
+      allow read: if true;
+      allow write, create, update: if isImage() && request.resource.size <= 15 * 1024 * 1024;
+      allow delete: if isAuthenticated() && request.auth.uid == uid;
     }
 
-    // User folder rules: users/{uid}/documents/{filename}
+    // User folder rules: users/{uid}/documents/{fileName}
     match /users/{uid}/documents/{fileName} {
-      allow read: if isSignedIn();
-      allow write, create, update: if isOwner(uid)
-        && request.resource.size <= 15 * 1024 * 1024
-        && isDocument();
-      allow delete: if isOwner(uid);
-    }
-
-    // Editorial and general public uploads (Admin & system features fallback)
-    match /editorial_photos/{fileName} {
       allow read: if true;
-      allow write, create, update: if isSignedIn()
-        && request.resource.size <= 5 * 1024 * 1024
-        && isImage();
-      allow delete: if isSignedIn();
+      allow write, create, update: if (isDocument() || isImage()) && request.resource.size <= 35 * 1024 * 1024;
+      allow delete: if isAuthenticated() && request.auth.uid == uid;
     }
 
-    match /documents/{fileName} {
-      allow read: if true;
-      allow write, create, update: if isSignedIn()
-        && request.resource.size <= 15 * 1024 * 1024
-        && isDocument();
-      allow delete: if isSignedIn();
-    }
-
+    // Public Author Manuscript Uploads: manuscripts/{fileName}
     match /manuscripts/{fileName} {
       allow read: if true;
-      allow write, create, update: if isSignedIn()
-        && request.resource.size <= 15 * 1024 * 1024
-        && isDocument();
-      allow delete: if isSignedIn();
+      allow create, update: if (isDocument() || isImage()) && request.resource.size <= 50 * 1024 * 1024;
+      allow delete: if isAuthenticated();
     }
 
-    // Default deny all other paths
+    // Editorial photos & board avatars: editorial_photos/{fileName}
+    match /editorial_photos/{fileName} {
+      allow read: if true;
+      allow write, create, update: if isImage() && request.resource.size <= 20 * 1024 * 1024;
+      allow delete: if isAuthenticated();
+    }
+
+    // Academic journal issue documents & articles: documents/{fileName}
+    match /documents/{fileName} {
+      allow read: if true;
+      allow write, create, update: if (isDocument() || isImage()) && request.resource.size <= 50 * 1024 * 1024;
+      allow delete: if isAuthenticated();
+    }
+
+    // Books, Monographs & Publications: books/{fileName}
+    match /books/{fileName} {
+      allow read: if true;
+      allow write, create, update: if (isDocument() || isImage()) && request.resource.size <= 50 * 1024 * 1024;
+      allow delete: if isAuthenticated();
+    }
+
+    // Cultural Media, Audio pronunciations & Videos: media/{fileName}
+    match /media/{fileName} {
+      allow read: if true;
+      allow write, create, update: if (isImage() || isAudioOrVideo() || isDocument()) && request.resource.size <= 50 * 1024 * 1024;
+      allow delete: if isAuthenticated();
+    }
+
+    // Public community contributions & certificates
+    match /contributions/{fileName} {
+      allow read: if true;
+      allow create, update: if request.resource.size <= 25 * 1024 * 1024;
+      allow delete: if isAuthenticated();
+    }
+
+    // Catch-all rule for all other storage paths
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if isSignedIn() && request.resource.size <= 15 * 1024 * 1024;
+      allow write: if request.resource.size <= 35 * 1024 * 1024;
     }
   }
 }
