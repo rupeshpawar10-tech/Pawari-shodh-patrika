@@ -41,8 +41,8 @@ export const ArticlesView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'by_issue' | 'search_all'>('by_issue');
   const [shareModalArticle, setShareModalArticle] = useState<any | null>(null);
 
-  const publishedArticles = articles.filter(a => a.status === 'published');
-  const publishedIssues = issues.filter(i => i.status === 'published' || i.status === 'current');
+  const publishedArticles = articles.filter(a => a.status !== 'draft' && a.status !== 'rejected');
+  const publishedIssues = issues.filter(i => i.status !== 'draft' && i.status !== 'archived_hidden');
 
   // Group issues by volume
   const volumesMap = useMemo(() => {

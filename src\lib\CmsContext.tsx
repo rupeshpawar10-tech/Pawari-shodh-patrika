@@ -873,30 +873,81 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // 10. Lokgeet
       try {
         const snap = await getDocs(collection(db, 'lokgeet'));
-        if (!snap.empty && isMounted) {
-          const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
+        let loaded: PawariLokgeetItem[] = [];
+        if (!snap.empty) {
+          loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
+        }
+        const cached = localStorage.getItem('pawari_lokgeet_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.forEach((c: PawariLokgeetItem) => {
+                if (!loaded.some(l => l.id === c.id)) loaded.push(c);
+              });
+            }
+          } catch (e) {}
+        }
+        SAMPLE_LOKGEET.forEach(s => {
+          if (!loaded.some(l => l.id === s.id)) loaded.push(s);
+        });
+        if (isMounted && loaded.length > 0) {
           setLokgeetList(loaded);
-          localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(loaded));
+          try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(loaded)); } catch (e) {}
         }
       } catch (e) {}
 
       // 11. Shabdkosh
       try {
         const snap = await getDocs(collection(db, 'shabdkosh'));
-        if (!snap.empty && isMounted) {
-          const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as PawariShabdkoshItem));
+        let loaded: PawariShabdkoshItem[] = [];
+        if (!snap.empty) {
+          loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as PawariShabdkoshItem));
+        }
+        const cached = localStorage.getItem('pawari_shabdkosh_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.forEach((c: PawariShabdkoshItem) => {
+                if (!loaded.some(l => l.id === c.id)) loaded.push(c);
+              });
+            }
+          } catch (e) {}
+        }
+        SAMPLE_SHABDKOSH.forEach(s => {
+          if (!loaded.some(l => l.id === s.id)) loaded.push(s);
+        });
+        if (isMounted && loaded.length > 0) {
           setShabdkoshList(loaded);
-          localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(loaded));
+          try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(loaded)); } catch (e) {}
         }
       } catch (e) {}
 
       // 12. Paheli
       try {
         const snap = await getDocs(collection(db, 'paheli'));
-        if (!snap.empty && isMounted) {
-          const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as PawariPaheliItem));
+        let loaded: PawariPaheliItem[] = [];
+        if (!snap.empty) {
+          loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as PawariPaheliItem));
+        }
+        const cached = localStorage.getItem('pawari_paheli_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.forEach((c: PawariPaheliItem) => {
+                if (!loaded.some(l => l.id === c.id)) loaded.push(c);
+              });
+            }
+          } catch (e) {}
+        }
+        SAMPLE_PAHELI.forEach(s => {
+          if (!loaded.some(l => l.id === s.id)) loaded.push(s);
+        });
+        if (isMounted && loaded.length > 0) {
           setPaheliList(loaded);
-          localStorage.setItem('pawari_paheli_cache', JSON.stringify(loaded));
+          try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(loaded)); } catch (e) {}
         }
       } catch (e) {}
 

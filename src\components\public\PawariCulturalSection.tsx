@@ -67,9 +67,9 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
   const rawQuizQuestions = (quizQuestions && quizQuestions.length > 0) ? quizQuestions : SAMPLE_QUIZ_QUESTIONS;
 
   // Filter approved items only for public display
-  const approvedShabdkosh = rawShabdkosh.filter(s => s.status === 'approved' || (!s.status && !s.id.startsWith('contrib_')));
-  const approvedPaheli = rawPaheli.filter(p => p.status === 'approved' || (!p.status && !p.id.startsWith('contrib_')));
-  const approvedLokgeet = rawLokgeet.filter(l => l.status === 'approved' || (!l.status && !l.id.startsWith('contrib_')));
+  const approvedShabdkosh = rawShabdkosh.filter(s => s.status !== 'draft' && s.status !== 'rejected');
+  const approvedPaheli = rawPaheli.filter(p => p.status !== 'draft' && p.status !== 'rejected');
+  const approvedLokgeet = rawLokgeet.filter(l => l.status !== 'draft' && l.status !== 'rejected');
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');

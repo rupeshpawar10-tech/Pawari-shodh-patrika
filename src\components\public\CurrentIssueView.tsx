@@ -23,8 +23,8 @@ export const CurrentIssueView: React.FC = () => {
   const currentIssue = issues.find(i => i.status === 'current') || issues[0];
 
   const issueArticles = currentIssue 
-    ? articles.filter(a => Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number) && a.status === 'published')
-    : [];
+    ? articles.filter(a => ((Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number)) || (a.issue_id && a.issue_id === currentIssue.id)) && a.status !== 'draft' && a.status !== 'rejected')
+    : articles.filter(a => a.status !== 'draft' && a.status !== 'rejected');
 
   const handleArticleClick = (artId: string) => {
     setSelectedArticleId(artId);

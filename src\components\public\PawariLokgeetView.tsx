@@ -32,7 +32,7 @@ export const PawariLokgeetView: React.FC = () => {
     setActiveView 
   } = useCms();
 
-  const approvedLokgeet = (lokgeetList || []).filter(l => l.status === 'approved' || l.status === 'published' || l.status === 'active' || (!l.status && !l.id.startsWith('contrib_')));
+  const approvedLokgeet = (lokgeetList || []).filter(l => l.status !== 'draft' && l.status !== 'rejected');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -150,7 +150,7 @@ export const PawariLokgeetView: React.FC = () => {
       return a.category.localeCompare(b.category, 'hi');
     }
     // default newest
-    return b.created_at.localeCompare(a.created_at);
+    return String(b.created_at || '').localeCompare(String(a.created_at || ''));
   });
 
   const totalPages = Math.ceil(sortedItems.length / ITEMS_PER_PAGE);

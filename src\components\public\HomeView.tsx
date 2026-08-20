@@ -61,8 +61,8 @@ export const HomeView: React.FC = () => {
   
   // Articles in the current issue
   const currentArticles = currentIssue 
-    ? articles.filter(a => Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number) && a.status === 'published')
-    : articles.slice(0, 5);
+    ? articles.filter(a => ((Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number)) || (a.issue_id && a.issue_id === currentIssue.id)) && a.status !== 'draft' && a.status !== 'rejected')
+    : articles.filter(a => a.status !== 'draft' && a.status !== 'rejected').slice(0, 5);
 
   // Past issues for archive preview
   const pastIssues = issues.filter(i => !currentIssue || i.id !== currentIssue.id);
