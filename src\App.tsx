@@ -21,6 +21,7 @@ import { ContactView } from './components/public/ContactView';
 import { PawariCulturalSection } from './components/public/PawariCulturalSection';
 import { PawariLokgeetView } from './components/public/PawariLokgeetView';
 import { NotFoundView } from './components/common/NotFoundView';
+import { ScrollToTopButton } from './components/common/ScrollToTopButton';
 
 const AdminLogin = React.lazy(() => import('./components/admin/AdminLogin').then(m => ({ default: m.AdminLogin })));
 const AdminLayout = React.lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
@@ -145,6 +146,9 @@ const MainContent: React.FC = () => {
         {renderPublicView()}
       </main>
       <Footer />
+
+      {/* Global Floating Back-to-Top Scroller */}
+      <ScrollToTopButton />
 
       {/* Global Embedded PDF Modal */}
       {activePdfUrl && (

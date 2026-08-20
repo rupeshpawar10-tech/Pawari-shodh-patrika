@@ -418,7 +418,7 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
         </div>
 
         {/* Action Bar / Main Navigation Tabs inside View */}
-        <div className="relative z-10 pt-3 flex flex-wrap items-center gap-2 border-t border-amber-500/20">
+        <div className="relative z-10 pt-3 flex items-center gap-2 border-t border-amber-500/20 overflow-x-auto custom-scrollbar pb-2">
           <button
             onClick={() => handleTabChange('all')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${

@@ -407,7 +407,7 @@ export const PawariLokgeetView: React.FC = () => {
 
             {/* Category Filter Chips */}
             {lokgeetCategories.length > 0 && (
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+              <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1.5 text-xs">
                 <span className="text-slate-600 font-semibold shrink-0">
                   {lang === 'hi' ? 'श्रेणी:' : 'Category:'}
                 </span>
@@ -441,7 +441,7 @@ export const PawariLokgeetView: React.FC = () => {
             )}
 
             {/* First Letter Filter Bar */}
-            <div className="flex items-center gap-1 overflow-x-auto pt-2 border-t border-amber-100 text-[11px]">
+            <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pt-2 pb-1.5 border-t border-amber-100 text-[11px]">
               <span className="text-slate-600 font-semibold shrink-0 mr-1">
                 {lang === 'hi' ? 'वर्ण:' : 'Letter:'}
               </span>

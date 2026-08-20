@@ -80,6 +80,19 @@ export const ArticleDetailView: React.FC = () => {
   const [displayPdfUrl, setDisplayPdfUrl] = useState<string>('');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg'>('base');
+  const [readingProgress, setReadingProgress] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      if (scrollHeight > 0) {
+        setReadingProgress(Math.min(100, (scrollTop / scrollHeight) * 100));
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     if (article?.pdf_url) {
@@ -203,6 +216,14 @@ export const ArticleDetailView: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-8 py-3 sm:py-8 space-y-4 sm:space-y-8 animate-in fade-in duration-200 print:p-0 print:m-0 print:max-w-none">
       
+      {/* Sticky Reading Progress Bar Scroller */}
+      <div className="fixed top-0 left-0 right-0 h-1.5 z-50 bg-amber-950/20 print:hidden pointer-events-none">
+        <div 
+          className="h-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 transition-all duration-75 shadow-sm"
+          style={{ width: `${readingProgress}%` }}
+        />
+      </div>
+
       {/* Back Button & Navigation Bar (Hidden during Print) */}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <button
