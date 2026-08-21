@@ -44,11 +44,11 @@ export const AdminLogin: React.FC = () => {
       const msg = err?.message || 'Google sign-in failed.';
       
       if (code === 'auth/unauthorized-domain' || msg.includes('origin') || msg.includes('OAuth') || msg.includes('policy')) {
-        setError('गूगल OAuth सुरक्षा नीति के तहत आपका डोमेन अभी Google Console में अधिकृत नहीं है। कृपया तुरंत प्रवेश के लिए नीचे दिए गए "⚡ 1-Click Super Admin Login" बटन का उपयोग करें!');
-      } else if (msg.includes('Unauthorized admin account') || code === 'auth/unauthorized') {
-        setError('Unauthorized account. Access is allowed ONLY for registered CMS staff.');
+        setError('गूगल OAuth नीति: Google Cloud Console में "Authorized JavaScript origins" में डोमेन पंजीकृत करना आवश्यक है। आप तुरंत प्रवेश हेतु "Email & Password" टैब का उपयोग करके भी सुरक्षित लॉगिन कर सकते हैं।');
+      } else if (msg.includes('Unauthorized') || code === 'auth/unauthorized' || msg.includes('अनधिकृत')) {
+        setError('अनधिकृत खाता! केवल अधिकृत संचालक (rupeshpawar10@gmail.com / rajeshbarange00@gmail.com) एवं CMS में पंजीकृत स्टाफ ही लॉगिन कर सकते हैं।');
       } else if (code === 'auth/popup-closed-by-user') {
-        setError('लॉगिन विंडो बंद कर दी गई। पुनः प्रयास करें या "1-Click Super Admin Login" का उपयोग करें।');
+        setError('लॉगिन विंडो बंद कर दी गई। कृपया पुनः प्रयास करें।');
       } else {
         setError(msg);
       }
