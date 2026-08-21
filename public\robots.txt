@@ -1,11 +1,13 @@
-# Allow search engine crawlers and academic bots (Googlebot, Google-Scholar, Bingbot)
+# Allow search engine crawlers and academic bots (Googlebot, Google-Scholar, Bingbot, Slurp, DuckDuckBot)
 User-agent: *
 Allow: /
+Allow: /articles
 Allow: /article/
 Allow: /current-issue
 Allow: /archives
 Allow: /issue/
 Allow: /books-literature
+Allow: /writers
 Allow: /editorial-board
 Allow: /about
 Allow: /contact
@@ -14,9 +16,29 @@ Allow: /submit-manuscript
 Allow: /shabdkosh
 Allow: /paheli
 Allow: /lokgeet
+Allow: /pawari-lokgeet
 Allow: /quiz
+Allow: /feed.xml
+Allow: /sitemap.xml
+
+# Explicit Academic Harvester Directives
+User-agent: Googlebot
+Allow: /
+
+User-agent: Google-Scholar
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
 
 # Disallow CMS Admin and private routes
+User-agent: *
 Disallow: /admin
 Disallow: /admin/
 Disallow: /login
