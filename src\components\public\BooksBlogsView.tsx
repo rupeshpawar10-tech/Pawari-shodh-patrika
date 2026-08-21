@@ -980,71 +980,116 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
         </div>
       )}
 
-      {/* ---------------- BOOKS & MONOGRAPHS GRID ---------------- */}
+      {/* ---------------- BOOKS & MONOGRAPHS LISTING (Open Editorial Layout) ---------------- */}
       {(activeTab === 'all' || activeTab === 'books') && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between border-b border-amber-900/10 pb-2">
-            <div className="flex items-center space-x-2">
+        <section className="space-y-6">
+          <div className="flex items-center justify-between border-b border-amber-900/15 pb-3">
+            <div className="flex items-center space-x-2.5">
               <Book className="w-5 h-5 text-red-900" />
-              <h2 className="text-xl font-serif font-bold text-red-950">
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-red-950">
                 {lang === 'hi' ? 'प्रकाशित शोध ग्रंथ एवं पुस्तकें' : 'Published Books & Monographs'}
               </h2>
             </div>
-            <span className="text-xs font-mono text-slate-500 font-bold">
+            <span className="text-xs font-mono text-slate-500 font-bold bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
               {filteredBooks.length} {lang === 'hi' ? 'ग्रंथ उपलब्ध' : 'Books Available'}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-6">
             {filteredBooks.map((book) => (
               <div 
                 key={book.id}
-                onClick={() => handleSelectBook(book)}
-                className="bg-white border border-amber-900/15 hover:border-amber-500 rounded-2xl p-5 shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group space-y-4"
+                className="bg-white border border-amber-900/15 hover:border-amber-500/70 rounded-3xl p-6 sm:p-8 shadow-xs hover:shadow-lg transition flex flex-col md:flex-row gap-6 sm:gap-8 items-start group"
               >
-                <div className="flex gap-4 items-start">
-                  <div className="w-28 sm:w-32 aspect-3/4 max-h-44 shrink-0 rounded-xl overflow-hidden border border-amber-500/30 bg-slate-900 shadow-md group-hover:scale-105 transition duration-200">
-                    <SafeImage 
-                      src={book.cover_image} 
-                      alt={book.title_english} 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  <div className="space-y-2 flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
-                      <span className="bg-amber-100 text-amber-950 font-bold px-2 py-0.5 rounded">
-                        {book.category}
-                      </span>
-                      <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                        {book.publication_year}
-                      </span>
-                      {book.pages && (
-                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                          {book.pages} पृ.
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="text-base sm:text-lg font-serif font-bold text-slate-900 group-hover:text-red-950 leading-snug">
-                      {lang === 'hi' ? book.title_hindi : book.title_english}
-                    </h3>
-
-                    <p className="text-xs font-bold text-red-900">
-                      {book.authors}
-                    </p>
-
-                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                      {lang === 'hi' ? book.synopsis_hindi : book.synopsis_english}
-                    </p>
-                  </div>
+                {/* Book Cover */}
+                <div 
+                  onClick={() => handleSelectBook(book)}
+                  className="w-36 sm:w-44 aspect-3/4 shrink-0 rounded-2xl overflow-hidden border-2 border-amber-300 shadow-md bg-slate-900 cursor-pointer group-hover:scale-105 transition transform duration-200 mx-auto md:mx-0"
+                >
+                  <SafeImage 
+                    src={book.cover_image} 
+                    alt={book.title_english} 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
-                <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
-                  <span className="text-slate-500 font-mono text-[11px]">ISBN: {book.isbn}</span>
-                  <span className="text-red-900 font-bold group-hover:underline flex items-center space-x-1">
-                    <span>{lang === 'hi' ? 'ग्रंथ का विवरण देखें →' : 'View Book Details →'}</span>
-                  </span>
+                {/* Book Details */}
+                <div className="space-y-3 flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="bg-amber-100 text-amber-950 font-bold text-xs px-3 py-0.5 rounded-full border border-amber-300 font-mono">
+                      📚 {book.category}
+                    </span>
+                    <span className="bg-slate-100 border border-slate-200 text-slate-700 text-xs px-3 py-0.5 rounded-full font-mono">
+                      प्रकाशन वर्ष: <strong>{book.publication_year}</strong>
+                    </span>
+                    {book.pages && (
+                      <span className="bg-slate-100 border border-slate-200 text-slate-700 text-xs px-3 py-0.5 rounded-full font-mono">
+                        पृष्ठ: <strong>{book.pages}</strong>
+                      </span>
+                    )}
+                    <span className="bg-emerald-50 text-emerald-900 border border-emerald-200 text-xs px-3 py-0.5 rounded-full font-bold">
+                      {book.price || 'Open Access / निःशुल्क'}
+                    </span>
+                  </div>
+
+                  <h3 
+                    onClick={() => handleSelectBook(book)}
+                    className="text-xl sm:text-2xl font-serif font-black text-slate-900 group-hover:text-red-950 transition leading-snug cursor-pointer"
+                  >
+                    {lang === 'hi' ? book.title_hindi : book.title_english}
+                  </h3>
+
+                  <div className="text-xs text-slate-600 space-y-1">
+                    <p className="font-bold text-slate-800 flex items-center space-x-1.5">
+                      <User className="w-3.5 h-3.5 text-amber-700" />
+                      <span>लेखक / सम्पादक: <strong>{book.authors}</strong></span>
+                    </p>
+                    {book.publisher && (
+                      <p className="text-slate-500 font-medium">
+                        प्रकाशक: {book.publisher}
+                      </p>
+                    )}
+                    {book.isbn && (
+                      <p className="text-slate-500 font-mono text-[11px]">
+                        ISBN: {book.isbn}
+                      </p>
+                    )}
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-serif pt-1">
+                    {lang === 'hi' ? book.synopsis_hindi : book.synopsis_english}
+                  </p>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
+                    <button
+                      onClick={() => handleSelectBook(book)}
+                      className="px-4 py-2 bg-gradient-to-r from-red-950 to-red-900 hover:from-red-900 hover:to-red-800 text-amber-200 font-bold text-xs rounded-xl shadow-xs flex items-center space-x-1.5 transition cursor-pointer"
+                    >
+                      <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+                      <span>{lang === 'hi' ? 'ग्रंथ विवरण एवं सारांश देखें →' : 'View Book Details →'}</span>
+                    </button>
+
+                    {book.sample_pdf_url && (
+                      <a
+                        href={book.sample_pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-amber-700" />
+                        <span>PDF पढ़ें</span>
+                      </a>
+                    )}
+
+                    <button
+                      onClick={() => handleShareArticle('whatsapp', book.title_hindi)}
+                      className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer ml-auto"
+                    >
+                      <Share2 className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>शेयर</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1052,58 +1097,105 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
         </section>
       )}
 
-      {/* ---------------- BLOGS & ESSAYS GRID ---------------- */}
+      {/* ---------------- BLOGS & ESSAYS LISTING (Open Editorial Layout) ---------------- */}
       {(activeTab === 'all' || activeTab === 'blogs' || activeTab === 'reviews') && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between border-b border-amber-900/10 pb-2">
-            <div className="flex items-center space-x-2">
+        <section className="space-y-6">
+          <div className="flex items-center justify-between border-b border-amber-900/15 pb-3">
+            <div className="flex items-center space-x-2.5">
               <FileText className="w-5 h-5 text-red-900" />
-              <h2 className="text-xl font-serif font-bold text-red-950">
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-red-950">
                 {activeTab === 'reviews' 
                   ? (lang === 'hi' ? 'पुस्तक समीक्षाएं (Book Reviews)' : 'Book Reviews')
                   : (lang === 'hi' ? 'साहित्यिक आलेख एवं वैचारिक विमर्श' : 'Scholarly Blogs & Essays')}
               </h2>
             </div>
-            <span className="text-xs font-mono text-slate-500 font-bold">
+            <span className="text-xs font-mono text-slate-500 font-bold bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
               {filteredBlogs.length} {lang === 'hi' ? 'आलेख उपलब्ध' : 'Articles Available'}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-6">
             {filteredBlogs.map((blog) => (
               <div 
                 key={blog.id}
-                onClick={() => handleSelectBlog(blog)}
-                className="bg-white border border-amber-900/15 hover:border-amber-500 rounded-2xl overflow-hidden shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
+                className="bg-white border border-amber-900/15 hover:border-amber-500/70 rounded-3xl p-6 sm:p-8 shadow-xs hover:shadow-lg transition flex flex-col md:flex-row gap-6 sm:gap-8 items-start group"
               >
-                <div>
-                  <div className="h-44 w-full relative bg-slate-900 overflow-hidden">
-                    <SafeImage src={blog.cover_image} alt={blog.title_english} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                    <div className="absolute top-3 left-3 bg-red-950/90 text-amber-300 text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border border-amber-400/30">
-                      {blog.category}
-                    </div>
+                {/* Blog Image */}
+                {blog.cover_image && (
+                  <div 
+                    onClick={() => handleSelectBlog(blog)}
+                    className="w-full md:w-56 h-48 md:h-40 shrink-0 rounded-2xl overflow-hidden border border-amber-300 shadow-md bg-slate-900 cursor-pointer group-hover:scale-105 transition transform duration-200"
+                  >
+                    <SafeImage 
+                      src={blog.cover_image} 
+                      alt={blog.title_english} 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                )}
+
+                {/* Blog Details */}
+                <div className="space-y-3 flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="bg-amber-100 text-amber-950 font-bold text-xs px-3 py-0.5 rounded-full border border-amber-300 font-mono">
+                      ✍️ {blog.category}
+                    </span>
+                    <span className="text-xs text-slate-600 font-medium flex items-center space-x-1 bg-slate-50 px-3 py-0.5 rounded-full border border-slate-200">
+                      <User className="w-3.5 h-3.5 text-amber-700" />
+                      <span>लेखक: <strong>{blog.author}</strong></span>
+                    </span>
+                    <span className="text-xs text-slate-500 font-mono bg-slate-50 px-2.5 py-0.5 rounded-full border border-slate-200">
+                      {blog.date}
+                    </span>
+                    {blog.read_time && (
+                      <span className="text-xs text-slate-500 font-mono flex items-center space-x-1">
+                        <Clock className="w-3 h-3 text-amber-600" />
+                        <span>{blog.read_time}</span>
+                      </span>
+                    )}
                   </div>
 
-                  <div className="p-5 space-y-3">
-                    <h3 className="font-serif font-bold text-slate-900 group-hover:text-red-950 text-base leading-snug">
-                      {lang === 'hi' ? blog.title_hindi : blog.title_english}
-                    </h3>
+                  <h3 
+                    onClick={() => handleSelectBlog(blog)}
+                    className="text-xl sm:text-2xl font-serif font-black text-slate-900 group-hover:text-red-950 transition leading-snug cursor-pointer"
+                  >
+                    {lang === 'hi' ? blog.title_hindi : blog.title_english}
+                  </h3>
 
-                    <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                      {lang === 'hi' ? blog.excerpt_hindi : blog.excerpt_english}
-                    </p>
+                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-serif">
+                    {lang === 'hi' ? blog.excerpt_hindi : blog.excerpt_english}
+                  </p>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100">
+                    <button
+                      onClick={() => handleSelectBlog(blog)}
+                      className="px-4 py-2 bg-gradient-to-r from-red-950 to-red-900 hover:from-red-900 hover:to-red-800 text-amber-200 font-bold text-xs rounded-xl shadow-xs flex items-center space-x-1.5 transition cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-amber-300" />
+                      <span>{lang === 'hi' ? 'संपूर्ण आलेख पढ़ें →' : 'Read Full Article →'}</span>
+                    </button>
+
+                    {blog.pdf_url && (
+                      <a
+                        href={blog.pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5 text-amber-700" />
+                        <span>PDF डाउनलोड</span>
+                      </a>
+                    )}
+
+                    <button
+                      onClick={() => handleShareArticle('whatsapp', blog.title_hindi)}
+                      className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer ml-auto"
+                    >
+                      <Share2 className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>शेयर</span>
+                    </button>
                   </div>
-                </div>
-
-                <div className="p-5 pt-0 border-t border-slate-100 mt-2 flex items-center justify-between text-xs text-slate-500 font-mono">
-                  <div className="flex items-center space-x-2">
-                    <User className="w-3.5 h-3.5 text-amber-600" />
-                    <span className="truncate max-w-[120px] font-bold text-slate-800">{blog.author}</span>
-                  </div>
-
-                  <span className="text-red-900 font-bold group-hover:underline">
-                    {lang === 'hi' ? 'आलेख पढ़ें →' : 'Read Article →'}
-                  </span>
                 </div>
               </div>
             ))}
