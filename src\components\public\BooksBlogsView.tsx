@@ -58,11 +58,33 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
   const booksList = rawBooks.filter(b => b.status === 'approved' || (!b.status && !b.id.startsWith('pub_') && !b.id.startsWith('contrib_')));
   const blogsList = rawBlogs.filter(b => b.status === 'approved' || (!b.status && !b.id.startsWith('pub_') && !b.id.startsWith('contrib_')));
 
-  const [activeTab, setActiveTab] = useState<'all' | 'books' | 'blogs' | 'reviews' | 'folklore' | 'research_papers'>(initialTab as any);
+  const [activeTab, setActiveTab] = useState<'all' | 'books' | 'blogs' | 'reviews' | 'folklore' | 'research_papers'>(() => {
+    const route = parseRouteFromUrl();
+    if (route.blogId) return 'blogs';
+    if (route.bookId) return 'books';
+    if (route.tab && ['all', 'books', 'blogs', 'reviews', 'folklore', 'research_papers'].includes(route.tab)) {
+      return route.tab as any;
+    }
+    return initialTab as any;
+  });
 
-  // Reader state
-  const [selectedBook, setSelectedBook] = useState<BookItem | null>(null);
-  const [selectedBlog, setSelectedBlog] = useState<BlogItem | null>(null);
+  // Reader state initialized directly from URL synchronously
+  const [selectedBook, setSelectedBook] = useState<BookItem | null>(() => {
+    const route = parseRouteFromUrl();
+    if (route.bookId) {
+      const bId = route.bookId.toLowerCase();
+      return booksList.find(item => item.id.toLowerCase() === bId || item.isbn?.toLowerCase() === bId) || null;
+    }
+    return null;
+  });
+  const [selectedBlog, setSelectedBlog] = useState<BlogItem | null>(() => {
+    const route = parseRouteFromUrl();
+    if (route.blogId) {
+      const blId = route.blogId.toLowerCase();
+      return blogsList.find(item => item.id.toLowerCase() === blId) || null;
+    }
+    return null;
+  });
 
   React.useEffect(() => {
     const route = parseRouteFromUrl();
@@ -70,15 +92,19 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
     const urlTab = searchParams.get('tab') as any;
 
     if (route.bookId) {
-      const b = booksList.find(item => item.id === route.bookId || item.isbn === route.bookId);
+      const bId = route.bookId.toLowerCase();
+      const b = booksList.find(item => item.id.toLowerCase() === bId || item.isbn?.toLowerCase() === bId);
       if (b) {
         setSelectedBook(b);
+        setSelectedBlog(null);
         setActiveTab('books');
       }
     } else if (route.blogId) {
-      const bl = blogsList.find(item => item.id === route.blogId);
+      const blId = route.blogId.toLowerCase();
+      const bl = blogsList.find(item => item.id.toLowerCase() === blId);
       if (bl) {
         setSelectedBlog(bl);
+        setSelectedBook(null);
         setActiveTab('blogs');
       }
     } else if (urlTab && ['all', 'books', 'blogs', 'reviews', 'folklore', 'research_papers'].includes(urlTab)) {
@@ -490,16 +516,64 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
             )}
           </div>
 
-          {/* Article Full Open Body Text */}
+          {/* Article Full Open Body Text (Rich Editorial Typography) */}
           <div 
             style={{ fontSize: `${readerFontSize}px`, lineHeight: 1.85 }}
             className="max-w-3xl mx-auto font-serif text-slate-800 space-y-6 pt-2"
           >
-            {selectedBlog.content_hindi.split('\n\n').map((paragraph, i) => (
-              <p key={i} className="leading-relaxed first-letter:text-3xl first-letter:font-bold first-letter:text-red-950 first-letter:mr-0.5">
-                {paragraph}
-              </p>
-            ))}
+            {selectedBlog.content_hindi.split('\n\n').filter(Boolean).map((block, i) => {
+              const trimmed = block.trim();
+              if (trimmed.startsWith('### ')) {
+                return (
+                  <h3 key={i} className="text-xl sm:text-2xl font-serif font-bold text-red-950 mt-8 mb-3 pb-1 border-b border-amber-300/40">
+                    {trimmed.replace(/^###\s+/, '')}
+                  </h3>
+                );
+              }
+              if (trimmed.startsWith('## ')) {
+                return (
+                  <h2 key={i} className="text-2xl sm:text-3xl font-serif font-bold text-red-950 mt-10 mb-4 pb-2 border-b-2 border-amber-400/50">
+                    {trimmed.replace(/^##\s+/, '')}
+                  </h2>
+                );
+              }
+              if (trimmed.startsWith('1. ') || trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+                const lines = trimmed.split('\n');
+                return (
+                  <div key={i} className="space-y-2 my-4 pl-2">
+                    {lines.map((line, lIdx) => {
+                      const cleanLine = line.replace(/^(\d+\.\s+|\-\s+|\*\s+)/, '');
+                      const parts = cleanLine.split(/(\*\*.*?\*\*)/g);
+                      return (
+                        <div key={lIdx} className="flex items-start space-x-2 text-slate-800 leading-relaxed font-serif">
+                          <span className="text-amber-700 font-bold font-mono mt-0.5">•</span>
+                          <div>
+                            {parts.map((p, pIdx) => {
+                              if (p.startsWith('**') && p.endsWith('**')) {
+                                return <strong key={pIdx} className="text-red-950 font-bold">{p.slice(2, -2)}</strong>;
+                              }
+                              return <span key={pIdx}>{p}</span>;
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              }
+
+              const parts = trimmed.split(/(\*\*.*?\*\*)/g);
+              return (
+                <p key={i} className="leading-relaxed first-letter:text-3xl first-letter:font-bold first-letter:text-red-950 first-letter:mr-0.5">
+                  {parts.map((p, pIdx) => {
+                    if (p.startsWith('**') && p.endsWith('**')) {
+                      return <strong key={pIdx} className="text-red-950 font-bold">{p.slice(2, -2)}</strong>;
+                    }
+                    return <span key={pIdx}>{p}</span>;
+                  })}
+                </p>
+              );
+            })}
           </div>
 
           {/* PDF Download if available */}
