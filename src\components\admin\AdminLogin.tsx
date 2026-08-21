@@ -33,11 +33,11 @@ export const AdminLogin: React.FC = () => {
     }
   };
 
-  const handleGoogleSignIn = async (useRedirectMode = false) => {
+  const handleGoogleSignIn = async () => {
     setError(null);
     setLoading(true);
     try {
-      await googleLogin(useRedirectMode);
+      await googleLogin();
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
       const code = err?.code || '';
@@ -47,6 +47,8 @@ export const AdminLogin: React.FC = () => {
         setError('गूगल OAuth नीति: Firebase Console में "Authorized domains" में "pawari-shodh-patrika.vercel.app" जोड़ना आवश्यक है। आप तुरंत प्रवेश हेतु "Email & Password" टैब का उपयोग करके भी सुरक्षित लॉगिन कर सकते हैं।');
       } else if (msg.includes('Unauthorized') || code === 'auth/unauthorized' || msg.includes('अनधिकृत')) {
         setError('अनधिकृत खाता! केवल अधिकृत संचालक (rupeshpawar10@gmail.com / rajeshbarange00@gmail.com) एवं CMS में पंजीकृत स्टाफ ही लॉगिन कर सकते हैं।');
+      } else if (code === 'auth/popup-closed-by-user') {
+        setError('लॉगिन विंडो बंद कर दी गई। कृपया पुनः प्रयास करें।');
       } else {
         setError(msg);
       }
@@ -110,7 +112,7 @@ export const AdminLogin: React.FC = () => {
           <div className="space-y-4 pt-1">
             <button
               type="button"
-              onClick={handleGoogleSignIn}
+              onClick={() => handleGoogleSignIn()}
               disabled={loading}
               className="w-full py-4 px-4 bg-white hover:bg-slate-50 text-slate-800 font-black border-2 border-slate-300 hover:border-slate-400 rounded-2xl transition shadow-md hover:shadow-lg flex items-center justify-center space-x-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-amber-500 active:scale-[0.99] cursor-pointer"
             >

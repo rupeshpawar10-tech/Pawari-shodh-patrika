@@ -535,29 +535,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const googleLogin = async (forceRedirect: boolean = false) => {
+  const googleLogin = async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     
-    if (forceRedirect) {
-      await signInWithRedirect(auth, provider);
-      return;
-    }
-
     let user: FirebaseUser | null = null;
     try {
       const res = await signInWithPopup(auth, provider);
       user = res.user;
     } catch (popupErr: any) {
-      if (
-        popupErr?.code === 'auth/popup-blocked' ||
-        popupErr?.code === 'auth/popup-closed-by-user' ||
-        popupErr?.code === 'auth/cancelled-popup-request'
-      ) {
-        console.info('[Auth] Popup unavailable or closed, proceeding with full-page redirect authentication...');
-        await signInWithRedirect(auth, provider);
-        return;
-      }
+      console.error('[Auth] Google Sign-In Popup Error:', popupErr);
       throw popupErr;
     }
 
@@ -566,7 +553,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('pawari_cms_user');
       setUserProfile(null);
       setCurrentUser(null);
-      throw new Error('Sign in failed: No email returned from Google.');
+      throw new Error('Google साइन-इन विफल: कोई ईमेल प्राप्त नहीं हुआ।');
     }
 
     const signedInEmail = user.email.toLowerCase().trim();
