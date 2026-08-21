@@ -33,22 +33,20 @@ export const AdminLogin: React.FC = () => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async (useRedirectMode = false) => {
     setError(null);
     setLoading(true);
     try {
-      await googleLogin();
+      await googleLogin(useRedirectMode);
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
       const code = err?.code || '';
       const msg = err?.message || 'Google sign-in failed.';
       
       if (code === 'auth/unauthorized-domain' || msg.includes('origin') || msg.includes('OAuth') || msg.includes('policy')) {
-        setError('गूगल OAuth नीति: Google Cloud Console में "Authorized JavaScript origins" में डोमेन पंजीकृत करना आवश्यक है। आप तुरंत प्रवेश हेतु "Email & Password" टैब का उपयोग करके भी सुरक्षित लॉगिन कर सकते हैं।');
+        setError('गूगल OAuth नीति: Firebase Console में "Authorized domains" में "pawari-shodh-patrika.vercel.app" जोड़ना आवश्यक है। आप तुरंत प्रवेश हेतु "Email & Password" टैब का उपयोग करके भी सुरक्षित लॉगिन कर सकते हैं।');
       } else if (msg.includes('Unauthorized') || code === 'auth/unauthorized' || msg.includes('अनधिकृत')) {
         setError('अनधिकृत खाता! केवल अधिकृत संचालक (rupeshpawar10@gmail.com / rajeshbarange00@gmail.com) एवं CMS में पंजीकृत स्टाफ ही लॉगिन कर सकते हैं।');
-      } else if (code === 'auth/popup-closed-by-user') {
-        setError('लॉगिन विंडो बंद कर दी गई। कृपया पुनः प्रयास करें।');
       } else {
         setError(msg);
       }

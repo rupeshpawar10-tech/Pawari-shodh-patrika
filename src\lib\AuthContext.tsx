@@ -407,7 +407,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Load initial roles list and users list
     refreshRolesList();
-    refreshUsersList();
+    // Handle redirect result from Google OAuth
+    getRedirectResult(auth).then(async (result) => {
+      if (result && result.user) {
+        console.log('[Auth] Google Redirect Sign-In successful for:', result.user.email);
+      }
+    }).catch((err) => {
+      console.warn('[Auth] Redirect result processing:', err);
+    });
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -528,16 +535,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const googleLogin = async () => {
+  const googleLogin = async (forceRedirect: boolean = false) => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     
+    if (forceRedirect) {
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+
     let user: FirebaseUser | null = null;
     try {
       const res = await signInWithPopup(auth, provider);
       user = res.user;
     } catch (popupErr: any) {
-      if (popupErr?.code === 'auth/popup-blocked') {
+      if (
+        popupErr?.code === 'auth/popup-blocked' ||
+        popupErr?.code === 'auth/popup-closed-by-user' ||
+        popupErr?.code === 'auth/cancelled-popup-request'
+      ) {
+        console.info('[Auth] Popup unavailable or closed, proceeding with full-page redirect authentication...');
         await signInWithRedirect(auth, provider);
         return;
       }
