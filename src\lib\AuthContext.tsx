@@ -19,11 +19,24 @@ import { UserProfile, Role, UserRole, CustomRole, RolePermissions } from '../typ
 export const AUTHORIZED_SUPER_ADMIN_EMAIL = 'rupeshpawar10@gmail.com';
 export const AUTHORIZED_SUPER_ADMIN_NAME = 'Prof. Rupesh Pawar';
 
+export const AUTHORIZED_OWNER_EMAILS = [
+  'rupeshpawar10@gmail.com',
+  'rajeshbarange00@gmail.com'
+];
+
 export const DEFAULT_SAMPLE_USERS: UserProfile[] = [
   {
     uid: 'super_admin_rupesh',
-    email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-    display_name: AUTHORIZED_SUPER_ADMIN_NAME,
+    email: 'rupeshpawar10@gmail.com',
+    display_name: 'Prof. Rupesh Pawar (Chief Editor / Owner)',
+    role: 'super_admin',
+    status: 'active',
+    created_at: '2025-01-01T00:00:00.000Z'
+  },
+  {
+    uid: 'super_admin_rajesh',
+    email: 'rajeshbarange00@gmail.com',
+    display_name: 'Rajesh Barange (Admin / Owner)',
     role: 'super_admin',
     status: 'active',
     created_at: '2025-01-01T00:00:00.000Z'
@@ -398,15 +411,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(user);
       if (user) {
         const email = user.email?.toLowerCase().trim() || '';
+        const isOwner = AUTHORIZED_OWNER_EMAILS.some(e => e.toLowerCase() === email);
         
-        if (email === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+        if (isOwner) {
           try {
             const userDocRef = doc(db, 'users', user.uid);
             const snap = await getDoc(userDocRef);
+            const defaultName = email.includes('rupesh') ? 'Prof. Rupesh Pawar' : 'Rajesh Barange';
             const profile: UserProfile = {
               uid: user.uid,
-              email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-              display_name: AUTHORIZED_SUPER_ADMIN_NAME,
+              email: email,
+              display_name: user.displayName || (snap.exists() ? snap.data().display_name : defaultName),
               role: 'super_admin',
               status: 'active',
               created_at: snap.exists() ? (snap.data().created_at || new Date().toISOString()) : new Date().toISOString()
@@ -416,11 +431,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
             await refreshUsersList();
           } catch (err) {
-            console.error('Error in onAuthStateChanged profile sync:', err);
+            console.error('Error in onAuthStateChanged owner sync:', err);
+            const defaultName = email.includes('rupesh') ? 'Prof. Rupesh Pawar' : 'Rajesh Barange';
             const profile: UserProfile = {
               uid: user.uid,
-              email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-              display_name: AUTHORIZED_SUPER_ADMIN_NAME,
+              email: email,
+              display_name: defaultName,
               role: 'super_admin',
               status: 'active',
               created_at: new Date().toISOString()
@@ -428,7 +444,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUserProfile(profile);
           }
         } else {
-          // Check if user exists in Firestore users collection
+          // Check if user exists in Firestore users collection or sample list
           try {
             const userDocRef = doc(db, 'users', user.uid);
             let snap = await getDoc(userDocRef);
@@ -444,8 +460,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
             }
 
-            if (matchedProfile && (matchedProfile as UserProfile).status === 'disabled') {
-              console.warn('Disabled CMS user blocked:', email);
+            if (!matchedProfile) {
+              const sampleMatch = DEFAULT_SAMPLE_USERS.find(u => u.email.toLowerCase().trim() === email);
+              if (sampleMatch) {
+                matchedProfile = sampleMatch;
+              }
+            }
+
+            // STRICT ACCESS GUARD: If email is NOT registered in CMS, BLOCK & SIGN OUT IMMEDIATELY!
+            if (!matchedProfile || matchedProfile.status === 'disabled') {
+              console.warn('Unauthorized or disabled Google user blocked:', email);
               await firebaseSignOut(auth);
               localStorage.removeItem('pawari_cms_user');
               setCurrentUser(null);
@@ -456,11 +480,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             const profile: UserProfile = {
               uid: user.uid,
-              email: matchedProfile?.email || email,
-              display_name: matchedProfile?.display_name || user.displayName || email,
-              role: matchedProfile?.role || (email.includes('admin') || email === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase() ? 'super_admin' : 'editorial'),
+              email: matchedProfile.email || email,
+              display_name: matchedProfile.display_name || user.displayName || email,
+              role: matchedProfile.role || 'editorial',
               status: 'active',
-              created_at: matchedProfile?.created_at || new Date().toISOString()
+              created_at: matchedProfile.created_at || new Date().toISOString()
             };
             try {
               await setDoc(userDocRef, profile, { merge: true });
@@ -470,15 +494,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await refreshUsersList();
           } catch (err) {
             console.error('Error in profile validation:', err);
-            const fallbackProfile: UserProfile = {
-              uid: user.uid,
-              email: user.email || 'staff@pawarijournal.org',
-              display_name: user.displayName || user.email || 'CMS Staff',
-              role: 'editorial',
-              status: 'active',
-              created_at: new Date().toISOString()
-            };
-            setUserProfile(fallbackProfile);
+            await firebaseSignOut(auth);
+            localStorage.removeItem('pawari_cms_user');
+            setCurrentUser(null);
+            setUserProfile(null);
           }
         }
       } else {
@@ -487,7 +506,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (saved) {
           try {
             const parsed = JSON.parse(saved);
-            if (parsed && parsed.email && parsed.status !== 'disabled') {
+            const isOwner = parsed?.email && AUTHORIZED_OWNER_EMAILS.some(e => e.toLowerCase() === parsed.email.toLowerCase());
+            if (parsed && parsed.email && (isOwner || parsed.status !== 'disabled')) {
               setUserProfile(parsed);
             } else {
               setUserProfile(null);
@@ -521,11 +541,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const signedInEmail = user.email.toLowerCase().trim();
-    if (signedInEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase()) {
+
+    // 1. Check if user is one of the Primary Owners / Super Admins (rupeshpawar10 / rajeshbarange00)
+    const isOwner = AUTHORIZED_OWNER_EMAILS.some(e => e.toLowerCase() === signedInEmail);
+    if (isOwner) {
+      const defaultName = signedInEmail.includes('rupesh') ? 'Prof. Rupesh Pawar' : 'Rajesh Barange';
       const profile: UserProfile = {
         uid: user.uid,
-        email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-        display_name: AUTHORIZED_SUPER_ADMIN_NAME,
+        email: signedInEmail,
+        display_name: user.displayName || defaultName,
         role: 'super_admin',
         status: 'active',
         created_at: new Date().toISOString()
@@ -539,7 +563,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // Check if user exists in users collection or create an active profile
+    // 2. Check if user exists in Firestore users collection or sample list
     let matchedProfile: UserProfile | null = null;
     try {
       const snap = await getDoc(doc(db, 'users', user.uid));
@@ -556,21 +580,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (e) {}
 
-    if (matchedProfile && (matchedProfile as UserProfile).status === 'disabled') {
+    if (!matchedProfile) {
+      const sampleMatch = DEFAULT_SAMPLE_USERS.find(u => u.email.toLowerCase().trim() === signedInEmail);
+      if (sampleMatch) {
+        matchedProfile = sampleMatch;
+      }
+    }
+
+    // STRICT ACCESS GUARD: Block ALL other Google accounts!
+    if (!matchedProfile || matchedProfile.status === 'disabled') {
       await firebaseSignOut(auth);
       localStorage.removeItem('pawari_cms_user');
       setUserProfile(null);
       setCurrentUser(null);
-      throw new Error(`Account (${signedInEmail}) is disabled. Please contact the Super Admin.`);
+      throw new Error(`अनधिकृत खाता (${signedInEmail})! केवल अधिकृत संचालक/एडमिन (rupeshpawar10@gmail.com एवं rajeshbarange00@gmail.com) ही पोर्टल में प्रवेश कर सकते हैं।`);
     }
 
     const profile: UserProfile = {
       uid: user.uid,
       email: signedInEmail,
-      display_name: matchedProfile?.display_name || user.displayName || signedInEmail,
-      role: matchedProfile?.role || 'editorial',
+      display_name: matchedProfile.display_name || user.displayName || signedInEmail,
+      role: matchedProfile.role || 'editorial',
       status: 'active',
-      created_at: matchedProfile?.created_at || new Date().toISOString()
+      created_at: matchedProfile.created_at || new Date().toISOString()
     };
     try {
       await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
@@ -583,20 +615,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, pass: string) => {
     const cleanEmail = email.toLowerCase().trim();
 
-    // 1. Super Admin or Authorized Admin Credentials Direct Access
+    // 1. Super Admin / Owner Credentials Direct Access
     if (
-      cleanEmail === AUTHORIZED_SUPER_ADMIN_EMAIL.toLowerCase() ||
+      AUTHORIZED_OWNER_EMAILS.some(e => e.toLowerCase() === cleanEmail) ||
       cleanEmail.includes('rupeshpawar') ||
-      cleanEmail.includes('admin') ||
-      cleanEmail.includes('pawari') ||
-      cleanEmail.includes('editor') ||
-      cleanEmail.includes('director') ||
-      cleanEmail.includes('rupesh')
+      cleanEmail.includes('rajeshbarange')
     ) {
+      const isRupesh = cleanEmail.includes('rupesh');
+      const targetEmail = isRupesh ? 'rupeshpawar10@gmail.com' : 'rajeshbarange00@gmail.com';
+      const targetName = isRupesh ? 'Prof. Rupesh Pawar' : 'Rajesh Barange';
+      const targetUid = isRupesh ? 'super_admin_rupesh' : 'super_admin_rajesh';
+
       const superAdminProfile: UserProfile = {
-        uid: 'super_admin_rupesh',
-        email: AUTHORIZED_SUPER_ADMIN_EMAIL,
-        display_name: AUTHORIZED_SUPER_ADMIN_NAME,
+        uid: targetUid,
+        email: targetEmail,
+        display_name: targetName,
         role: 'super_admin',
         status: 'active',
         created_at: new Date().toISOString()
@@ -604,7 +637,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUserProfile(superAdminProfile);
       localStorage.setItem('pawari_cms_user', JSON.stringify(superAdminProfile));
       try {
-        await setDoc(doc(db, 'users', 'super_admin_rupesh'), superAdminProfile, { merge: true });
+        await setDoc(doc(db, 'users', targetUid), superAdminProfile, { merge: true });
       } catch (e) {}
       await refreshUsersList();
       return;

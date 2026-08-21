@@ -90,8 +90,12 @@ export const AdminLogin: React.FC = () => {
           </div>
         )}
 
-        {/* 1-Click Direct Admin Access Button */}
-        <div className="space-y-2">
+        {/* 1-Click Direct Admin Access Buttons for Both Owners */}
+        <div className="space-y-3">
+          <div className="text-[11px] font-mono font-bold text-amber-900 uppercase text-center tracking-wider bg-amber-50 py-1 rounded-lg border border-amber-200">
+            ⚡ केवल अधिकृत संचालक (Authorized Owners Only)
+          </div>
+
           <button
             type="button"
             onClick={async () => {
@@ -105,13 +109,33 @@ export const AdminLogin: React.FC = () => {
               }
             }}
             disabled={loading}
-            className="w-full py-4 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-red-950 font-black border-2 border-amber-600 rounded-2xl transition shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-[0.98]"
+            className="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-red-950 font-black border-2 border-amber-600 rounded-2xl transition shadow-md hover:shadow-lg flex items-center justify-center space-x-2 text-xs sm:text-sm cursor-pointer active:scale-[0.98]"
           >
             <ShieldCheck className="w-5 h-5 text-red-950 shrink-0" />
-            <span>⚡ 1-Click Super Admin Login (सीधा प्रवेश करें)</span>
+            <span>लॉगिन: Prof. Rupesh Pawar (rupeshpawar10@gmail.com)</span>
           </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              setLoading(true);
+              try {
+                await directSuperAdminLogin('rajeshbarange00@gmail.com', 'Rajesh Barange');
+              } catch (e) {
+                setError('Direct Super Admin access failed.');
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            className="w-full py-3.5 px-4 bg-gradient-to-r from-red-950 to-red-900 hover:from-red-900 hover:to-red-800 text-amber-200 font-black border-2 border-amber-500/60 rounded-2xl transition shadow-md hover:shadow-lg flex items-center justify-center space-x-2 text-xs sm:text-sm cursor-pointer active:scale-[0.98]"
+          >
+            <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0" />
+            <span>लॉगिन: Rajesh Barange (rajeshbarange00@gmail.com)</span>
+          </button>
+
           <p className="text-[11px] text-center text-slate-500 font-medium">
-            (rupeshpawar10@gmail.com के लिए बिना किसी पासवर्ड या Google पॉपअप के सीधा प्रवेश)
+            (इन दो खातों के अलावा अन्य किसी भी बाहरी ईमेल का लॉगिन ब्लॉक है)
           </p>
         </div>
 
