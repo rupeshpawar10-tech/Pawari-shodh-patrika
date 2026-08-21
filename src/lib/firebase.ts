@@ -1,6 +1,12 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { 
+  initializeFirestore, 
+  getFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager,
+  setLogLevel
+} from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import config from '../../firebase-applet-config.json';
 
@@ -11,7 +17,8 @@ export const firebaseConfig = {
   storageBucket: config.storageBucket,
   messagingSenderId: config.messagingSenderId,
   appId: config.appId,
-  firestoreDatabaseId: config.firestoreDatabaseId || '(default)'
+  firestoreDatabaseId: config.firestoreDatabaseId || '(default)',
+  oAuthClientId: config.oAuthClientId
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -25,13 +32,19 @@ setPersistence(auth, browserLocalPersistence).catch((err) => {
 
 // Suppress unhandled rejections and runtime errors from background IndexedDB / Firestore closing/hidden states
 if (typeof window !== 'undefined') {
+  try {
+    setLogLevel('error');
+  } catch (e) {}
+
   window.addEventListener('unhandledrejection', (event) => {
     const reasonMsg = event.reason?.message || String(event.reason || '');
     if (
       reasonMsg.includes('closing/hidden') ||
       reasonMsg.includes('Database is closing') ||
       reasonMsg.includes('database is closing') ||
-      reasonMsg.includes('IndexedDB')
+      reasonMsg.includes('IndexedDB') ||
+      reasonMsg.includes('unavailable') ||
+      reasonMsg.includes('Could not reach Cloud Firestore backend')
     ) {
       event.preventDefault();
       event.stopPropagation();
@@ -43,7 +56,9 @@ if (typeof window !== 'undefined') {
     if (
       errorMsg.includes('closing/hidden') ||
       errorMsg.includes('Database is closing') ||
-      errorMsg.includes('database is closing')
+      errorMsg.includes('database is closing') ||
+      errorMsg.includes('unavailable') ||
+      errorMsg.includes('Could not reach Cloud Firestore backend')
     ) {
       event.preventDefault();
       event.stopPropagation();
@@ -51,10 +66,29 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Initialize Firestore directly as specified by Firebase documentation
-export const db = config.firestoreDatabaseId && config.firestoreDatabaseId !== '(default)'
-  ? getFirestore(app, config.firestoreDatabaseId)
-  : getFirestore(app);
+// Initialize Firestore with auto-detect long polling and multi-tab persistent cache
+let firestoreDb: any;
+const customDbId = config.firestoreDatabaseId && config.firestoreDatabaseId !== '(default)' 
+  ? config.firestoreDatabaseId 
+  : undefined;
+
+try {
+  const firestoreSettings = {
+    experimentalAutoDetectLongPolling: true,
+    localCache: typeof window !== 'undefined' 
+      ? persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+      : undefined
+  };
+
+  firestoreDb = customDbId 
+    ? initializeFirestore(app, firestoreSettings, customDbId)
+    : initializeFirestore(app, firestoreSettings);
+} catch (e) {
+  // If already initialized, fallback to getFirestore
+  firestoreDb = customDbId ? getFirestore(app, customDbId) : getFirestore(app);
+}
+
+export const db = firestoreDb;
 
 export const storage = getStorage(app);
 
