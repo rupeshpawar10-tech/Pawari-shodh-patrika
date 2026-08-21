@@ -40,11 +40,15 @@ export const AdminLogin: React.FC = () => {
       await googleLogin();
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
-      const code = err?.code || 'auth/unauthorized';
+      const code = err?.code || '';
       const msg = err?.message || 'Google sign-in failed.';
       
-      if (msg.includes('Unauthorized admin account') || code === 'auth/unauthorized') {
-        setError(`Unauthorized account. Access is allowed ONLY for registered CMS staff.`);
+      if (code === 'auth/unauthorized-domain' || msg.includes('origin') || msg.includes('OAuth') || msg.includes('policy')) {
+        setError('गूगल OAuth सुरक्षा नीति के तहत आपका डोमेन अभी Google Console में अधिकृत नहीं है। कृपया तुरंत प्रवेश के लिए नीचे दिए गए "⚡ 1-Click Super Admin Login" बटन का उपयोग करें!');
+      } else if (msg.includes('Unauthorized admin account') || code === 'auth/unauthorized') {
+        setError('Unauthorized account. Access is allowed ONLY for registered CMS staff.');
+      } else if (code === 'auth/popup-closed-by-user') {
+        setError('लॉगिन विंडो बंद कर दी गई। पुनः प्रयास करें या "1-Click Super Admin Login" का उपयोग करें।');
       } else {
         setError(msg);
       }
@@ -71,44 +75,49 @@ export const AdminLogin: React.FC = () => {
             </p>
           </div>
           <p className="text-sm text-slate-600 font-medium leading-relaxed pt-1">
-            Secure login. Enter your CMS staff credentials or sign in with authorized Google account.
+            मुख्य संपादक एवं संचालक (Owner) प्रवेश पोर्टल
           </p>
         </div>
 
         {/* Unauthorized / Error Message (Only shown when error occurs) */}
         {error && (
-          <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-900 font-medium space-y-1 animate-in slide-in-from-top-1">
+          <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 font-medium space-y-1 animate-in slide-in-from-top-1">
             <div className="font-bold flex items-center space-x-1.5 text-red-950">
               <ShieldAlert className="w-4 h-4 text-red-600 shrink-0" />
-              <span>Authentication Error</span>
+              <span>सूचना / Authentication Note</span>
             </div>
-            <p className="leading-relaxed text-xs text-slate-700">{error}</p>
+            <p className="leading-relaxed text-xs text-slate-800">{error}</p>
           </div>
         )}
 
         {/* 1-Click Direct Admin Access Button */}
-        <button
-          type="button"
-          onClick={async () => {
-            setLoading(true);
-            try {
-              await directSuperAdminLogin('rupeshpawar10@gmail.com', 'Prof. Rupesh Pawar');
-            } catch (e) {
-              setError('Direct Super Admin access failed.');
-            } finally {
-              setLoading(false);
-            }
-          }}
-          disabled={loading}
-          className="w-full py-3.5 px-4 bg-amber-500 hover:bg-amber-600 text-red-950 font-bold border-2 border-amber-600 rounded-xl transition shadow-md hover:shadow-lg flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-[0.98]"
-        >
-          <ShieldCheck className="w-5 h-5 text-red-950 shrink-0" />
-          <span>⚡ 1-Click Super Admin Login (सीधा प्रवेश करें)</span>
-        </button>
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={async () => {
+              setLoading(true);
+              try {
+                await directSuperAdminLogin('rupeshpawar10@gmail.com', 'Prof. Rupesh Pawar');
+              } catch (e) {
+                setError('Direct Super Admin access failed.');
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            className="w-full py-4 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-red-950 font-black border-2 border-amber-600 rounded-2xl transition shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 text-sm cursor-pointer active:scale-[0.98]"
+          >
+            <ShieldCheck className="w-5 h-5 text-red-950 shrink-0" />
+            <span>⚡ 1-Click Super Admin Login (सीधा प्रवेश करें)</span>
+          </button>
+          <p className="text-[11px] text-center text-slate-500 font-medium">
+            (rupeshpawar10@gmail.com के लिए बिना किसी पासवर्ड या Google पॉपअप के सीधा प्रवेश)
+          </p>
+        </div>
 
         <div className="relative flex py-1 items-center">
           <div className="flex-grow border-t border-slate-200"></div>
-          <span className="flex-shrink mx-3 text-slate-400 text-xs font-semibold uppercase">Or Sign In With</span>
+          <span className="flex-shrink mx-3 text-slate-400 text-xs font-semibold uppercase">अन्य लॉगिन विकल्प (Other Methods)</span>
           <div className="flex-grow border-t border-slate-200"></div>
         </div>
 
