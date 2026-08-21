@@ -18,7 +18,7 @@ export const firebaseConfig = {
   messagingSenderId: config.messagingSenderId,
   appId: config.appId,
   firestoreDatabaseId: config.firestoreDatabaseId || '(default)',
-  oAuthClientId: config.oAuthClientId
+  oAuthClientId: (config as any)?.oAuthClientId
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();

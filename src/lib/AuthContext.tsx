@@ -198,7 +198,7 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<void>;
-  googleLogin: () => Promise<void>;
+  googleLogin: (hintEmail?: string) => Promise<void>;
   logout: () => Promise<void>;
   isSuperAdmin: boolean;
   isDirector: boolean;
@@ -612,7 +612,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await refreshUsersList();
   };
 
-  const googleGsiLogin = async (): Promise<void> => {
+  const googleGsiLogin = async (hintEmail?: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       if (typeof window === 'undefined') {
         return reject(new Error('Browser environment required.'));
@@ -683,7 +683,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           });
 
-          client.requestAccessToken({ prompt: 'select_account' });
+          const requestParams: any = { prompt: 'select_account' };
+          if (hintEmail && hintEmail.trim()) {
+            requestParams.hint = hintEmail.trim();
+          }
+          client.requestAccessToken(requestParams);
         } catch (initErr: any) {
           console.warn('[GSI Init Error]:', initErr);
           reject(new Error('Browser popup was blocked. Please allow popups for this site or use Email & Password login.'));
@@ -710,10 +714,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const googleLogin = async () => {
+  const googleLogin = async (hintEmail?: string) => {
     try {
       const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
+      const customParams: Record<string, string> = { prompt: 'select_account' };
+      if (hintEmail && hintEmail.trim()) {
+        customParams.login_hint = hintEmail.trim();
+      }
+      provider.setCustomParameters(customParams);
       const res = await signInWithPopup(auth, provider);
       await handleAuthenticatedFirebaseUser(res.user);
     } catch (err: any) {
@@ -727,7 +735,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // If Firebase Auth popup was blocked or domain not authorized, attempt GSI fallback
       try {
-        await googleGsiLogin();
+        await googleGsiLogin(hintEmail);
       } catch (gsiErr: any) {
         console.warn('GSI fallback notice:', gsiErr);
         if (errMsg.includes('auth/unauthorized-domain')) {
