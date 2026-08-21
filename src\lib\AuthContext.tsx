@@ -7,6 +7,8 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   getAuth as getSecondaryAuth,
   signOut as secondarySignOut
 } from 'firebase/auth';
@@ -529,8 +531,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const googleLogin = async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    const res = await signInWithPopup(auth, provider);
-    const user = res.user;
+    
+    let user: FirebaseUser | null = null;
+    try {
+      const res = await signInWithPopup(auth, provider);
+      user = res.user;
+    } catch (popupErr: any) {
+      if (popupErr?.code === 'auth/popup-blocked') {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      throw popupErr;
+    }
 
     if (!user || !user.email) {
       await firebaseSignOut(auth);
