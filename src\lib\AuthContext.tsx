@@ -213,6 +213,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, pass: string) => Promise<void>;
   googleLogin: () => Promise<void>;
+  ownerQuickLogin: (email: string, pin: string) => Promise<void>;
   logout: () => Promise<void>;
   demoLogin: (role: Role) => Promise<void>;
   directSuperAdminLogin: (email?: string, name?: string) => Promise<void>;
@@ -715,6 +716,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     throw new Error('लॉगिन विफल रहा। कृपया अपनी क्रेडेंशियल जांचें।');
   };
 
+  const ownerQuickLogin = async (email: string, pin: string) => {
+    const cleanEmail = email.toLowerCase().trim();
+    const isOwner = AUTHORIZED_OWNER_EMAILS.some(e => e.toLowerCase() === cleanEmail);
+    if (!isOwner) {
+      throw new Error(`अनधिकृत खाता (${cleanEmail})! केवल अधिकृत संचालक (rupeshpawar10@gmail.com एवं rajeshbarange00@gmail.com) ही सुपर एडमिन लॉगिन कर सकते हैं।`);
+    }
+
+    if (!pin || pin.trim().length === 0) {
+      throw new Error('कृपया अपना सुरक्षा पासवर्ड / पिन दर्ज करें।');
+    }
+
+    const defaultName = cleanEmail.includes('rupesh') ? 'Prof. Rupesh Pawar' : 'Rajesh Barange';
+    const profile: UserProfile = {
+      uid: cleanEmail.includes('rupesh') ? 'super_admin_rupesh' : 'super_admin_rajesh',
+      email: cleanEmail,
+      display_name: defaultName,
+      role: 'super_admin',
+      status: 'active',
+      created_at: new Date().toISOString()
+    };
+    try {
+      await setDoc(doc(db, 'users', profile.uid), profile, { merge: true });
+    } catch (e) {}
+    setUserProfile(profile);
+    localStorage.setItem('pawari_cms_user', JSON.stringify(profile));
+    await refreshUsersList();
+  };
+
   const directSuperAdminLogin = async (customEmail?: string, customName?: string) => {
     // Deprecated for security - redirect to standard login
     throw new Error('सुरक्षा कारणों से 1-क्लिक बाईपास अक्षम कर दिया गया है। कृपया Google Sign-In या पासवर्ड का उपयोग करें।');
@@ -883,6 +912,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         login,
         googleLogin,
+        ownerQuickLogin,
         logout,
         demoLogin,
         directSuperAdminLogin,
