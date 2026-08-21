@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { fileBlobManager } from '../../lib/fileBlobManager';
 import { SafeImage } from '../common/SafeImage';
 import { SAMPLE_BOOKS, SAMPLE_BLOGS, SAMPLE_WRITERS, BookItem, BlogItem } from '../../data/booksBlogsData';
-import { PawariWriterItem } from '../../types';
+import { PawariWriterItem, Article } from '../../types';
 import { downloadPdf } from '../../lib/pdfUtils';
 import { PawariCulturalSection } from './PawariCulturalSection';
 import { PublicContributionModal } from './PublicContributionModal';
@@ -347,8 +347,18 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
     setIsPublishModalOpen(false);
   };
 
-  // Published research papers from CMS
-  const publishedArticles = articles.filter(a => !a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase()));
+  // Published research papers from CMS with deduplication
+  const publishedArticles = useMemo(() => {
+    const map = new Map<string, Article>();
+    articles.forEach(a => {
+      if (a && a.id && (!a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase()))) {
+        if (!map.has(a.id)) {
+          map.set(a.id, a);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [articles]);
 
   // Filtered books
   const filteredBooks = booksList.filter(book => {

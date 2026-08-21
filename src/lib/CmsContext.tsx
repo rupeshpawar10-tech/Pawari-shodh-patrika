@@ -52,6 +52,18 @@ import { ensureUniqueSlug } from './slugUtils';
 import { fileBlobManager, saveFileToIndexedDB, base64ToBlob } from './fileBlobManager';
 import { parseRouteFromUrl, navigateTo } from './router';
 
+export function deduplicateList<T extends { id: string }>(items: T[]): T[] {
+  if (!Array.isArray(items)) return [];
+  const map = new Map<string, T>();
+  for (const item of items) {
+    if (item && item.id) {
+      const existing = map.get(item.id);
+      map.set(item.id, existing ? { ...existing, ...item } : item);
+    }
+  }
+  return Array.from(map.values());
+}
+
 export interface UploadProgressDetails {
   loaded: number;
   total: number;
@@ -534,40 +546,40 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('local_articles_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
       }
     } catch (e) {}
-    return SAMPLE_ARTICLES;
+    return deduplicateList(SAMPLE_ARTICLES);
   });
   const [issues, setIssues] = useState<Issue[]>(() => {
     try {
       const saved = localStorage.getItem('local_issues_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
       }
     } catch (e) {}
-    return SAMPLE_ISSUES;
+    return deduplicateList(SAMPLE_ISSUES);
   });
   const [books, setBooks] = useState<BookItem[]>(() => {
     try {
       const saved = localStorage.getItem('local_books_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
       }
     } catch (e) {}
-    return SAMPLE_BOOKS;
+    return deduplicateList(SAMPLE_BOOKS);
   });
   const [blogs, setBlogs] = useState<BlogItem[]>(() => {
     try {
       const saved = localStorage.getItem('local_blogs_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
       }
     } catch (e) {}
-    return SAMPLE_BLOGS;
+    return deduplicateList(SAMPLE_BLOGS);
   });
 
   const [writers, setWriters] = useState<PawariWriterItem[]>(() => {
@@ -575,10 +587,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('pawari_writers_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
       }
     } catch (e) {}
-    return SAMPLE_WRITERS;
+    return deduplicateList(SAMPLE_WRITERS);
   });
 
   const [shabdkoshList, setShabdkoshList] = useState<PawariShabdkoshItem[]>(() => {
@@ -586,10 +598,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('pawari_shabdkosh_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
       }
     } catch (e) {}
-    return SAMPLE_SHABDKOSH;
+    return deduplicateList(SAMPLE_SHABDKOSH);
   });
 
   const [paheliList, setPaheliList] = useState<PawariPaheliItem[]>(() => {
@@ -598,18 +610,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((p: PawariPaheliItem) => p.id));
-          const missingSamples = SAMPLE_PAHELI.filter(s => !existingIds.has(s.id));
-          if (missingSamples.length > 0) {
-            const merged = [...parsed, ...missingSamples];
-            try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(merged)); } catch (e) {}
-            return merged;
-          }
-          return parsed;
+          const merged = deduplicateList([...parsed, ...SAMPLE_PAHELI]);
+          try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(merged)); } catch (e) {}
+          return merged;
         }
       }
     } catch (e) {}
-    return SAMPLE_PAHELI;
+    return deduplicateList(SAMPLE_PAHELI);
   });
 
   const [lokgeetList, setLokgeetList] = useState<PawariLokgeetItem[]>(() => {
@@ -618,13 +625,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((p: any) => p.id));
-          const missingSamples = SAMPLE_LOKGEET.filter(s => !existingIds.has(s.id));
-          return [...parsed, ...missingSamples];
+          const merged = deduplicateList([...parsed, ...SAMPLE_LOKGEET]);
+          return merged;
         }
       }
     } catch (e) {}
-    return SAMPLE_LOKGEET;
+    return deduplicateList(SAMPLE_LOKGEET);
   });
 
   const DEFAULT_LOKGEET_CATEGORIES = [
@@ -673,18 +679,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((q: QuizQuestion) => q.id));
-          const missingSamples = SAMPLE_QUIZ_QUESTIONS.filter(s => !existingIds.has(s.id));
-          if (missingSamples.length > 0) {
-            const merged = [...parsed, ...missingSamples];
-            try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(merged)); } catch (e) {}
-            return merged;
-          }
-          return parsed;
+          const merged = deduplicateList([...parsed, ...SAMPLE_QUIZ_QUESTIONS]);
+          try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(merged)); } catch (e) {}
+          return merged;
         }
       }
     } catch (e) {}
-    return SAMPLE_QUIZ_QUESTIONS;
+    return deduplicateList(SAMPLE_QUIZ_QUESTIONS);
   });
 
   const [quizLeaderboard, setQuizLeaderboard] = useState<QuizLeaderboardEntry[]>(() => {
@@ -692,10 +693,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('pawari_quiz_leaderboard');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
       }
     } catch (e) {}
-    return SAMPLE_QUIZ_LEADERBOARD;
+    return deduplicateList(SAMPLE_QUIZ_LEADERBOARD);
   });
   const [pages, setPages] = useState<Record<string, PageContent>>(DEFAULT_PAGES);
   const [editorialMembers, setEditorialMembers] = useState<EditorialMember[]>(() => {
@@ -703,10 +704,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('local_editorial_members_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
       }
     } catch (e) {}
-    return SAMPLE_EDITORIAL_BOARD;
+    return deduplicateList(SAMPLE_EDITORIAL_BOARD);
   });
   const [announcements, setAnnouncements] = useState<Announcement[]>(SAMPLE_ANNOUNCEMENTS);
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
@@ -808,7 +809,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           try {
             const parsed = JSON.parse(cached);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              parsed.forEach((cachedArt: Article) => {
+              const dedupedCached = deduplicateList<Article>(parsed);
+              dedupedCached.forEach((cachedArt: Article) => {
                 const idx = loadedArticles.findIndex(a => a.id === cachedArt.id);
                 if (idx !== -1) {
                   // Merge cached article updates (like published status, page numbers, title)
@@ -846,23 +848,25 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         });
 
-        if (loadedArticles.length > 0 && isMounted) {
-          setArticles(loadedArticles);
-          try { localStorage.setItem('local_articles_cache', JSON.stringify(loadedArticles)); } catch (e) {}
+        const finalArticles = deduplicateList(loadedArticles);
+
+        if (finalArticles.length > 0 && isMounted) {
+          setArticles(finalArticles);
+          try { localStorage.setItem('local_articles_cache', JSON.stringify(finalArticles)); } catch (e) {}
         } else if (isMounted) {
           if (auth.currentUser) {
             SAMPLE_ARTICLES.forEach(art => {
               setDoc(doc(db, 'articles', art.id), art).catch(() => {});
             });
           }
-          setArticles(SAMPLE_ARTICLES);
+          setArticles(deduplicateList(SAMPLE_ARTICLES));
         }
       } catch (e) {
         const cached = localStorage.getItem('local_articles_cache');
         if (cached && isMounted) {
           try {
             const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) setArticles(parsed);
+            if (Array.isArray(parsed) && parsed.length > 0) setArticles(deduplicateList(parsed));
           } catch (err) {}
         }
       }
@@ -871,7 +875,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const issuesSnap = await getDocs(collection(db, 'issues'));
         if (!issuesSnap.empty && isMounted) {
-          const loadedIssues = issuesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Issue));
+          const loadedIssues = deduplicateList(issuesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Issue)));
           setIssues(loadedIssues);
           try { localStorage.setItem('local_issues_cache', JSON.stringify(loadedIssues)); } catch (e) {}
         } else {
@@ -879,7 +883,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (cached) {
             try {
               const parsed = JSON.parse(cached);
-              if (Array.isArray(parsed) && parsed.length > 0) setIssues(parsed);
+              if (Array.isArray(parsed) && parsed.length > 0) setIssues(deduplicateList(parsed));
             } catch (e) {}
           } else if (auth.currentUser) {
             SAMPLE_ISSUES.forEach(iss => {
@@ -892,7 +896,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (cached && isMounted) {
           try {
             const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) setIssues(parsed);
+            if (Array.isArray(parsed) && parsed.length > 0) setIssues(deduplicateList(parsed));
           } catch (err) {}
         }
       }
@@ -901,7 +905,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const booksSnap = await getDocs(collection(db, 'books'));
         if (!booksSnap.empty && isMounted) {
-          const loadedBooks = booksSnap.docs.map(d => ({ id: d.id, ...d.data() } as BookItem));
+          const loadedBooks = deduplicateList(booksSnap.docs.map(d => ({ id: d.id, ...d.data() } as BookItem)));
           setBooks(loadedBooks);
           try { localStorage.setItem('local_books_cache', JSON.stringify(loadedBooks)); } catch (e) {}
         } else {
@@ -909,7 +913,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (cached) {
             try {
               const parsed = JSON.parse(cached);
-              if (Array.isArray(parsed) && parsed.length > 0) setBooks(parsed);
+              if (Array.isArray(parsed) && parsed.length > 0) setBooks(deduplicateList(parsed));
             } catch (e) {}
           }
         }
@@ -921,7 +925,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const blogsSnap = await getDocs(collection(db, 'blogs'));
         if (!blogsSnap.empty && isMounted) {
-          const loadedBlogs = blogsSnap.docs.map(d => ({ id: d.id, ...d.data() } as BlogItem));
+          const loadedBlogs = deduplicateList(blogsSnap.docs.map(d => ({ id: d.id, ...d.data() } as BlogItem)));
           setBlogs(loadedBlogs);
           try { localStorage.setItem('local_blogs_cache', JSON.stringify(loadedBlogs)); } catch (e) {}
         } else {
@@ -929,7 +933,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (cached) {
             try {
               const parsed = JSON.parse(cached);
-              if (Array.isArray(parsed) && parsed.length > 0) setBlogs(parsed);
+              if (Array.isArray(parsed) && parsed.length > 0) setBlogs(deduplicateList(parsed));
             } catch (e) {}
           }
         }
@@ -941,7 +945,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const writersSnap = await getDocs(collection(db, 'writers'));
         if (!writersSnap.empty && isMounted) {
-          const loadedWriters = writersSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariWriterItem));
+          const loadedWriters = deduplicateList(writersSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariWriterItem)));
           setWriters(loadedWriters);
           try { localStorage.setItem('pawari_writers_cache', JSON.stringify(loadedWriters)); } catch (e) {}
         }
@@ -953,7 +957,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const shabdkoshSnap = await getDocs(collection(db, 'shabdkosh'));
         if (!shabdkoshSnap.empty && isMounted) {
-          const loaded = shabdkoshSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariShabdkoshItem));
+          const loaded = deduplicateList(shabdkoshSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariShabdkoshItem)));
           setShabdkoshList(loaded);
           try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(loaded)); } catch (e) {}
         }
@@ -963,7 +967,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const paheliSnap = await getDocs(collection(db, 'paheli'));
         if (!paheliSnap.empty && isMounted) {
-          const loaded = paheliSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariPaheliItem));
+          const loaded = deduplicateList(paheliSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariPaheliItem)));
           setPaheliList(loaded);
           try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(loaded)); } catch (e) {}
         }
@@ -974,9 +978,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const lokgeetSnap = await getDocs(collection(db, 'lokgeet'));
         if (!lokgeetSnap.empty && isMounted) {
           const loaded = lokgeetSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
-          const loadedIds = new Set(loaded.map(l => l.id));
-          const missingSamples = SAMPLE_LOKGEET.filter(s => !loadedIds.has(s.id));
-          const fullList = [...loaded, ...missingSamples];
+          const fullList = deduplicateList([...loaded, ...SAMPLE_LOKGEET]);
           setLokgeetList(fullList);
           try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(fullList)); } catch (e) {}
         }
@@ -986,7 +988,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const quizSnap = await getDocs(collection(db, 'quiz_questions'));
         if (!quizSnap.empty && isMounted) {
-          const loaded = quizSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizQuestion));
+          const loaded = deduplicateList(quizSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizQuestion)));
           setQuizQuestions(loaded);
           try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(loaded)); } catch (e) {}
         }
@@ -996,7 +998,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const leaderSnap = await getDocs(collection(db, 'quiz_leaderboard'));
         if (!leaderSnap.empty && isMounted) {
-          const loaded = leaderSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizLeaderboardEntry));
+          const loaded = deduplicateList(leaderSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizLeaderboardEntry)));
           setQuizLeaderboard(loaded);
           try { localStorage.setItem('pawari_quiz_leaderboard', JSON.stringify(loaded)); } catch (e) {}
         }
@@ -1033,8 +1035,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (loadedBoard.length > 0 && isMounted) {
           loadedBoard.sort((a, b) => (a.order || 0) - (b.order || 0));
-          setEditorialMembers(loadedBoard);
-          try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(loadedBoard)); } catch (e) {}
+          const dedupedBoard = deduplicateList(loadedBoard);
+          setEditorialMembers(dedupedBoard);
+          try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(dedupedBoard)); } catch (e) {}
         } else {
           // If Firestore is empty, check localStorage cache first
           const cached = localStorage.getItem('local_editorial_members_cache');
@@ -1043,8 +1046,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               const parsed = JSON.parse(cached);
               if (Array.isArray(parsed) && parsed.length > 0 && isMounted) {
                 parsed.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
-                setEditorialMembers(parsed);
-                loadedBoard = parsed;
+                const deduped = deduplicateList(parsed);
+                setEditorialMembers(deduped);
+                loadedBoard = deduped;
               }
             } catch (e) {}
           }
@@ -1056,7 +1060,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               setDoc(doc(db, 'editorial_members', member.id), clean).catch(() => {});
               setDoc(doc(db, 'editorial_board', member.id), clean).catch(() => {});
             });
-            setEditorialMembers(SAMPLE_EDITORIAL_BOARD);
+            setEditorialMembers(deduplicateList(SAMPLE_EDITORIAL_BOARD));
             try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(SAMPLE_EDITORIAL_BOARD)); } catch (e) {}
           }
         }
@@ -1067,7 +1071,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const parsed = JSON.parse(cached);
             if (Array.isArray(parsed) && parsed.length > 0) {
               parsed.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
-              setEditorialMembers(parsed);
+              setEditorialMembers(deduplicateList(parsed));
             }
           } catch (err) {}
         }
@@ -1077,7 +1081,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const annSnap = await getDocs(collection(db, 'announcements'));
         if (!annSnap.empty && isMounted) {
-          const loadedAnn = annSnap.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
+          const loadedAnn = deduplicateList(annSnap.docs.map(d => ({ id: d.id, ...d.data() } as Announcement)));
           setAnnouncements(loadedAnn);
         } else if (auth.currentUser) {
           SAMPLE_ANNOUNCEMENTS.forEach(ann => {
@@ -1093,7 +1097,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         try {
           const mediaSnap = await getDocs(collection(db, 'media'));
           if (!mediaSnap.empty && isMounted) {
-            const items = mediaSnap.docs.map(d => ({ id: d.id, ...d.data() } as MediaFile));
+            const items = deduplicateList(mediaSnap.docs.map(d => ({ id: d.id, ...d.data() } as MediaFile)));
             setMediaFiles(items);
           }
         } catch (e) {
@@ -1103,7 +1107,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         try {
           const msgSnap = await getDocs(collection(db, 'contact_messages'));
           if (!msgSnap.empty && isMounted) {
-            setContactMessages(msgSnap.docs.map(d => ({ id: d.id, ...d.data() } as ContactMessage)));
+            setContactMessages(deduplicateList(msgSnap.docs.map(d => ({ id: d.id, ...d.data() } as ContactMessage))));
           }
         } catch (e) {
           // Silent fallback
@@ -1112,7 +1116,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         try {
           const subSnap = await getDocs(collection(db, 'submissions'));
           if (!subSnap.empty && isMounted) {
-            setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() } as import('../types').Submission)));
+            setSubmissions(deduplicateList(subSnap.docs.map(d => ({ id: d.id, ...d.data() } as import('../types').Submission))));
           }
         } catch (e) {
           // Silent fallback
@@ -1136,9 +1140,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!snapshot.empty && isMounted) {
           const liveMembers = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as EditorialMember));
           liveMembers.sort((a, b) => (a.order || 0) - (b.order || 0));
-          setEditorialMembers(liveMembers);
+          const dedupedMembers = deduplicateList(liveMembers);
+          setEditorialMembers(dedupedMembers);
           try {
-            localStorage.setItem('local_editorial_members_cache', JSON.stringify(liveMembers));
+            localStorage.setItem('local_editorial_members_cache', JSON.stringify(dedupedMembers));
           } catch (e) {}
         }
       }, (err) => {
@@ -1164,9 +1169,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               liveArticles.push(sampleArt);
             }
           });
-          setArticles(liveArticles);
+          const dedupedArticles = deduplicateList(liveArticles);
+          setArticles(dedupedArticles);
           try {
-            localStorage.setItem('local_articles_cache', JSON.stringify(liveArticles));
+            localStorage.setItem('local_articles_cache', JSON.stringify(dedupedArticles));
           } catch (e) {}
         }
       }, (err) => {
@@ -1179,7 +1185,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       unsubscribeIssues = onSnapshot(collection(db, 'issues'), (snapshot) => {
         if (!snapshot.empty && isMounted) {
-          const liveIssues = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Issue));
+          const liveIssues = deduplicateList(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Issue)));
           setIssues(liveIssues);
           try {
             localStorage.setItem('local_issues_cache', JSON.stringify(liveIssues));

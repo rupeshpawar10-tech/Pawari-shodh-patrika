@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { getUrlForView } from '../../lib/router';
 import { downloadPdf } from '../../lib/pdfUtils';
 import { SafeImage } from '../common/SafeImage';
 import { DEFAULT_PAWARI_MEMBER_AVATAR } from '../../data/seedData';
 import { SharePaperModal } from '../common/SharePaperModal';
+import { Article } from '../../types';
 import { 
   BookOpen, 
   Search, 
@@ -70,17 +71,41 @@ export const HomeView: React.FC = () => {
   // Identify current issue
   const currentIssue = issues.find(i => i.status === 'current') || issues[0];
   
-  // Articles in the current issue (published)
-  const publishedArticles = articles.filter(a => !a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase()));
+  // Articles in the current issue (published) with strict deduplication
+  const publishedArticles = useMemo(() => {
+    const map = new Map<string, Article>();
+    articles.forEach(a => {
+      if (a && a.id && (!a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase()))) {
+        if (!map.has(a.id)) {
+          map.set(a.id, a);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [articles]);
 
-  const currentIssueArticles = currentIssue 
-    ? articles.filter(a => Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number) && (!a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase())))
-    : publishedArticles.slice(0, 3);
+  const currentIssueArticles = useMemo(() => {
+    if (!currentIssue) return publishedArticles.slice(0, 3);
+    const map = new Map<string, Article>();
+    articles.forEach(a => {
+      if (a && a.id && Number(a.volume) === Number(currentIssue.volume) && Number(a.issue) === Number(currentIssue.issue_number) && (!a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase()))) {
+        if (!map.has(a.id)) {
+          map.set(a.id, a);
+        }
+      }
+    });
+    const res = Array.from(map.values());
+    return res.length > 0 ? res : publishedArticles.slice(0, 3);
+  }, [articles, currentIssue, publishedArticles]);
 
-  const displayCurrentIssueArticles = currentIssueArticles.length > 0 ? currentIssueArticles : publishedArticles.slice(0, 4);
+  const displayCurrentIssueArticles = useMemo(() => {
+    return currentIssueArticles.length > 0 ? currentIssueArticles : publishedArticles.slice(0, 4);
+  }, [currentIssueArticles, publishedArticles]);
 
   // Top 3 featured papers for current issue block
-  const featuredArticles = displayCurrentIssueArticles.slice(0, 3);
+  const featuredArticles = useMemo(() => {
+    return displayCurrentIssueArticles.slice(0, 3);
+  }, [displayCurrentIssueArticles]);
 
   const handleArticleClick = (artId: string) => {
     const art = articles.find(a => a.id === artId);

@@ -4,6 +4,7 @@ import { getUrlForView } from '../../lib/router';
 import { downloadPdf } from '../../lib/pdfUtils';
 import { SharePaperModal } from '../common/SharePaperModal';
 import { SafeImage } from '../common/SafeImage';
+import { Article, Issue } from '../../types';
 import { 
   Search, 
   Download, 
@@ -59,8 +60,29 @@ export const ArticlesView: React.FC = () => {
 
   const [shareModalArticle, setShareModalArticle] = useState<any | null>(null);
 
-  const publishedArticles = articles.filter(a => !a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase()));
-  const publishedIssues = issues.filter(i => i.status === 'published' || i.status === 'current');
+  const publishedArticles = useMemo(() => {
+    const map = new Map<string, Article>();
+    articles.forEach(a => {
+      if (a && a.id && (!a.status || ['published', 'accepted', 'approved'].includes(a.status.toLowerCase()))) {
+        if (!map.has(a.id)) {
+          map.set(a.id, a);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [articles]);
+
+  const publishedIssues = useMemo(() => {
+    const map = new Map<string, Issue>();
+    issues.forEach(i => {
+      if (i && i.id && (i.status === 'published' || i.status === 'current')) {
+        if (!map.has(i.id)) {
+          map.set(i.id, i);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [issues]);
 
   // Group issues by volume, ensuring all volumes from publishedArticles are also included
   const volumesMap = useMemo(() => {
