@@ -5,11 +5,6 @@ import { auth } from '../../lib/firebase';
 import { Article, Author, CustomSectionBlock, Submission } from '../../types';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { ManuscriptReviewModal } from './ManuscriptReviewModal';
-import { WordPasteImporter } from '../common/WordPasteImporter';
-import { FullTextPublishingSuite } from './FullTextPublishingSuite';
-import { AcademicPdfExporter } from '../common/AcademicPdfExporter';
-import { FileUploadZone } from '../common/FileUploadZone';
-import { ParsedWordArticle } from '../../lib/wordParser';
 import { 
   FileText, 
   Plus, 
@@ -46,7 +41,6 @@ import {
 
 export const ArticlesManager: React.FC = () => {
   const { 
-    lang,
     articles, 
     submissions,
     saveArticle, 
@@ -55,12 +49,28 @@ export const ArticlesManager: React.FC = () => {
     openPdfViewer,
     deleteSubmission,
     issues,
-    setActiveView,
-    setSelectedArticleId
+    syncAllArticlesToCloud
   } = useCms();
   const { canManageArticles, isDirector, isSuperAdmin, currentUser } = useAuth();
 
   const [activeSection, setActiveSection] = useState<'published' | 'submissions'>('published');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
+
+  const handleSyncAllArticles = async () => {
+    if (!syncAllArticlesToCloud) return;
+    setIsSyncing(true);
+    setSyncStatusMsg('सारे शोध पत्र क्लाउड Firestore पर सिंक हो रहे हैं...');
+    try {
+      const res = await syncAllArticlesToCloud();
+      setSyncStatusMsg(`✅ ${res.synced} शोध पत्र सफलतापूर्वक सार्वजनिक Firestore पर सिंक हो गए!`);
+      setTimeout(() => setSyncStatusMsg(null), 6000);
+    } catch (err: any) {
+      setSyncStatusMsg('❌ सिंक करने में त्रुटि: ' + (err?.message || err));
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -95,7 +105,7 @@ export const ArticlesManager: React.FC = () => {
   // Filtered articles
   const filtered = articles.filter(a => {
     const q = search.toLowerCase();
-    const matchesSearch = !q || a.title_hindi.toLowerCase().includes(q) || a.title_english.toLowerCase().includes(q) || a.authors.some(au => au.name.toLowerCase().includes(q));
+    const matchesSearch = !q || (a.title_hindi || '').toLowerCase().includes(q) || (a.title_english || '').toLowerCase().includes(q) || (Array.isArray(a.authors) ? a.authors : []).some(au => (au.name || "").toLowerCase().includes(q));
     const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
     const matchesIssue = issueFilter === 'all' || `${a.volume}_${a.issue}` === issueFilter;
     return matchesSearch && matchesStatus && matchesIssue;
@@ -110,13 +120,54 @@ export const ArticlesManager: React.FC = () => {
   });
 
   const handleCreateNew = () => {
-    setSelectedArticleId('new');
-    setActiveView('author_article_editor');
+    const newArt: Article = {
+      id: 'art_' + Date.now(),
+      title_hindi: '',
+      title_english: '',
+      short_title: '',
+      slug: 'article-' + Date.now(),
+      article_type: 'Original Research Article (मूल शोध पत्र)',
+      authors: [{ name: '', affiliation: '', email: '', is_corresponding: true, orcid: '' }],
+      abstract_hindi: '',
+      abstract_english: '',
+      keywords: ['पवारी शोध', 'Linguistics'],
+      doi: `10.5281/zenodo.psp.2026.${Math.floor(1000 + Math.random() * 9000)}`,
+      pdf_url: '',
+      volume: issues[0]?.volume || 2,
+      issue: issues[0]?.issue_number || 1,
+      year: 2026,
+      category: 'Linguistics & Dialectology',
+      language: 'Hindi',
+      status: 'published',
+      content_mode: 'full_text',
+      page_numbers: '01–15',
+      date_received: new Date().toISOString().split('T')[0],
+      date_published: new Date().toISOString().split('T')[0],
+      full_text_introduction: '',
+      full_text_literature_review: '',
+      full_text_methodology: '',
+      full_text_results_discussion: '',
+      full_text_conclusion: '',
+      full_text_acknowledgement: '',
+      full_text_conflict_of_interest: 'लेखक घोषणा करते हैं कि इस शोध कार्य में किसी भी प्रकार का हित-संघर्ष नहीं है।',
+      references: [],
+      custom_sections: [],
+      created_at: new Date().toISOString().split('T')[0],
+      updated_at: new Date().toISOString().split('T')[0]
+    };
+    setEditingArticle(newArt);
+    setEditorTab('fulltext');
+    setBulkPasteText('');
+    setBulkPasteFeedback(null);
+    setIsModalOpen(true);
   };
 
   const handleEdit = (art: Article) => {
-    setSelectedArticleId(art.id);
-    setActiveView('author_article_editor');
+    setEditingArticle({ ...art });
+    setEditorTab('fulltext');
+    setBulkPasteText('');
+    setBulkPasteFeedback(null);
+    setIsModalOpen(true);
   };
 
   const handleSaveForm = async (e: React.FormEvent) => {
@@ -185,13 +236,13 @@ export const ArticlesManager: React.FC = () => {
     if (!editingArticle) return;
     setEditingArticle({
       ...editingArticle,
-      authors: editingArticle.authors.filter((_, i) => i !== idx)
+      authors: (Array.isArray(editingArticle.authors) ? editingArticle.authors : []).filter((_, i) => i !== idx)
     });
   };
 
   const handleAuthorChange = (idx: number, field: keyof Author, value: any) => {
     if (!editingArticle) return;
-    const updated = [...editingArticle.authors];
+    const updated = [...(Array.isArray(editingArticle.authors) ? editingArticle.authors : [])];
     updated[idx] = { ...updated[idx], [field]: value };
     setEditingArticle({ ...editingArticle, authors: updated });
   };
@@ -265,41 +316,16 @@ export const ArticlesManager: React.FC = () => {
     setBulkPasteFeedback('Article text successfully auto-segmented into structured sections!');
   };
 
-  const handleApplyWordParsed = (parsed: ParsedWordArticle) => {
-    if (!editingArticle) return;
-    setEditingArticle({
-      ...editingArticle,
-      title_hindi: parsed.title_hindi || editingArticle.title_hindi,
-      title_english: parsed.title_english || editingArticle.title_english,
-      authors: parsed.authors.length > 0 ? parsed.authors : editingArticle.authors,
-      abstract_hindi: parsed.abstract_hindi || editingArticle.abstract_hindi,
-      abstract_english: parsed.abstract_english || editingArticle.abstract_english,
-      keywords: parsed.keywords.length > 0 ? parsed.keywords : editingArticle.keywords,
-      full_text_introduction: parsed.full_text_introduction || editingArticle.full_text_introduction,
-      full_text_literature_review: parsed.full_text_literature_review || editingArticle.full_text_literature_review,
-      full_text_methodology: parsed.full_text_methodology || editingArticle.full_text_methodology,
-      full_text_results_discussion: parsed.full_text_results_discussion || editingArticle.full_text_results_discussion,
-      full_text_conclusion: parsed.full_text_conclusion || editingArticle.full_text_conclusion,
-      full_text_acknowledgement: parsed.full_text_acknowledgement || editingArticle.full_text_acknowledgement,
-      full_text_conflict_of_interest: parsed.full_text_conflict_of_interest || editingArticle.full_text_conflict_of_interest,
-      references: parsed.references.length > 0 ? parsed.references : editingArticle.references,
-      custom_sections: parsed.custom_sections.length > 0 ? [...(editingArticle.custom_sections || []), ...parsed.custom_sections] : editingArticle.custom_sections,
-      content_mode: 'full_text'
-    });
-    setBulkPasteFeedback('Word document structure successfully mapped into journal paper template!');
-  };
-
   // Custom Section Blocks helpers
-  const handleAddCustomBlock = (type: CustomSectionBlock['type'], parentSec: CustomSectionBlock['parent_section'] = 'custom') => {
+  const handleAddCustomBlock = (type: CustomSectionBlock['type']) => {
     if (!editingArticle) return;
     const newBlock: CustomSectionBlock = {
       id: 'cs_' + Date.now(),
       type,
-      title: type === 'quote' ? 'Blockquote' : type === 'figure' ? 'Figure 1' : type === 'table' ? 'Table 1' : 'New Subheading',
+      title: type === 'quote' ? 'Blockquote' : type === 'figure' ? 'Figure 1' : type === 'table' ? 'Table 1' : 'New Section',
       content: '',
       caption: '',
       image_url: '',
-      parent_section: parentSec,
       table_data: type === 'table' ? { headers: ['Col 1', 'Col 2'], rows: [['Data 1', 'Data 2']] } : undefined
     };
     setEditingArticle({
@@ -322,194 +348,6 @@ export const ArticlesManager: React.FC = () => {
       ...editingArticle,
       custom_sections: (editingArticle.custom_sections || []).map(b => b.id === id ? { ...b, ...updates } : b)
     });
-  };
-
-  const handleMoveCustomBlockUp = (index: number) => {
-    if (!editingArticle || index <= 0) return;
-    const list = [...(editingArticle.custom_sections || [])];
-    const temp = list[index];
-    list[index] = list[index - 1];
-    list[index - 1] = temp;
-    setEditingArticle({ ...editingArticle, custom_sections: list });
-  };
-
-  const handleMoveCustomBlockDown = (index: number) => {
-    if (!editingArticle) return;
-    const list = [...(editingArticle.custom_sections || [])];
-    if (index >= list.length - 1) return;
-    const temp = list[index];
-    list[index] = list[index + 1];
-    list[index + 1] = temp;
-    setEditingArticle({ ...editingArticle, custom_sections: list });
-  };
-
-  const renderCustomBlockCard = (block: CustomSectionBlock, bIdx: number) => {
-    if (!editingArticle) return null;
-    const totalBlocks = (editingArticle.custom_sections || []).length;
-    return (
-      <div key={block.id} className="p-3 bg-white border border-amber-900/20 rounded-xl space-y-2 text-xs shadow-2xs my-2">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono font-bold text-[10px] uppercase bg-amber-100 text-amber-900 px-2 py-0.5 rounded">
-              #{bIdx + 1} {block.type}
-            </span>
-            
-            {/* Move Up / Move Down buttons */}
-            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-md border border-slate-200">
-              <button
-                type="button"
-                disabled={bIdx === 0}
-                onClick={() => handleMoveCustomBlockUp(bIdx)}
-                title="Move Up"
-                className="px-1.5 py-0.5 text-[10px] font-bold text-slate-700 hover:text-slate-900 hover:bg-white rounded disabled:opacity-30 disabled:hover:bg-transparent"
-              >
-                ↑ Up
-              </button>
-              <span className="text-slate-300">|</span>
-              <button
-                type="button"
-                disabled={bIdx === totalBlocks - 1}
-                onClick={() => handleMoveCustomBlockDown(bIdx)}
-                title="Move Down"
-                className="px-1.5 py-0.5 text-[10px] font-bold text-slate-700 hover:text-slate-900 hover:bg-white rounded disabled:opacity-30 disabled:hover:bg-transparent"
-              >
-                ↓ Down
-              </button>
-            </div>
-
-            {/* Parent Section Selector Dropdown */}
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] font-bold text-slate-500">In Section:</span>
-              <select
-                value={block.parent_section || 'custom'}
-                onChange={e => handleUpdateCustomBlock(block.id, { parent_section: e.target.value as any })}
-                className="p-0.5 text-[10px] font-bold bg-amber-50 border border-amber-300 rounded text-amber-950"
-              >
-                <option value="intro">1. Introduction</option>
-                <option value="literature">2. Literature Review</option>
-                <option value="methodology">3. Methodology</option>
-                <option value="results">4. Results & Discussion</option>
-                <option value="conclusion">5. Conclusion</option>
-                <option value="custom">7. Additional Section</option>
-              </select>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => handleRemoveCustomBlock(block.id)}
-            className="text-red-600 hover:text-red-800 text-[10px] font-bold"
-          >
-            Remove
-          </button>
-        </div>
-
-        <div className="space-y-1">
-          {block.type === 'heading_h2' && (
-            <span className="inline-block text-[10px] font-bold text-red-950 bg-amber-200 px-2 py-0.5 rounded uppercase tracking-wider mb-1">
-              ★ Main Heading (मुख्य शीर्ष शीर्षक)
-            </span>
-          )}
-          <input
-            type="text"
-            value={block.title || ''}
-            onChange={e => handleUpdateCustomBlock(block.id, { title: e.target.value })}
-            placeholder={block.type === 'heading_h2' ? "Main Heading Title (e.g. 2. Literature Review / 3. Case Study / 4. Theoretical Framework)" : "Subheading / Figure Label (e.g. 1.1 Context / Figure 1)"}
-            className={`w-full p-2 border rounded font-bold text-slate-800 text-xs ${
-              block.type === 'heading_h2' ? 'bg-amber-50/70 border-amber-300 font-serif text-sm text-red-950' : 'bg-slate-50 border-slate-200'
-            }`}
-          />
-        </div>
-
-        {block.type === 'figure' && (
-          <div className="space-y-2 p-2 bg-emerald-50/60 rounded-lg border border-emerald-200">
-            <div className="flex items-center justify-between gap-2">
-              <label className="font-bold text-[10px] text-emerald-900">Figure Image URL or Direct File Upload:</label>
-              <label className="cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white px-2 py-0.5 rounded text-[10px] font-bold">
-                <span>Upload Image</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFigureUpload(block.id, file);
-                  }}
-                />
-              </label>
-            </div>
-
-            <input
-              type="text"
-              value={block.image_url || ''}
-              onChange={e => handleUpdateCustomBlock(block.id, { image_url: e.target.value })}
-              placeholder="Image URL (e.g. https://...)"
-              className="w-full p-1.5 bg-white border border-slate-200 rounded font-mono text-[11px]"
-            />
-
-            {block.image_url && (
-              <div className="flex items-center gap-3 bg-white p-1 rounded border border-emerald-100">
-                <img src={block.image_url} alt="" className="w-14 h-10 object-cover rounded border" />
-                <span className="text-[10px] text-emerald-700 font-bold">Image Uploaded Successfully</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {block.type === 'table' && (
-          <div className="space-y-2 p-2 bg-amber-50/70 rounded-lg border border-amber-200">
-            <div>
-              <label className="block text-[10px] font-bold text-amber-900 mb-0.5">
-                Table Headers (Comma Separated):
-              </label>
-              <input
-                type="text"
-                value={(block.table_data?.headers || ['Header 1', 'Header 2']).join(', ')}
-                onChange={e => {
-                  const headers = e.target.value.split(',').map(s => s.trim());
-                  handleUpdateCustomBlock(block.id, {
-                    table_data: {
-                      headers,
-                      rows: block.table_data?.rows || [['Val 1', 'Val 2']]
-                    }
-                  });
-                }}
-                className="w-full p-1.5 bg-white border rounded font-mono text-[11px]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-amber-900 mb-0.5">
-                Table Rows (One row per line, comma separated values):
-              </label>
-              <textarea
-                rows={2}
-                value={(block.table_data?.rows || [['Val 1', 'Val 2']]).map(r => r.join(', ')).join('\n')}
-                onChange={e => {
-                  const rows = e.target.value.split('\n').map(line => line.split(',').map(s => s.trim()));
-                  handleUpdateCustomBlock(block.id, {
-                    table_data: {
-                      headers: block.table_data?.headers || ['Header 1', 'Header 2'],
-                      rows
-                    }
-                  });
-                }}
-                placeholder="Row 1 Val 1, Row 1 Val 2&#10;Row 2 Val 1, Row 2 Val 2"
-                className="w-full p-1.5 bg-white border rounded font-mono text-[11px]"
-              />
-            </div>
-          </div>
-        )}
-
-        <textarea
-          rows={2}
-          value={block.content || ''}
-          onChange={e => handleUpdateCustomBlock(block.id, { content: e.target.value })}
-          placeholder="Text content, paragraph, or figure caption..."
-          className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded text-xs"
-        />
-      </div>
-    );
   };
 
   const handleAddFigureBlock = (placement: 'in_body' | 'at_end' = 'in_body') => {
@@ -592,16 +430,35 @@ export const ArticlesManager: React.FC = () => {
           <p className="text-xs text-slate-500 font-mono mt-0.5">Publish searchable, structured full-text articles with live preview, auto-segmentation, and PDF generation.</p>
         </div>
 
-        {canManageArticles && (
-          <button
-            onClick={handleCreateNew}
-            className="px-4 py-2.5 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-xl transition shadow-xs flex items-center space-x-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4 text-amber-400" />
-            <span>Publish Full-Text Article (नया शोध पत्र जोड़ें)</span>
-          </button>
+        {canManageArticles && activeSection === 'published' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleSyncAllArticles}
+              disabled={isSyncing}
+              className="px-3.5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center space-x-1.5 disabled:opacity-50"
+              title="स्थानीय ब्राउज़र के सभी शोध पत्रों को सार्वजनिक क्लाउड Firestore पर सिंक करें"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+              <span>{isSyncing ? 'सिंक हो रहा है...' : 'Sync to Cloud (सार्वजनिक सिंक)'}</span>
+            </button>
+
+            <button
+              onClick={handleCreateNew}
+              className="px-4 py-2.5 bg-red-950 hover:bg-red-900 text-amber-100 font-bold text-xs rounded-xl transition shadow-xs flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4 text-amber-400" />
+              <span>Publish Full-Text Article (नया शोध पत्र जोड़ें)</span>
+            </button>
+          </div>
         )}
       </div>
+
+      {syncStatusMsg && (
+        <div className="p-4 bg-amber-50 border border-amber-300 text-amber-950 rounded-2xl text-xs font-bold shadow-xs animate-in fade-in flex items-center space-x-2">
+          <Info className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>{syncStatusMsg}</span>
+        </div>
+      )}
 
       {/* Primary Section Switcher Tabs */}
       <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200 text-xs font-bold">
@@ -682,21 +539,7 @@ export const ArticlesManager: React.FC = () => {
 
       {/* SECTION 1: Published Articles List Table */}
       {activeSection === 'published' && (
-        <div className="space-y-4">
-          <div className="p-3.5 bg-amber-50 border border-amber-300/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-950 shadow-2xs">
-            <div className="flex items-center space-x-2.5">
-              <Info className="w-5 h-5 text-amber-700 shrink-0" />
-              <div>
-                <strong className="block font-serif text-slate-900">पब्लिक वेबसाइट विजिबिलिटी (Public Website Visibility):</strong>
-                <span>सार्वजनिक पाठकों को केवल <strong className="text-emerald-800">"Published"</strong> स्टेटस वाले शोध पत्र ही दिखते हैं। ड्राफ्ट (Draft) या पेंडिंग शोध पत्रों को सार्वजनिक रूप से दिखाने हेतु नीचे टेबल में स्टेटस को <strong className="text-emerald-800">"Published"</strong> चुनें।</span>
-              </div>
-            </div>
-            <span className="shrink-0 px-2.5 py-1 bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold rounded-lg text-[11px] font-mono">
-              {articles.filter(a => !a.status || a.status.toLowerCase() === 'published' || a.status.toLowerCase() === 'accepted').length} Published Papers Live
-            </span>
-          </div>
-
-          <div className="bg-white border border-amber-900/10 rounded-2xl shadow-2xs overflow-hidden">
+        <div className="bg-white border border-amber-900/10 rounded-2xl shadow-2xs overflow-hidden">
           {filtered.length === 0 ? (
             <div className="p-12 text-center text-slate-500 space-y-3">
               <BookOpen className="w-12 h-12 mx-auto text-slate-300" />
@@ -712,7 +555,7 @@ export const ArticlesManager: React.FC = () => {
                     <th className="p-4">Authors</th>
                     <th className="p-4">Issue / Volume</th>
                     <th className="p-4">Content Type</th>
-                    <th className="p-4">Status & Visibility</th>
+                    <th className="p-4">Status</th>
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -746,30 +589,13 @@ export const ArticlesManager: React.FC = () => {
                       </td>
 
                       <td className="p-4">
-                        <div className="flex flex-col space-y-1.5 min-w-[130px]">
-                          <select
-                            value={art.status || 'published'}
-                            onChange={(e) => {
-                              const newStatus = e.target.value;
-                              saveArticle({ ...art, status: newStatus as any });
-                            }}
-                            className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition ${
-                              (art.status?.toLowerCase() === 'published' || art.status?.toLowerCase() === 'accepted' || !art.status)
-                                ? 'bg-emerald-50 text-emerald-900 border-emerald-300 focus:ring-emerald-400'
-                                : art.status === 'draft'
-                                ? 'bg-amber-50 text-amber-900 border-amber-300 focus:ring-amber-400'
-                                : 'bg-slate-50 text-slate-800 border-slate-300'
-                            }`}
-                          >
-                            <option value="published">✓ Published (सार्वजनिक)</option>
-                            <option value="draft">Draft (ड्राफ्ट - अप्रकाशित)</option>
-                            <option value="under_review">Under Review (समीक्षाधीन)</option>
-                            <option value="archived">Archived (संग्रहीत)</option>
-                          </select>
-                          <span className="text-[10px] text-slate-500 font-mono">
-                            {(art.status?.toLowerCase() === 'published' || art.status?.toLowerCase() === 'accepted' || !art.status) ? '🟢 Live on website' : '🟡 Hidden from public'}
-                          </span>
-                        </div>
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${
+                          art.status === 'published' ? 'bg-emerald-100 text-emerald-800' :
+                          art.status === 'draft' ? 'bg-amber-100 text-amber-800' :
+                          'bg-slate-100 text-slate-800'
+                        }`}>
+                          {art.status}
+                        </span>
                       </td>
 
                       <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
@@ -781,20 +607,6 @@ export const ArticlesManager: React.FC = () => {
                           <Edit3 className="w-3.5 h-3.5" />
                           <span>Edit Article</span>
                         </button>
-
-                        <button
-                          onClick={() => setActiveView('article_detail', art.slug || art.id)}
-                          className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg transition"
-                          title="वेबसाइट पर प्रकाशित लेख देखें (View Article)"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-
-                        <AcademicPdfExporter
-                          article={art}
-                          variant="icon"
-                          lang={lang}
-                        />
 
                         <button
                           onClick={() => {
@@ -815,11 +627,11 @@ export const ArticlesManager: React.FC = () => {
                           <PlusCircle className="w-4 h-4" />
                         </button>
 
-                        {canManageArticles && (
+                        {(isDirector || isSuperAdmin) && (
                           <button
                             onClick={() => setDeleteId(art.id)}
-                            className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
-                            title="शोध पत्र हटाएं (Delete Article)"
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Delete Article"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -831,7 +643,6 @@ export const ArticlesManager: React.FC = () => {
               </table>
             </div>
           )}
-          </div>
         </div>
       )}
 
@@ -880,28 +691,8 @@ export const ArticlesManager: React.FC = () => {
         </div>
       )}
 
-      {/* FULL-TEXT ARTICLE PUBLISHING SUITE (शोध आलेख संपादक) */}
+      {/* FULL-TEXT ARTICLE EDITOR MODAL */}
       {isModalOpen && editingArticle && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs p-2 sm:p-6 overflow-y-auto flex items-center justify-center animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl border border-slate-300 max-w-7xl w-full max-h-[96vh] overflow-y-auto shadow-2xl relative">
-            <FullTextPublishingSuite
-              article={editingArticle}
-              onSave={async (updatedArt) => {
-                await saveArticle(updatedArt);
-                setEditingArticle(updatedArt);
-              }}
-              onClose={() => {
-                setIsModalOpen(false);
-                setEditingArticle(null);
-              }}
-              lang="hi"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* REPLACED OLD MODAL CONTAINER */}
-      {false && isModalOpen && editingArticle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl border border-slate-300 max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
             
@@ -911,10 +702,10 @@ export const ArticlesManager: React.FC = () => {
                 <BookOpen className="w-6 h-6 text-amber-400" />
                 <div>
                   <h2 className="text-lg font-serif font-bold text-amber-100">
-                    {editingArticle.id ? 'शोध आलेख संपादक (Article Editor)' : 'नया शोध आलेख जोड़ें (Add Research Article)'}
+                    {editingArticle.id ? 'Full-Text Article Publishing Suite (शोध आलेख संपादक)' : 'Publish New Full-Text Research Article'}
                   </h2>
                   <p className="text-[11px] text-amber-300/80 font-mono">
-                    वर्ड दस्तावेज़ या टेक्स्ट पेस्ट करें, शीर्षक व लेखक जोड़ें और आसानी से प्रकाशित करें।
+                    Paste full text, configure metadata, and publish searchable journal papers.
                   </p>
                 </div>
               </div>
@@ -948,7 +739,7 @@ export const ArticlesManager: React.FC = () => {
                 }`}
               >
                 <Wand2 className="w-4 h-4 text-amber-400" />
-                <span>1. मुख्य पाठ एवं वर्ड पेस्ट (Full Text & Word)</span>
+                <span>1. Full Article Text & Smart Paste</span>
               </button>
 
               <button
@@ -959,7 +750,7 @@ export const ArticlesManager: React.FC = () => {
                 }`}
               >
                 <FileText className="w-4 h-4" />
-                <span>2. शीर्षक एवं मेटाडेटा (Title & DOI)</span>
+                <span>2. Article Metadata & DOI</span>
               </button>
 
               <button
@@ -970,7 +761,7 @@ export const ArticlesManager: React.FC = () => {
                 }`}
               >
                 <Award className="w-4 h-4" />
-                <span>3. लेखक (Authors)</span>
+                <span>3. Authors & ORCID</span>
               </button>
 
               <button
@@ -981,7 +772,7 @@ export const ArticlesManager: React.FC = () => {
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
-                <span>4. सारांश व कुंजी शब्द (Abstract & Keywords)</span>
+                <span>4. Abstracts & Keywords</span>
               </button>
 
               <button
@@ -992,7 +783,7 @@ export const ArticlesManager: React.FC = () => {
                 }`}
               >
                 <Calendar className="w-4 h-4" />
-                <span>5. प्रकाशन तिथियां (Dates)</span>
+                <span>5. Publication Dates</span>
               </button>
 
               <button
@@ -1003,7 +794,7 @@ export const ArticlesManager: React.FC = () => {
                 }`}
               >
                 <List className="w-4 h-4" />
-                <span>6. अतिरिक्त भाग (Custom Sections)</span>
+                <span>6. Custom Sections & Tables</span>
               </button>
 
               <button
@@ -1036,32 +827,27 @@ export const ArticlesManager: React.FC = () => {
               {editorTab === 'fulltext' && (
                 <div className="space-y-6 animate-in fade-in duration-150">
                   
-                  {/* Word Document Smart Paste Component */}
-                  <WordPasteImporter 
-                    onApplyParsedArticle={handleApplyWordParsed} 
-                  />
-
-                  {/* Raw Text Fallback Auto-Segment Card */}
+                  {/* Smart Bulk Paste Card */}
                   <div className="bg-amber-50/70 p-5 rounded-2xl border border-amber-900/15 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <Wand2 className="w-5 h-5 text-amber-600" />
                         <h3 className="font-serif font-bold text-red-950 text-sm">
-                          Quick Text Auto-Segmenter (कच्चा पाठ ऑटो-सेगमेंट करें)
+                          Smart Bulk Paste & Auto-Segment Tool (संपूर्ण लेख पेस्ट करें)
                         </h3>
                       </div>
-                      <span className="text-xs text-amber-800 font-mono font-bold">Text Parser</span>
+                      <span className="text-xs text-amber-800 font-mono font-bold">Word / PDF Raw Text Importer</span>
                     </div>
 
                     <p className="text-xs text-slate-600 leading-normal">
-                      Paste plain paper text to auto-split into Introduction, Literature Review, Methodology, Results, Conclusion, and References.
+                      Paste the complete article text copied from Word or PDF here. Click "Auto-Segment" to automatically split into Introduction, Literature Review, Methodology, Results, Conclusion, and References!
                     </p>
 
                     <textarea
-                      rows={4}
+                      rows={5}
                       value={bulkPasteText}
                       onChange={e => setBulkPasteText(e.target.value)}
-                      placeholder="Paste text here... (e.g. 1. Introduction... 2. Literature Review... 3. Methodology... 4. Results... 5. Conclusion... References...)"
+                      placeholder="Paste complete paper text here... (e.g. 1. Introduction... 2. Literature Review... 3. Methodology... 4. Results... 5. Conclusion... References...)"
                       className="w-full p-3 bg-white border border-amber-900/20 rounded-xl text-xs font-mono"
                     />
 
@@ -1073,7 +859,7 @@ export const ArticlesManager: React.FC = () => {
                         className="px-4 py-2 bg-red-950 hover:bg-red-900 disabled:opacity-50 text-amber-100 font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-2"
                       >
                         <Wand2 className="w-4 h-4 text-amber-400" />
-                        <span>Auto-Segment into Sections</span>
+                        <span>Auto-Segment into Sections (खंडों में विभाजित करें)</span>
                       </button>
 
                       {bulkPasteFeedback && (
@@ -1084,427 +870,88 @@ export const ArticlesManager: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Individual Section Fields with In-Place Blocks */}
+                  {/* Individual Section Fields */}
                   <div className="space-y-4">
-                    <div className="space-y-5">
-                      {/* 1. Introduction */}
-                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
-                              <label className="block text-slate-900 font-serif font-bold text-sm flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-red-950 text-amber-200 text-xs flex items-center justify-center font-sans font-bold">1</span>
-                                <span>Introduction (प्रस्तावना)</span>
-                              </label>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('heading_h2', 'intro')}
-                                  className="px-2.5 py-1 bg-red-950 text-amber-100 text-xs font-bold rounded-lg hover:bg-red-900 shadow-2xs flex items-center gap-1 transition"
-                                  title="Add new Heading under Introduction"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-400" />
-                                  <span>+ Heading (नई हेडिंग)</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('subheading_h3', 'intro')}
-                                  className="px-2.5 py-1 bg-amber-800 text-amber-100 text-xs font-bold rounded-lg hover:bg-amber-900 shadow-2xs flex items-center gap-1 transition"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-300" />
-                                  <span>+ Subheading</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('figure', 'intro')}
-                                  className="px-2.5 py-1 bg-emerald-700 text-white text-xs font-bold rounded-lg hover:bg-emerald-800 shadow-2xs flex items-center gap-1 transition"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-emerald-200" />
-                                  <span>+ Image / Figure</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('table', 'intro')}
-                                  className="px-2.5 py-1 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-700 shadow-2xs flex items-center gap-1 transition"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-200" />
-                                  <span>+ Table</span>
-                                </button>
-                              </div>
-                            </div>
-
-                            <textarea
-                              rows={4}
-                              value={editingArticle.full_text_introduction || ''}
-                              onChange={e => setEditingArticle({ ...editingArticle, full_text_introduction: e.target.value })}
-                              placeholder="Enter or paste full Introduction text (प्रस्तावना का मुख्य पाठ यहाँ दर्ज करें)..."
-                              className="w-full p-3 bg-white border border-slate-300 rounded-xl text-xs font-sans leading-relaxed focus:ring-2 focus:ring-amber-500/40 outline-none"
-                            />
-
-                            {/* Sub-blocks under Introduction */}
-                            {(editingArticle.custom_sections || []).filter(b => b.parent_section === 'intro').map((block) => {
-                              const bIdx = (editingArticle.custom_sections || []).findIndex(b => b.id === block.id);
-                              return renderCustomBlockCard(block, bIdx);
-                            })}
-
-                            {/* Quick Add Sub-Heading / New Main Heading Option under Introduction */}
-                            <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-xs bg-amber-50/50 p-2.5 rounded-xl border border-amber-900/10">
-                              <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                                <Plus className="w-4 h-4 text-amber-700" />
-                                <span>प्रस्तावना के बाद नया मुख्य भाग या हेडिंग जोड़ें (Add Main Heading / Section after Introduction):</span>
-                              </span>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('heading_h2', 'intro')}
-                                  className="px-3 py-1 bg-red-950 text-amber-200 font-bold rounded-lg text-xs hover:bg-red-900 shadow-2xs transition flex items-center gap-1"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-400" />
-                                  <span>+ Main Heading (मुख्य भाग/हेडिंग)</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('subheading_h3', 'intro')}
-                                  className="px-3 py-1 bg-slate-800 text-amber-200 font-bold rounded-lg text-xs hover:bg-slate-900 transition"
-                                >
-                                  + Subheading (उप-शीर्षक)
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('quote', 'intro')}
-                                  className="px-3 py-1 bg-amber-100 text-amber-900 font-bold rounded-lg text-xs hover:bg-amber-200 transition"
-                                >
-                                  + Quote Box
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* 2. Literature Review */}
-                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
-                              <label className="block text-slate-900 font-serif font-bold text-sm flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-red-950 text-amber-200 text-xs flex items-center justify-center font-sans font-bold">2</span>
-                                <span>Literature Review (साहित्य अवलोकन)</span>
-                              </label>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('heading_h2', 'literature')}
-                                  className="px-2.5 py-1 bg-red-950 text-amber-100 text-xs font-bold rounded-lg hover:bg-red-900 shadow-2xs flex items-center gap-1 transition"
-                                  title="Add new Main Heading under Literature Review"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-400" />
-                                  <span>+ Main Heading (मुख्य हेडिंग)</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('subheading_h3', 'literature')}
-                                  className="px-2.5 py-1 bg-amber-800 text-amber-100 text-xs font-bold rounded-lg hover:bg-amber-900 shadow-2xs flex items-center gap-1 transition"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-300" />
-                                  <span>+ Subheading</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('figure', 'literature')}
-                                  className="px-2.5 py-1 bg-emerald-700 text-white text-xs font-bold rounded-lg hover:bg-emerald-800 shadow-2xs flex items-center gap-1 transition"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-emerald-200" />
-                                  <span>+ Image / Figure</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('table', 'literature')}
-                                  className="px-2.5 py-1 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-700 shadow-2xs flex items-center gap-1 transition"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-200" />
-                                  <span>+ Table</span>
-                                </button>
-                              </div>
-                            </div>
-                            <textarea
-                              rows={4}
-                              value={editingArticle.full_text_literature_review || ''}
-                              onChange={e => setEditingArticle({ ...editingArticle, full_text_literature_review: e.target.value })}
-                              placeholder="Enter Literature Review text..."
-                              className="w-full p-3 bg-white border border-slate-300 rounded-xl text-xs font-sans leading-relaxed focus:ring-2 focus:ring-amber-500/40 outline-none"
-                            />
-                            {(editingArticle.custom_sections || []).filter(b => b.parent_section === 'literature').map((block) => {
-                              const bIdx = (editingArticle.custom_sections || []).findIndex(b => b.id === block.id);
-                              return renderCustomBlockCard(block, bIdx);
-                            })}
-
-                            {/* Quick Add Section Option after Literature Review */}
-                            <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-xs bg-amber-50/50 p-2.5 rounded-xl border border-amber-900/10">
-                              <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                                <Plus className="w-4 h-4 text-amber-700" />
-                                <span>साहित्य अवलोकन के बाद नया मुख्य भाग जोड़ें (Add Section after Literature Review):</span>
-                              </span>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('heading_h2', 'literature')}
-                                  className="px-3 py-1 bg-red-950 text-amber-200 font-bold rounded-lg text-xs hover:bg-red-900 shadow-2xs transition flex items-center gap-1"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-400" />
-                                  <span>+ Main Heading (मुख्य भाग/हेडिंग)</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('subheading_h3', 'literature')}
-                                  className="px-3 py-1 bg-slate-800 text-amber-200 font-bold rounded-lg text-xs hover:bg-slate-900 transition"
-                                >
-                                  + Subheading (उप-शीर्षक)
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* 3. Methodology */}
-                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
-                              <label className="block text-slate-900 font-serif font-bold text-sm flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-red-950 text-amber-200 text-xs flex items-center justify-center font-sans font-bold">3</span>
-                                <span>Methodology (अनुसंधान कार्यप्रणाली)</span>
-                              </label>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('heading_h2', 'methodology')}
-                                  className="px-2.5 py-1 bg-red-950 text-amber-100 text-xs font-bold rounded-lg hover:bg-red-900 shadow-2xs flex items-center gap-1 transition"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-400" />
-                                  <span>+ Main Heading (मुख्य हेडिंग)</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('subheading_h3', 'methodology')}
-                                  className="px-2.5 py-1 bg-amber-800 text-amber-100 text-xs font-bold rounded-lg hover:bg-amber-900 shadow-2xs flex items-center gap-1 transition"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-300" />
-                                  <span>+ Subheading</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('figure', 'methodology')}
-                                  className="px-2.5 py-1 bg-emerald-700 text-white text-xs font-bold rounded-lg hover:bg-emerald-800 shadow-2xs flex items-center gap-1 transition"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-emerald-200" />
-                                  <span>+ Image / Figure</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('table', 'methodology')}
-                                  className="px-2.5 py-1 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-700 shadow-2xs flex items-center gap-1 transition"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-200" />
-                                  <span>+ Table</span>
-                                </button>
-                              </div>
-                            </div>
-                            <textarea
-                              rows={4}
-                              value={editingArticle.full_text_methodology || ''}
-                              onChange={e => setEditingArticle({ ...editingArticle, full_text_methodology: e.target.value })}
-                              placeholder="Enter Methodology text..."
-                              className="w-full p-3 bg-white border border-slate-300 rounded-xl text-xs font-sans leading-relaxed focus:ring-2 focus:ring-amber-500/40 outline-none"
-                            />
-                            {(editingArticle.custom_sections || []).filter(b => b.parent_section === 'methodology').map((block) => {
-                              const bIdx = (editingArticle.custom_sections || []).findIndex(b => b.id === block.id);
-                              return renderCustomBlockCard(block, bIdx);
-                            })}
-
-                            {/* Quick Add Section Option after Methodology */}
-                            <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-xs bg-amber-50/50 p-2.5 rounded-xl border border-amber-900/10">
-                              <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                                <Plus className="w-4 h-4 text-amber-700" />
-                                <span>कार्यप्रणाली के बाद नया मुख्य भाग जोड़ें (Add Section after Methodology):</span>
-                              </span>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('heading_h2', 'methodology')}
-                                  className="px-3 py-1 bg-red-950 text-amber-200 font-bold rounded-lg text-xs hover:bg-red-900 shadow-2xs transition flex items-center gap-1"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-amber-400" />
-                                  <span>+ Main Heading (मुख्य भाग/हेडिंग)</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('subheading_h3', 'methodology')}
-                                  className="px-3 py-1 bg-slate-800 text-amber-200 font-bold rounded-lg text-xs hover:bg-slate-900 transition"
-                                >
-                                  + Subheading (उप-शीर्षक)
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* 4. Results and Discussion */}
-                          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <label className="block text-slate-900 font-bold text-xs">4. Results and Discussion (परिणाम एवं विश्लेषण)</label>
-                              <div className="flex flex-wrap gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('heading_h2', 'results')}
-                                  className="px-2 py-0.5 bg-red-950 text-amber-100 text-[10px] font-bold rounded hover:bg-red-900"
-                                >
-                                  + Heading
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('subheading_h3', 'results')}
-                                  className="px-2 py-0.5 bg-amber-800 text-amber-100 text-[10px] font-bold rounded hover:bg-amber-900"
-                                >
-                                  + Subheading
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('figure', 'results')}
-                                  className="px-2 py-0.5 bg-emerald-700 text-white text-[10px] font-bold rounded hover:bg-emerald-800"
-                                >
-                                  + Image / Figure
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('table', 'results')}
-                                  className="px-2 py-0.5 bg-amber-600 text-white text-[10px] font-bold rounded hover:bg-amber-700"
-                                >
-                                  + Table
-                                </button>
-                              </div>
-                            </div>
-                            <textarea
-                              rows={5}
-                              value={editingArticle.full_text_results_discussion || ''}
-                              onChange={e => setEditingArticle({ ...editingArticle, full_text_results_discussion: e.target.value })}
-                              placeholder="Enter Results & Discussion text..."
-                              className="w-full p-3 bg-white border border-slate-300 rounded-xl text-xs font-sans leading-relaxed"
-                            />
-                            {(editingArticle.custom_sections || []).filter(b => b.parent_section === 'results').map((block) => {
-                              const bIdx = (editingArticle.custom_sections || []).findIndex(b => b.id === block.id);
-                              return renderCustomBlockCard(block, bIdx);
-                            })}
-                          </div>
-
-                          {/* 5. Conclusion */}
-                          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <label className="block text-slate-900 font-bold text-xs">5. Conclusion (निष्कर्ष)</label>
-                              <div className="flex flex-wrap gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('heading_h2', 'conclusion')}
-                                  className="px-2 py-0.5 bg-red-950 text-amber-100 text-[10px] font-bold rounded hover:bg-red-900"
-                                >
-                                  + Heading
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('subheading_h3', 'conclusion')}
-                                  className="px-2 py-0.5 bg-amber-800 text-amber-100 text-[10px] font-bold rounded hover:bg-amber-900"
-                                >
-                                  + Subheading
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('figure', 'conclusion')}
-                                  className="px-2 py-0.5 bg-emerald-700 text-white text-[10px] font-bold rounded hover:bg-emerald-800"
-                                >
-                                  + Image / Figure
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('table', 'conclusion')}
-                                  className="px-2 py-0.5 bg-amber-600 text-white text-[10px] font-bold rounded hover:bg-amber-700"
-                                >
-                                  + Table
-                                </button>
-                              </div>
-                            </div>
-                            <textarea
-                              rows={4}
-                              value={editingArticle.full_text_conclusion || ''}
-                              onChange={e => setEditingArticle({ ...editingArticle, full_text_conclusion: e.target.value })}
-                              placeholder="Enter Conclusion text..."
-                              className="w-full p-3 bg-white border border-slate-300 rounded-xl text-xs font-sans leading-relaxed"
-                            />
-                            {(editingArticle.custom_sections || []).filter(b => b.parent_section === 'conclusion').map((block) => {
-                              const bIdx = (editingArticle.custom_sections || []).findIndex(b => b.id === block.id);
-                              return renderCustomBlockCard(block, bIdx);
-                            })}
-                          </div>
-
-                          {/* 6. Acknowledgements & Declarations */}
-                          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                            <label className="block text-slate-900 font-bold text-xs">6. Acknowledgements & Declarations</label>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <textarea
-                                rows={3}
-                                value={editingArticle.full_text_acknowledgement || ''}
-                                onChange={e => setEditingArticle({ ...editingArticle, full_text_acknowledgement: e.target.value })}
-                                placeholder="Acknowledgement / आभार..."
-                                className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs"
-                              />
-                              <textarea
-                                rows={3}
-                                value={editingArticle.full_text_conflict_of_interest || ''}
-                                onChange={e => setEditingArticle({ ...editingArticle, full_text_conflict_of_interest: e.target.value })}
-                                placeholder="Conflict of Interest statement..."
-                                className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs"
-                              />
-                            </div>
-                          </div>
-
-                          {/* 7. Additional Standalone Sections & Blocks */}
-                          <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-900/15 space-y-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span className="text-xs font-bold text-slate-800">7. Additional Custom Sections, Figures & Tables</span>
-                              <div className="flex flex-wrap gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('heading_h2', 'custom')}
-                                  className="px-2.5 py-1 bg-red-950 text-amber-100 font-bold text-xs rounded-lg hover:bg-red-900"
-                                >
-                                  + H2 Heading
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('subheading_h3', 'custom')}
-                                  className="px-2.5 py-1 bg-amber-700 text-white font-bold text-xs rounded-lg hover:bg-amber-800"
-                                >
-                                  + Subheading
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('figure', 'custom')}
-                                  className="px-2.5 py-1 bg-emerald-700 text-white font-bold text-xs rounded-lg hover:bg-emerald-600"
-                                >
-                                  + Figure
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCustomBlock('table', 'custom')}
-                                  className="px-2.5 py-1 bg-amber-500 text-red-950 font-bold text-xs rounded-lg hover:bg-amber-400"
-                                >
-                                  + Table
-                                </button>
-                              </div>
-                            </div>
-
-                            {(editingArticle.custom_sections || []).filter(b => !b.parent_section || b.parent_section === 'custom').map((block) => {
-                              const bIdx = (editingArticle.custom_sections || []).findIndex(b => b.id === block.id);
-                              return renderCustomBlockCard(block, bIdx);
-                            })}
-                          </div>
-                        </div>
-                      </div>
+                    <div>
+                      <label className="block text-slate-800 font-bold mb-1">1. Introduction (प्रस्तावना)</label>
+                      <textarea
+                        rows={5}
+                        value={editingArticle.full_text_introduction || ''}
+                        onChange={e => setEditingArticle({ ...editingArticle, full_text_introduction: e.target.value })}
+                        placeholder="Enter or paste full Introduction text..."
+                        className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-sans leading-relaxed"
+                      />
+                    </div>
 
                     <div>
-                      <label className="block text-slate-800 font-bold mb-1">8. References (संदर्भ ग्रंथसूची - One per line)</label>
+                      <label className="block text-slate-800 font-bold mb-1">2. Literature Review (साहित्य अवलोकन)</label>
+                      <textarea
+                        rows={5}
+                        value={editingArticle.full_text_literature_review || ''}
+                        onChange={e => setEditingArticle({ ...editingArticle, full_text_literature_review: e.target.value })}
+                        placeholder="Enter Literature Review text..."
+                        className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-sans leading-relaxed"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-800 font-bold mb-1">3. Methodology (अनुसंधान कार्यप्रणाली)</label>
+                      <textarea
+                        rows={5}
+                        value={editingArticle.full_text_methodology || ''}
+                        onChange={e => setEditingArticle({ ...editingArticle, full_text_methodology: e.target.value })}
+                        placeholder="Enter Methodology text..."
+                        className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-sans leading-relaxed"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-800 font-bold mb-1">4. Results and Discussion (परिणाम एवं विश्लेषण)</label>
                       <textarea
                         rows={6}
-                        value={(editingArticle.references || []).join('\n')}
+                        value={editingArticle.full_text_results_discussion || ''}
+                        onChange={e => setEditingArticle({ ...editingArticle, full_text_results_discussion: e.target.value })}
+                        placeholder="Enter Results & Discussion text..."
+                        className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-sans leading-relaxed"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-800 font-bold mb-1">5. Conclusion (निष्कर्ष)</label>
+                      <textarea
+                        rows={4}
+                        value={editingArticle.full_text_conclusion || ''}
+                        onChange={e => setEditingArticle({ ...editingArticle, full_text_conclusion: e.target.value })}
+                        placeholder="Enter Conclusion text..."
+                        className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-sans leading-relaxed"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-800 font-bold mb-1">6. Acknowledgements & Declarations</label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <textarea
+                          rows={3}
+                          value={editingArticle.full_text_acknowledgement || ''}
+                          onChange={e => setEditingArticle({ ...editingArticle, full_text_acknowledgement: e.target.value })}
+                          placeholder="Acknowledgement / आभार..."
+                          className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs"
+                        />
+                        <textarea
+                          rows={3}
+                          value={editingArticle.full_text_conflict_of_interest || ''}
+                          onChange={e => setEditingArticle({ ...editingArticle, full_text_conflict_of_interest: e.target.value })}
+                          placeholder="Conflict of Interest statement..."
+                          className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-800 font-bold mb-1">7. References (संदर्भ ग्रंथसूची - One per line)</label>
+                      <textarea
+                        rows={6}
+                        value={(Array.isArray(editingArticle.references) ? editingArticle.references : []).join('\n')}
                         onChange={e => setEditingArticle({
                           ...editingArticle,
                           references: e.target.value.split('\n').filter(r => r.trim().length > 0)
@@ -1514,6 +961,8 @@ export const ArticlesManager: React.FC = () => {
                       />
                     </div>
                   </div>
+
+                </div>
               )}
 
               {/* TAB 2: ARTICLE METADATA & DOI */}
@@ -1708,7 +1157,7 @@ export const ArticlesManager: React.FC = () => {
                     </button>
                   </div>
 
-                  {editingArticle.authors.map((author, idx) => (
+                  {(Array.isArray(editingArticle.authors) ? editingArticle.authors : []).map((author, idx) => (
                     <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
@@ -1769,7 +1218,7 @@ export const ArticlesManager: React.FC = () => {
                           <span>Corresponding Author (मुख्य संपर्क शोधकर्ता)</span>
                         </label>
 
-                        {editingArticle.authors.length > 1 && (
+                        {(Array.isArray(editingArticle.authors) ? editingArticle.authors : []).length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveAuthor(idx)}
@@ -1813,7 +1262,7 @@ export const ArticlesManager: React.FC = () => {
                     <label className="block text-slate-700 font-bold mb-1">Keywords / Index Terms (Comma separated)</label>
                     <input
                       type="text"
-                      value={editingArticle.keywords.join(', ')}
+                      value={(Array.isArray(editingArticle.keywords) ? editingArticle.keywords : []).join(', ')}
                       onChange={e => setEditingArticle({
                         ...editingArticle,
                         keywords: e.target.value.split(',').map(k => k.trim()).filter(Boolean)
@@ -2245,137 +1694,64 @@ export const ArticlesManager: React.FC = () => {
 
               {/* TAB 8: ATTACHED PDF FILE */}
               {editorTab === 'pdf' && (
-                <div className="space-y-5 animate-in fade-in duration-150 bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                  <div className="flex flex-wrap items-center justify-between border-b pb-3 border-slate-200 gap-2">
-                    <div>
-                      <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
-                        <Upload className="w-5 h-5 text-red-900" />
-                        <span>शोध आलेख PDF अटैचमेंट व क्लाउड स्टोरेज (Firebase Storage)</span>
-                      </h3>
-                      <p className="text-xs text-slate-600">
-                        यहाँ PDF फ़ाइल डायरेक्ट अपलोड करें या फ़ायरबेस स्टोरेज का डाउनलोड लिंक दर्ज करें।
-                      </p>
-                    </div>
-                    {editingArticle.pdf_url ? (
-                      <span className="px-3 py-1 bg-emerald-100 border border-emerald-300 text-emerald-950 font-bold text-xs rounded-full flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                        <span>PDF संलग्न है</span>
-                      </span>
-                    ) : (
-                      <span className="px-3 py-1 bg-amber-100 border border-amber-300 text-amber-950 font-bold text-xs rounded-full">
-                        PDF फ़ाइल संलग्न नहीं है
-                      </span>
-                    )}
-                  </div>
-
-                  {/* FileUploadZone */}
-                  <div className="space-y-2">
-                    <label className="block font-bold text-xs text-slate-800">
-                      Firebase Cloud Storage में PDF फ़ाइल अपलोड करें:
+                <div className="space-y-4 animate-in fade-in duration-150 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                  <label className="block font-serif font-bold text-slate-900">PDF Document Attachment</label>
+                  
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <label className={`cursor-pointer px-4 py-2.5 ${uploadingPdf ? 'bg-amber-600' : 'bg-red-950 hover:bg-red-900'} text-amber-100 font-bold text-xs rounded-xl transition flex items-center space-x-2 shrink-0`}>
+                      <Upload className="w-4 h-4" />
+                      <span>{uploadingPdf ? `Uploading PDF... ${pdfUploadPercent}%` : 'Upload Article PDF'}</span>
+                      <input 
+                        type="file" 
+                        accept=".pdf,application/pdf" 
+                        onChange={handlePdfUpload} 
+                        disabled={uploadingPdf} 
+                        className="hidden" 
+                      />
                     </label>
-                    <FileUploadZone
-                      acceptedCategory="documents"
-                      maxFiles={1}
-                      customFolder="articles/pdfs"
-                      label="शोध पत्र PDF अपलोड करें (Upload Article PDF)"
-                      description="PDF फ़ाइल को यहाँ ड्रैग-ड्रॉप करें या कंप्यूटर से चुनें। (Max 15MB, Supports PDF)."
-                      onUploadComplete={(file) => {
-                        setEditingArticle(prev => prev ? ({
-                          ...prev,
-                          pdf_url: file.url,
-                          pdf_storage_path: file.path
-                        }) : null);
-                      }}
-                    />
+
+                    <div className="flex-1 w-full">
+                      <input
+                        type="text"
+                        value={editingArticle.pdf_url || ''}
+                        onChange={e => setEditingArticle({ ...editingArticle, pdf_url: e.target.value })}
+                        placeholder="Optional: Paste direct PDF URL..."
+                        className="w-full p-2 border rounded text-xs font-mono"
+                      />
+                    </div>
                   </div>
 
-                  {/* Direct Link Input */}
-                  <div className="space-y-2 pt-2 border-t border-slate-200">
-                    <label className="block font-bold text-xs text-slate-800">या डायरेक्ट PDF URL दर्ज करें (Direct PDF URL):</label>
-                    <input
-                      type="text"
-                      value={editingArticle.pdf_url || ''}
-                      onChange={e => setEditingArticle({ ...editingArticle, pdf_url: e.target.value })}
-                      placeholder="https://firebasestorage.googleapis.com/.../paper.pdf"
-                      className="w-full p-2.5 border rounded-xl text-xs font-mono text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-                  </div>
-
-                  {editingArticle.pdf_url && (
-                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <span className="text-xs font-bold text-emerald-950 block">✓ PDF फ़ाइल सफलतापूर्वक संलग्न है</span>
-                        <span className="text-[11px] font-mono text-emerald-800 truncate block max-w-sm">
-                          {editingArticle.pdf_storage_path || editingArticle.pdf_url}
-                        </span>
+                  {uploadingPdf && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5">
+                      <div className="flex justify-between text-xs font-bold text-emerald-900">
+                        <span>Ultrafast PDF Uploading...</span>
+                        <span className="font-mono">{pdfUploadPercent}%</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openPdfViewer(editingArticle.pdf_url || '', editingArticle.title_english || editingArticle.title_hindi || 'Article')}
-                          className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-2xs"
-                        >
-                          <Eye className="w-4 h-4" />
-                          <span>PDF पूर्वावलोकन देखें</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingArticle({ ...editingArticle, pdf_url: '', pdf_storage_path: '' })}
-                          className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-800 font-bold text-xs rounded-lg flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>हटाएं</span>
-                        </button>
+                      <div className="w-full bg-emerald-200/80 h-2.5 rounded-full overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-emerald-600 to-teal-500 h-full transition-all duration-150 rounded-full"
+                          style={{ width: `${pdfUploadPercent}%` }}
+                        />
                       </div>
                     </div>
                   )}
 
-                  {/* WORD DOCUMENT (.docx / .doc) ATTACHMENT SECTION */}
-                  <div className="pt-6 border-t border-slate-200 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-serif font-bold text-sm text-slate-900 flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-blue-700" />
-                          <span>MS Word (.docx/.doc) पांडुलिपि फ़ाइल (Word Manuscript)</span>
-                        </h4>
-                        <p className="text-xs text-slate-600">
-                          संपादित करने और वेब पर Word व्यूअर में प्रदर्शित करने के लिए Word फाइल अपलोड करें।
-                        </p>
-                      </div>
-                      {editingArticle.word_url ? (
-                        <span className="px-3 py-1 bg-blue-100 border border-blue-300 text-blue-950 font-bold text-xs rounded-full">
-                          Word फ़ाइल संलग्न है
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 bg-slate-100 text-slate-700 font-bold text-xs rounded-full">
-                          Word वैकल्पिक
-                        </span>
-                      )}
+                  {pdfUploadTimingInfo && (
+                    <p className="text-xs text-slate-600 font-mono">{pdfUploadTimingInfo}</p>
+                  )}
+
+                  {editingArticle.pdf_url && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-950">✓ PDF Attached</span>
+                      <button
+                        type="button"
+                        onClick={() => openPdfViewer(editingArticle.pdf_url || '', editingArticle.title_english || 'Article')}
+                        className="px-3 py-1 bg-emerald-700 text-white font-bold text-xs rounded-lg"
+                      >
+                        Preview PDF
+                      </button>
                     </div>
-
-                    <FileUploadZone
-                      acceptedCategory="documents"
-                      maxFiles={1}
-                      customFolder="articles/words"
-                      label="Word (.docx / .doc) अपलोड करें"
-                      description="यहाँ .docx फ़ाइल ड्रॉप करें।"
-                      onUploadComplete={(file) => {
-                        setEditingArticle(prev => prev ? ({
-                          ...prev,
-                          word_url: file.url,
-                          word_storage_path: file.path
-                        }) : null);
-                      }}
-                    />
-
-                    <input
-                      type="text"
-                      value={editingArticle.word_url || ''}
-                      onChange={e => setEditingArticle({ ...editingArticle, word_url: e.target.value })}
-                      placeholder="या डायरेक्ट Word URL दर्ज करें (https://.../paper.docx)"
-                      className="w-full p-2.5 border rounded-xl text-xs font-mono text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -2441,7 +1817,7 @@ export const ArticlesManager: React.FC = () => {
                   <h1 className="text-2xl font-serif font-extrabold text-slate-950">{editingArticle.title_hindi || 'Untilted Article'}</h1>
                   <h2 className="text-lg font-serif italic text-slate-700">{editingArticle.title_english}</h2>
                   <p className="text-xs font-mono text-slate-500 pt-1">
-                    Authors: {editingArticle.authors.map(a => a.name).join(', ')} | DOI: {editingArticle.doi || '10.5281/zenodo.psp'}
+                    Authors: {(Array.isArray(editingArticle.authors) ? editingArticle.authors : []).map(a => a.name).join(', ')} | DOI: {editingArticle.doi || '10.5281/zenodo.psp'}
                   </p>
                 </div>
 
@@ -2476,7 +1852,7 @@ export const ArticlesManager: React.FC = () => {
                   <div className="space-y-2 pt-4 border-t-2 border-red-950">
                     <h2 className="font-serif font-bold text-base text-slate-900">References</h2>
                     <ol className="list-decimal list-inside text-xs space-y-1">
-                      {editingArticle.references.map((r, i) => (
+                      {(Array.isArray(editingArticle.references) ? editingArticle.references : []).map((r, i) => (
                         <li key={i}>{r}</li>
                       ))}
                     </ol>
