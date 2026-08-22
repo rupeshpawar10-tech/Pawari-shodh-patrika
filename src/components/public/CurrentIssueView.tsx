@@ -287,6 +287,12 @@ export const CurrentIssueView: React.FC = () => {
         lang={lang}
       />
 
+      {/* ----------------- INTERLINKED KNOWLEDGE CLUSTERS ----------------- */}
+      <div className="space-y-6 pt-4 border-t border-stone-200/80">
+        <RelatedKnowledgeHub contextType="issue" />
+        <TopicClusterNav />
+      </div>
+
     </div>
   );
 };

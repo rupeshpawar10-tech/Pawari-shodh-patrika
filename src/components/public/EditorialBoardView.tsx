@@ -1,6 +1,9 @@
 import React from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { EditorialBoardDisplay } from '../common/EditorialBoardDisplay';
+import { AcademicBreadcrumbs } from '../common/AcademicBreadcrumbs';
+import { TopicClusterNav } from '../common/TopicClusterNav';
+import { RelatedKnowledgeHub } from '../common/RelatedKnowledgeHub';
 import { 
   Award, 
   ShieldCheck, 
@@ -16,6 +19,14 @@ export const EditorialBoardView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-8 py-6 sm:py-8 space-y-8 animate-in fade-in duration-200">
       
+      {/* ----------------- BREADCRUMB NAVIGATION ----------------- */}
+      <AcademicBreadcrumbs
+        items={[
+          { label: 'पत्रिका परिचय', labelEn: 'About', view: 'about' },
+          { label: 'संपादकीय मंडल', labelEn: 'Editorial Board', view: 'editorial_board' }
+        ]}
+      />
+
       {/* ----------------- EDITORIAL HEADER BANNER (Glossy 3D) ----------------- */}
       <div className="gloss-3d-card-dark text-amber-100 rounded-3xl p-6 sm:p-10 space-y-6 gloss-sheen">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
