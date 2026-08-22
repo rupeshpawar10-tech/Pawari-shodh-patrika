@@ -199,7 +199,7 @@ export const ArticlesManager: React.FC = () => {
     setPdfUploadTimingInfo(`Selected "${file.name}" (${(file.size / 1024 / 1024).toFixed(2)} MB) at ${selectTime}`);
 
     try {
-      const res = await uploadFileToStorage(file, undefined, (percent) => {
+      const res = await uploadFileToStorage(file, `articles/${editingArticle.id}`, (percent) => {
         setPdfUploadPercent(percent);
       });
 
