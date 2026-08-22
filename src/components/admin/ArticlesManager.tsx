@@ -1736,6 +1736,9 @@ export const ArticlesManager: React.FC = () => {
                     </div>
                   )}
 
+                                    {pdfUploadError && (
+                    <p className="text-xs text-red-600 font-bold bg-red-50 p-3 rounded-xl border border-red-200">{pdfUploadError}</p>
+                  )}
                   {pdfUploadTimingInfo && (
                     <p className="text-xs text-slate-600 font-mono">{pdfUploadTimingInfo}</p>
                   )}
