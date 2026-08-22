@@ -65,53 +65,66 @@ export interface CustomSectionBlock {
   figure_number?: number;
   placement?: 'in_body' | 'at_end';
   table_data?: { headers: string[]; rows: string[][] };
-  parent_section?: 'intro' | 'literature' | 'methodology' | 'results' | 'conclusion' | 'custom';
+  parent_section?: string;
+}
+
+export interface PawariWriterItem {
+  id: string;
+  name_hindi: string;
+  name_english?: string;
+  designation_hindi?: string;
+  designation_english?: string;
+  location_hindi?: string;
+  location_english?: string;
+  photo_url?: string;
+  specialization_hindi?: string;
+  bio_hindi?: string;
+  bio_english?: string;
+  awards_hindi?: string[];
+  published_books?: string[];
+  published_blogs?: string[];
+  contact_email?: string;
+  contact_phone?: string;
+  website_url?: string;
+  social_links?: {
+    facebook?: string;
+    youtube?: string;
+    wikipedia?: string;
+  };
+  status: 'approved' | 'pending' | 'rejected';
+  is_featured?: boolean;
+  created_at: string;
 }
 
 export interface ArticleSection {
   id: string;
-  article_id?: string;
-  section_type: 'title' | 'abstract' | 'keywords' | 'introduction' | 'literature_review' | 'methodology' | 'results' | 'discussion' | 'conclusion' | 'acknowledgement' | 'references' | 'author_info' | 'custom';
+  section_type: string;
   section_title: string;
-  section_title_hindi?: string;
   content_html: string;
   sort_order: number;
   word_count?: number;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export interface ArticleMedia {
   id: string;
-  article_id?: string;
-  section_id?: string;
-  file_url: string;
-  file_name?: string;
+  url: string;
   caption?: string;
-  figure_number?: number;
-  alt_text?: string;
-  source_credit?: string;
-  copyright_declaration?: string;
-  alignment?: 'left' | 'center' | 'right';
-  width_percent?: number;
-  sort_order?: number;
 }
 
 export interface ArticleRevision {
   id: string;
   timestamp: string;
   note: string;
-  article_data: Partial<Article>;
+  article_data: Article;
 }
 
 export interface Article {
   id: string;
   title_hindi: string;
   title_english: string;
-  subtitle?: string;
   short_title?: string;
   slug: string;
-  article_type?: 'Research Article' | 'Review Article' | 'Case Report' | 'Research Note' | 'Editorial' | 'Book Review' | string;
+  article_type?: string;
   authors: Author[];
   abstract_hindi: string;
   abstract_english: string;
@@ -119,28 +132,20 @@ export interface Article {
   doi?: string;
   pdf_url?: string;
   pdf_storage_path?: string;
-  word_url?: string;
-  word_storage_path?: string;
+  pdfPath?: string;
+  pdfFileName?: string;
+  hasPdf?: boolean;
   volume: number;
   issue: number;
   year: number;
   month?: string;
   category: string; // e.g. "Pawari Literature", "Linguistics", "Culture & History", "Social Sciences", "Multidisciplinary"
   language: 'Hindi' | 'English' | 'Pawari' | 'Bilingual';
-  status: 'published' | 'draft' | 'under_review' | 'revision_required' | 'accepted' | 'rejected' | 'archived' | string;
+  status: 'published' | 'draft' | 'under_review' | 'archived';
   page_numbers?: string;
   content_mode?: 'full_text' | 'pdf_only';
   citation_text?: string;
   
-  // Additional Author / Metadata fields
-  institution?: string;
-  department?: string;
-  city?: string;
-  country?: string;
-  corresponding_email?: string;
-  license?: string;
-  copyright_statement?: string;
-
   // Article History Dates
   date_received?: string;
   date_revised?: string;
@@ -158,15 +163,9 @@ export interface Article {
   full_text_funding?: string;
   references?: string[];
 
-  // Structured Sections & Media
-  sections?: ArticleSection[];
-  media_files?: ArticleMedia[];
-
   // Optional custom content blocks
   custom_sections?: CustomSectionBlock[];
-
-  // Editorial comments & history
-  editorial_comments?: string;
+  sections?: ArticleSection[];
   revisions_history?: ArticleRevision[];
 
   views_count?: number;
@@ -203,9 +202,6 @@ export interface EditorialMember {
   photo_url?: string;
   email?: string;
   research_areas?: string[];
-  subject_areas?: string[];
-  bio_hindi?: string;
-  bio_english?: string;
   order: number;
 }
 
@@ -386,11 +382,8 @@ export interface PawariShabdkoshItem {
   category: string;
   image_url?: string;
   audio_url?: string;
-  slug?: string;
   contributor_name?: string;
-  contributor_email?: string;
-  editorial_comments?: string;
-  status: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'published' | 'rejected' | string;
+  status: 'approved' | 'pending' | 'rejected';
   created_at: string;
 }
 
@@ -403,11 +396,8 @@ export interface PawariPaheliItem {
   explanation_hindi?: string;
   category: string;
   image_url?: string;
-  slug?: string;
   contributor_name?: string;
-  contributor_email?: string;
-  editorial_comments?: string;
-  status: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'published' | 'rejected' | string;
+  status: 'approved' | 'pending' | 'rejected';
   created_at: string;
 }
 
@@ -422,15 +412,10 @@ export interface PawariLokgeetItem {
   audio_url?: string;
   youtube_url?: string;
   image_url?: string;
-  slug?: string;
   contributor_name?: string;
-  contributor_email?: string;
-  editorial_comments?: string;
-  status: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'published' | 'rejected' | string;
+  status: 'approved' | 'pending' | 'rejected';
   created_at: string;
 }
-
-export type QuizCategoryType = 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'reviews' | 'general' | 'writers' | 'articles';
 
 export interface QuizQuestion {
   id: string;
@@ -439,9 +424,7 @@ export interface QuizQuestion {
   options: string[];
   correct_option_index: number;
   explanation: string;
-  section_type: QuizCategoryType;
-  difficulty?: 'easy' | 'medium' | 'hard';
-  cultural_notes?: string;
+  section_type: 'shabdkosh' | 'paheli' | 'lokgeet';
 }
 
 export interface QuizCertificate {
@@ -453,64 +436,5 @@ export interface QuizCertificate {
   percentage: number;
   issued_date: string;
   certificate_no: string;
-  exam_title?: string;
-  grade?: string;
-  category_breakdown?: Record<string, { score: number; total: number }>;
-  verification_url?: string;
-  patron_name?: string;
-  chief_editor_name?: string;
-}
-
-export interface QuizLeaderboardEntry {
-  id: string;
-  user_name: string;
-  user_photo_url?: string;
-  quiz_score: number;
-  total_questions: number;
-  percentage: number;
-  issued_date: string;
-  certificate_no: string;
-  created_at?: string;
-  grade?: string;
-}
-
-export interface PawariWriterItem {
-  id: string;
-  name_hindi: string;
-  name_english: string;
-  photo_url?: string;
-  designation_hindi?: string;
-  designation_english?: string;
-  designation?: string; // alias
-  location_hindi?: string;
-  location_english?: string;
-  region?: string; // alias
-  bio_hindi: string;
-  bio_english?: string;
-  biography_hindi?: string; // alias
-  specialization_hindi?: string | string[];
-  specialization?: string[]; // alias
-  awards_hindi?: string[];
-  awards_honors?: string[]; // alias
-  published_books?: string[];
-  published_blogs?: string[];
-  contact_email?: string;
-  email?: string; // alias
-  contact_phone?: string;
-  phone?: string; // alias
-  website_url?: string;
-  social_links?: {
-    facebook?: string;
-    youtube?: string;
-    wikipedia?: string;
-    twitter?: string;
-    instagram?: string;
-    linkedin?: string;
-  };
-  books_count?: number;
-  is_featured?: boolean;
-  status: 'approved' | 'pending' | 'rejected' | string;
-  slug?: string;
-  created_at: string;
 }
 
