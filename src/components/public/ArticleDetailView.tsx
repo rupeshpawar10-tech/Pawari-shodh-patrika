@@ -412,20 +412,13 @@ export const ArticleDetailView: React.FC = () => {
                   <span>{lang === 'hi' ? 'PDF दर्शक' : 'View PDF'}</span>
                 </button>
 
-                <a
-                  href={article.pdf_url || '#'}
-                  download={`${article.title_english || 'article'}.pdf`}
-                  onClick={(e) => {
-                    if (article.id) incrementArticleDownloads(article.id);
-                    if (!article.pdf_url) e.preventDefault();
-                  }}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => handleDownload()}
                   className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-red-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-2"
                 >
                   <Download className="w-4 h-4" />
                   <span>{lang === 'hi' ? 'PDF डाउनलोड' : 'Download PDF'}</span>
-                </a>
+                </button>
               </>
             ) : (
               <span className="px-4 py-2.5 bg-slate-100 text-slate-500 font-bold text-xs rounded-xl shadow-xs flex items-center space-x-2 border border-slate-200">
