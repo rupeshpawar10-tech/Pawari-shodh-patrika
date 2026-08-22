@@ -29,7 +29,7 @@ export const SahityaFooter: React.FC<SahityaFooterProps> = ({ onContributeClick 
             </h4>
             <p className="text-xs sm:text-sm text-stone-300 leading-relaxed max-w-xl">
               {lang === 'hi'
-                ? 'पवारी बोली के प्रामाणिक शब्दकोश, पारम्परिक पाहलोड़ी (पहेलियाँ), लोकगीत, शोध ग्रंथ व समालोचना का संवर्धन एवं शोधकर्ताओं हेतु खुला डिजिटल मंच।'
+                ? 'पवारी बोली के प्रामाणिक शब्दकोश, पारम्परिक पहेलियाँ, लोकगीत, शोध ग्रंथ व समालोचना का संवर्धन एवं शोधकर्ताओं हेतु खुला डिजिटल मंच।'
                 : 'Open digital archive devoted to the scientific preservation, documentation, and promotion of Pawari dialect, lexicography, and folklore.'}
             </p>
           </div>

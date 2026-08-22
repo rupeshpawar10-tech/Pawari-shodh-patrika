@@ -3,11 +3,11 @@ import { useCms } from '../../lib/CmsContext';
 import { getCanonicalUrl, getUrlForView } from '../../lib/router';
 import { updateMetaTags } from '../../lib/seo';
 import { findArticle } from '../../lib/slugUtils';
-import { SharePaperModal } from '../common/SharePaperModal';
+import { AcademicBreadcrumbs } from '../common/AcademicBreadcrumbs';
+import { TopicClusterNav } from '../common/TopicClusterNav';
+import { RelatedKnowledgeHub } from '../common/RelatedKnowledgeHub';
 import { 
   ArrowLeft, 
-  Download, 
-  Share2, 
   Copy, 
   Check, 
   BookOpen, 
@@ -17,10 +17,12 @@ import {
   Quote,
   ShieldCheck,
   ExternalLink,
-  Printer,
   Award,
   Calendar,
-  Hash
+  Hash,
+  Languages,
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 
 export const ArticleDetailView: React.FC = () => {
@@ -29,7 +31,6 @@ export const ArticleDetailView: React.FC = () => {
     articles, 
     selectedArticleId, 
     setActiveView, 
-    incrementArticleDownloads,
     loadingData,
     settings
   } = useCms();
@@ -38,16 +39,7 @@ export const ArticleDetailView: React.FC = () => {
     ? findArticle(articles, selectedArticleId) 
     : (articles[0] || null);
 
-  const hasValidPdf = Boolean(
-    article?.pdf_url && 
-    article.pdf_url.trim() !== '' && 
-    article.pdf_url !== '#' && 
-    !article.pdf_url.includes('undefined')
-  );
-
   const [copiedCitation, setCopiedCitation] = useState<string | null>(null);
-  const [copiedUrl, setCopiedUrl] = useState(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
     if (!article) return;
@@ -125,88 +117,33 @@ export const ArticleDetailView: React.FC = () => {
     setTimeout(() => setCopiedCitation(null), 2500);
   };
 
-  const handleCopyUrl = () => {
-    navigator.clipboard.writeText(articleCanonicalUrl);
-    setCopiedUrl(true);
-    setTimeout(() => setCopiedUrl(false), 2500);
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-8 py-4 sm:py-8 space-y-6 animate-in fade-in duration-200 print:p-0 print:m-0 print:max-w-none">
       
       {/* ----------------- BREADCRUMB NAVIGATION ----------------- */}
-      <div className="flex items-center space-x-2 text-xs font-medium text-slate-500 print:hidden">
-        <button onClick={() => setActiveView('home')} className="hover:text-red-950 transition">
-          {lang === 'hi' ? 'मुख्य पृष्ठ' : 'Home'}
-        </button>
-        <span>/</span>
-        <button onClick={() => setActiveView('articles')} className="hover:text-red-950 transition">
-          {lang === 'hi' ? 'शोध आलेख' : 'Research Articles'}
-        </button>
-        <span>/</span>
-        <span className="text-red-950 font-bold truncate max-w-[220px]">{article.title_hindi}</span>
+      <div className="print:hidden">
+        <AcademicBreadcrumbs
+          items={[
+            { label: 'शोध आलेख', labelEn: 'Articles', view: 'articles' },
+            { 
+              label: `Vol. ${article.volume} Iss. ${article.issue}`, 
+              labelEn: `Vol. ${article.volume} Iss. ${article.issue}`, 
+              view: 'archive', 
+              issueId: `vol-${article.volume}-iss-${article.issue}` 
+            },
+            { 
+              label: article.title_hindi || article.title_english || 'शोध पत्र', 
+              labelEn: article.title_english || article.title_hindi || 'Paper' 
+            }
+          ]}
+          showBackButton={true}
+          onBackClick={() => setActiveView('articles')}
+        />
       </div>
 
-      {/* Top Action Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <button
-          onClick={() => setActiveView('articles')}
-          className="inline-flex items-center space-x-1.5 text-xs font-bold text-red-950 hover:text-red-800 bg-amber-500/10 hover:bg-amber-500/20 px-3.5 py-2.5 rounded-xl border border-amber-500/30 shadow-2xs transition min-h-[44px] touch-active"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>{lang === 'hi' ? 'शोध पत्र सूची पर वापस जाएं' : 'Back to Articles Index'}</span>
-        </button>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Direct PDF Download Action (Shown only if PDF exists) */}
-          {hasValidPdf && (
-            <a
-              href={article.pdf_url}
-              download={`${article.title_english || 'article'}.pdf`}
-              onClick={() => {
-                if (article.id) incrementArticleDownloads(article.id);
-              }}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center space-x-2 px-4 py-2.5 bg-red-950 hover:bg-red-900 active:bg-red-950 text-amber-200 font-bold text-xs rounded-xl shadow-xs hover:shadow transition border border-amber-500/30 touch-active group"
-            >
-              <Download className="w-4 h-4 text-amber-400 group-hover:translate-y-0.5 transition-transform" />
-              <span>{lang === 'hi' ? 'PDF डाउनलोड' : 'Download PDF'}</span>
-            </a>
-          )}
-
-          {/* Copy Article URL */}
-          <button
-            onClick={handleCopyUrl}
-            className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-800 hover:text-slate-950 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 px-3.5 py-2.5 rounded-xl border border-slate-300 transition shadow-2xs min-h-[44px] touch-active"
-            title="Copy Direct Article Link"
-          >
-            {copiedUrl ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-700" />}
-            <span>{copiedUrl ? (lang === 'hi' ? 'URL कॉपी हो गया!' : 'Link Copied!') : (lang === 'hi' ? 'URL कॉपी करें' : 'Copy URL')}</span>
-          </button>
-
-          {/* Share Modal Trigger */}
-          <button
-            onClick={() => setIsShareModalOpen(true)}
-            className="inline-flex items-center space-x-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 px-3.5 py-2.5 rounded-xl shadow-2xs transition min-h-[44px] touch-active"
-          >
-            <Share2 className="w-4 h-4 text-emerald-200" />
-            <span className="hidden sm:inline">{lang === 'hi' ? 'शेयर करें' : 'Share Paper'}</span>
-          </button>
-
-          {/* Print Action */}
-          <button
-            onClick={handlePrint}
-            className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-2.5 rounded-xl border border-slate-300 transition"
-            title="Print Page"
-          >
-            <Printer className="w-4 h-4 text-slate-600" />
-          </button>
-        </div>
+      {/* Topic Clusters Ribbon */}
+      <div className="print:hidden">
+        <TopicClusterNav variant="ribbon" />
       </div>
 
       {/* Main Journal Article Metadata Container */}
@@ -374,63 +311,6 @@ export const ArticleDetailView: React.FC = () => {
           </div>
         )}
 
-        {/* Action Toolbar Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 print:hidden">
-          
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Cute & Professional Download PDF Button if PDF exists */}
-            {hasValidPdf && (
-              <a
-                href={article.pdf_url}
-                download={`${article.title_english || 'article'}.pdf`}
-                onClick={() => {
-                  if (article.id) incrementArticleDownloads(article.id);
-                }}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center space-x-2 px-5 py-2.5 bg-red-950 hover:bg-red-900 text-amber-200 font-bold text-xs rounded-xl shadow-xs transition border border-amber-500/30"
-              >
-                <Download className="w-4 h-4 text-amber-400" />
-                <span>{lang === 'hi' ? 'PDF डाउनलोड करें (Download PDF)' : 'Download Full PDF'}</span>
-              </a>
-            )}
-
-            {/* Direct Copy URL button */}
-            <button
-              onClick={handleCopyUrl}
-              className="inline-flex items-center space-x-1.5 px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-red-950 font-bold text-xs rounded-xl border border-amber-500/30 transition shadow-2xs"
-            >
-              {copiedUrl ? (
-                <>
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  <span>{lang === 'hi' ? 'URL कॉपी हो गया!' : 'Link Copied!'}</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 text-amber-700" />
-                  <span>{lang === 'hi' ? 'URL कॉपी करें' : 'Copy Article Link'}</span>
-                </>
-              )}
-            </button>
-
-            {/* Share Paper Button */}
-            <button
-              onClick={() => setIsShareModalOpen(true)}
-              className="inline-flex items-center space-x-1.5 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-2xs transition"
-            >
-              <Share2 className="w-4 h-4 text-emerald-200" />
-              <span>{lang === 'hi' ? 'शेयर करें' : 'Share Paper'}</span>
-            </button>
-          </div>
-
-          <div className="flex items-center space-x-3 text-xs font-mono text-slate-500">
-            <span>Views: <strong>{article.views_count || 0}</strong></span>
-            <span>•</span>
-            <span>Downloads: <strong>{article.downloads_count || 0}</strong></span>
-          </div>
-
-        </div>
-
         {/* ----------------- BILINGUAL ABSTRACT & KEYWORDS SECTION ----------------- */}
         <section className="bg-gradient-to-br from-amber-50/60 via-white to-amber-50/30 p-6 sm:p-8 rounded-2xl border-2 border-amber-900/20 shadow-2xs space-y-6">
           <h2 className="text-xl font-serif font-extrabold text-red-950 border-b border-amber-900/20 pb-3 flex items-center gap-2">
@@ -556,61 +436,16 @@ export const ArticleDetailView: React.FC = () => {
 
       </article>
 
-      {/* ----------------- RELATED ARTICLES SECTION ----------------- */}
-      {(() => {
-        const relatedArticles = articles
-          .filter(a => a.id !== article.id && (a.category === article.category || a.issue === article.issue))
-          .slice(0, 3);
-        
-        if (relatedArticles.length === 0) return null;
-
-        return (
-          <section className="bg-white border border-amber-900/15 rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-sm space-y-4 print:hidden">
-            <h2 className="text-lg font-serif font-bold text-red-950 flex items-center space-x-2 border-b border-amber-900/10 pb-2">
-              <BookOpen className="w-5 h-5 text-amber-700" />
-              <span>{lang === 'hi' ? 'संबंधित शोध आलेख (Related Research Articles)' : 'Related Research Articles'}</span>
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {relatedArticles.map(rel => (
-                <div
-                  key={rel.id}
-                  onClick={() => {
-                    setActiveView('article_detail', rel.slug || rel.id);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="bg-amber-50/40 hover:bg-amber-50 border border-amber-900/10 rounded-xl p-4 flex flex-col justify-between cursor-pointer transition space-y-3 group"
-                >
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] font-mono bg-red-950 text-amber-100 px-2 py-0.5 rounded font-bold">
-                      {rel.category}
-                    </span>
-                    <h3 className="text-sm font-serif font-bold text-slate-900 group-hover:text-red-900 line-clamp-2 leading-snug">
-                      {rel.title_hindi}
-                    </h3>
-                    <p className="text-xs text-slate-600 line-clamp-2 font-sans">
-                      {rel.abstract_hindi || rel.abstract_english}
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-amber-900/10 flex items-center justify-between text-xs font-mono text-amber-900 font-bold">
-                    <span>Vol. {rel.volume}, {rel.year}</span>
-                    <span className="group-hover:translate-x-1 transition-transform">पूरा देखें ➔</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        );
-      })()}
-
-      {/* Share Modal */}
-      <SharePaperModal
-        article={article}
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        lang={lang}
-      />
+      {/* ----------------- RELATED KNOWLEDGE HUB (Cross-interlinking) ----------------- */}
+      <div className="print:hidden space-y-6">
+        <RelatedKnowledgeHub
+          contextType="article"
+          category={article.category}
+          keywords={article.keywords}
+          currentId={article.id}
+        />
+        <TopicClusterNav />
+      </div>
 
     </div>
   );

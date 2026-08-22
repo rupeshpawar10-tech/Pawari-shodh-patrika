@@ -11,8 +11,8 @@ export interface SahityaHeaderProps {
   badgeHindi?: string;
   badgeEnglish?: string;
   itemCount?: number;
-  currentSection: 'hub' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'reviews' | 'quiz';
-  onSectionChange: (section: 'hub' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'reviews' | 'quiz') => void;
+  currentSection: 'hub' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'writers' | 'reviews' | 'quiz';
+  onSectionChange: (section: 'hub' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'writers' | 'reviews' | 'quiz') => void;
   onContributeClick?: () => void;
 }
 
@@ -31,13 +31,14 @@ export const SahityaHeader: React.FC<SahityaHeaderProps> = ({
 }) => {
   const { lang } = useCms();
 
-  const sections: { id: 'hub' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'reviews' | 'quiz'; labelHindi: string; labelEnglish: string; icon: string }[] = [
+  const sections: { id: 'hub' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'writers' | 'reviews' | 'quiz'; labelHindi: string; labelEnglish: string; icon: string }[] = [
     { id: 'hub', labelHindi: 'साहित्य केंद्र (Hub)', labelEnglish: 'Sahitya Hub', icon: '🏛️' },
+    { id: 'writers', labelHindi: 'लेखक एवं साहित्यकार', labelEnglish: 'Writers & Scholars', icon: '✍️' },
     { id: 'shabdkosh', labelHindi: 'पवारी शब्दकोश', labelEnglish: 'Dictionary', icon: '📖' },
-    { id: 'paheli', labelHindi: 'पाहलोड़ी (पहेलियाँ)', labelEnglish: 'Riddles', icon: '🧩' },
+    { id: 'paheli', labelHindi: 'पवारी पहेलियाँ', labelEnglish: 'Riddles', icon: '🧩' },
     { id: 'lokgeet', labelHindi: 'लोकगीत संग्रह', labelEnglish: 'Folk Songs', icon: '🎵' },
     { id: 'books', labelHindi: 'ग्रंथ व ई-पुस्तकें', labelEnglish: 'Books Library', icon: '📚' },
-    { id: 'reviews', labelHindi: 'समीक्षा एवं समालोचना', labelEnglish: 'Reviews', icon: '✍️' },
+    { id: 'reviews', labelHindi: 'समीक्षा एवं समालोचना', labelEnglish: 'Reviews', icon: '📝' },
     { id: 'quiz', labelHindi: 'संस्कृति क्विज़ व प्रमाण-पत्र', labelEnglish: 'Quiz & Cert', icon: '🏆' },
   ];
 

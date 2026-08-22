@@ -116,7 +116,7 @@ export const PaheliDetailView: React.FC<PaheliDetailViewProps> = ({
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-800 text-white font-bold text-sm cursor-pointer shadow-xs"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>सम्पूर्ण पाहलोड़ी संग्रह पर लौटें</span>
+          <span>सम्पूर्ण पहेली संग्रह पर लौटें</span>
         </button>
       </div>
     );
@@ -126,7 +126,7 @@ export const PaheliDetailView: React.FC<PaheliDetailViewProps> = ({
   const riddleHindi = (paheli as any).riddle_hindi || '';
   const answerHindi = paheli.answer_hindi || (paheli as any).answer || '';
   const explanationHindi = (paheli as any).explanation_hindi || (paheli as any).explanation || '';
-  const category = paheli.category || 'पारम्परिक पाहलोड़ी';
+  const category = paheli.category || 'पारम्परिक पहेली';
 
   return (
     <article className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8 animate-in fade-in duration-200">
@@ -140,7 +140,7 @@ export const PaheliDetailView: React.FC<PaheliDetailViewProps> = ({
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 font-bold text-xs sm:text-sm transition cursor-pointer shadow-xs"
           >
             <ArrowLeft className="w-4 h-4 text-amber-800" />
-            <span>{lang === 'hi' ? '← सम्पूर्ण पाहलोड़ी (पहेली) संग्रह' : '← Back to Riddles'}</span>
+            <span>{lang === 'hi' ? '← सम्पूर्ण पहेली संग्रह' : '← Back to Riddles'}</span>
           </button>
 
           <button
@@ -209,7 +209,7 @@ export const PaheliDetailView: React.FC<PaheliDetailViewProps> = ({
         {/* Riddle Text in Big Typography */}
         <div className="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-6 sm:p-8 space-y-3 text-center">
           <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-900">
-            {lang === 'hi' ? 'पवारी पाहलोड़ी (Riddle in Pawari):' : 'Pawari Riddle:'}
+            {lang === 'hi' ? 'पवारी पहेली (Riddle in Pawari):' : 'Pawari Riddle:'}
           </span>
           <p className="text-xl sm:text-2xl md:text-3xl font-extrabold text-amber-950 font-serif leading-relaxed">
             "{riddlePawari}"
@@ -275,11 +275,11 @@ export const PaheliDetailView: React.FC<PaheliDetailViewProps> = ({
 
       {/* ---------------- SOCIAL SHARING BAR ---------------- */}
       <SahityaShareBar
-        title={`पवारी पाहलोड़ी (पहेली): "${riddlePawari}"`}
+        title={`पवारी पहेली: "${riddlePawari}"`}
         subtitle={`पवारी लोक-पहेली बूझें व मित्रों के साथ साझा करें`}
         url={`/paheli/${paheli.slug || paheli.id}`}
         category={category}
-        typeLabel="पवारी पाहलोड़ी"
+        typeLabel="पवारी पहेली"
         lang={lang}
         variant="full"
       />
@@ -326,7 +326,7 @@ export const PaheliDetailView: React.FC<PaheliDetailViewProps> = ({
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-900 hover:bg-amber-950 text-white font-bold text-xs sm:text-sm transition cursor-pointer shadow-xs"
         >
           <ArrowLeft className="w-4 h-4 text-amber-300" />
-          <span>{lang === 'hi' ? 'सम्पूर्ण पाहलोड़ी संग्रह पर लौटें' : 'Back to Riddles'}</span>
+          <span>{lang === 'hi' ? 'सम्पूर्ण पहेली संग्रह पर लौटें' : 'Back to Riddles'}</span>
         </button>
       </footer>
 

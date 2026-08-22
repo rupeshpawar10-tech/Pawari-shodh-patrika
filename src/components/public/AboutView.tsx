@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { EditorialBoardDisplay } from '../common/EditorialBoardDisplay';
+import { AcademicBreadcrumbs } from '../common/AcademicBreadcrumbs';
+import { TopicClusterNav } from '../common/TopicClusterNav';
+import { RelatedKnowledgeHub } from '../common/RelatedKnowledgeHub';
 import { 
   BookOpen, 
   ShieldCheck, 
@@ -63,6 +66,13 @@ export const AboutView: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-8 animate-in fade-in duration-300">
       
+      {/* ----------------- BREADCRUMB NAVIGATION ----------------- */}
+      <AcademicBreadcrumbs
+        items={[
+          { label: 'पत्रिका परिचय व उद्देश्य', labelEn: 'About Journal', view: 'about' }
+        ]}
+      />
+
       {/* ----------------- COMPACT TRUST SUMMARY HEADER BAR ----------------- */}
       <div className="gloss-3d-card-dark text-amber-100 rounded-3xl p-6 sm:p-8 space-y-6 gloss-sheen">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -541,6 +551,12 @@ export const AboutView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ----------------- CROSS-PAGE INTERLINKING & TOPIC HUBS ----------------- */}
+      <div className="space-y-6 pt-4 border-t border-stone-200/80">
+        <RelatedKnowledgeHub contextType="about" />
+        <TopicClusterNav />
+      </div>
 
     </div>
   );

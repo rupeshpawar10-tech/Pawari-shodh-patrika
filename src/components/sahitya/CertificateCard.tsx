@@ -101,7 +101,7 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({
           {/* FORMAL CITATION BODY */}
           <div className="relative z-10 max-w-3xl mx-auto my-3 sm:my-5 bg-white/75 backdrop-blur-xs p-3 sm:p-5 rounded-2xl border border-amber-300/80 shadow-xs">
             <p className="text-xs sm:text-sm md:text-base text-stone-800 leading-relaxed font-serif">
-              जिन्होंने माँ ताप्ती पवारी शोध संस्थान द्वारा आयोजित <strong className="text-red-950 font-bold">"पवारी भोयरी संस्कृति ज्ञान परीक्षा"</strong> (शब्दकोश, पाहलोड़ी/पहेलियाँ, लोकगीत, ग्रन्थ साहित्य एवं शोध समीक्षा) में निष्ठापूर्वक भाग लेकर
+              जिन्होंने माँ ताप्ती पवारी शोध संस्थान द्वारा आयोजित <strong className="text-red-950 font-bold">"पवारी भोयरी संस्कृति ज्ञान परीक्षा"</strong> (शब्दकोश, पारम्परिक पहेलियाँ, लोकगीत, ग्रन्थ साहित्य एवं शोध समीक्षा) में निष्ठापूर्वक भाग लेकर
               <strong className="text-red-950 font-bold mx-1.5 px-2 py-0.5 rounded-md bg-amber-100/80 border border-amber-300">
                 {certificate.percentage}% अंक ({certificate.quiz_score}/{certificate.total_questions})
               </strong>

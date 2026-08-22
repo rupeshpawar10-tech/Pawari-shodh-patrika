@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
 import { PawariShabdkoshItem, PawariPaheliItem, PawariLokgeetItem, QuizQuestion, QuizCertificate } from '../../types';
+import { SAMPLE_SHABDKOSH, SAMPLE_PAHELI } from '../../data/pawariCulturalData';
 import { SafeImage } from '../common/SafeImage';
 import { 
   BookOpen, 
@@ -130,11 +131,11 @@ const FALLBACK_QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'fq8',
-    question_pawari: 'पवारी पहेली (पाहलोड़ी): "लाल-लाल गाजर, पेट मा पत्थर" का सही उत्तर क्या है?',
-    question_hindi: 'पवारी पहेली (पाहलोड़ी): "लाल-लाल गाजर, पेट मा पत्थर" का सही उत्तर क्या है?',
+    question_pawari: 'पवारी पहेली: "लाल-लाल गाजर, पेट मा पत्थर" का सही उत्तर क्या है?',
+    question_hindi: 'पवारी पहेली: "लाल-लाल गाजर, पेट मा पत्थर" का सही उत्तर क्या है?',
     options: ['आम (Mango)', 'इमली (Tamarind)', 'जामुन (Black Plum)', 'महुआ / खजूर (Mahua / Date)'],
     correct_option_index: 3,
-    explanation: 'इस पारम्परिक पाहलोड़ी (पहेली) का सही उत्तर महुआ या खजूर है।',
+    explanation: 'इस पारम्परिक पहेली का सही उत्तर महुआ या खजूर है।',
     section_type: 'paheli'
   },
   {
@@ -820,11 +821,20 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
     const defaultPaheliDistractors = ['ओस की बूंद (Dew)', 'महुआ / खजूर (Date/Mahua)', 'दीपक एवं बाटी (Lamp)', 'सूरज और धूप (Sun)', 'ताला और चाबी (Lock)', 'आंखें (Eyes)', 'रास्ता / मार्ग (Path)', 'दर्पण / शीशा (Mirror)', 'बादल / घटा (Cloud)'];
     const standardCategories = ['विवाह गीत', 'भक्ति / पूजा गीत', 'ऋतु एवं उत्सव गीत', 'दीवाली / गोधन गीत', 'होरी / फाग गीत', 'श्रम व लोकोक्ति गीत', 'विदाई एवं करुण गीत'];
 
-    // 1. Shabdkosh Questions - Ensure ALL shabdkosh items are included
-    const validShabdkosh = (shabdkoshList || []).filter(s => s.word_pawari && s.meaning_hindi);
+    // 1. Shabdkosh Questions - Ensure ALL shabdkosh items (present and future) are included
+    const allShabdkoshCombined = [...(shabdkoshList || []), ...SAMPLE_SHABDKOSH];
+    const seenShabdkoshIds = new Set<string>();
+    const validShabdkosh = allShabdkoshCombined.filter(s => {
+      if (!s || !s.word_pawari || !s.meaning_hindi) return false;
+      const key = s.id || s.word_pawari;
+      if (seenShabdkoshIds.has(key)) return false;
+      seenShabdkoshIds.add(key);
+      return true;
+    });
+
     validShabdkosh.forEach((item, idx) => {
       let distractors = validShabdkosh
-        .filter(s => s.id !== item.id && s.meaning_hindi !== item.meaning_hindi)
+        .filter(s => (s.id || s.word_pawari) !== (item.id || item.word_pawari) && s.meaning_hindi !== item.meaning_hindi)
         .map(s => s.meaning_hindi);
       
       if (distractors.length < 3) {
@@ -833,7 +843,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       }
       const picked = [...distractors].sort(() => 0.5 - Math.random()).slice(0, 3);
       dynamicList.push({
-        id: `dyn_shabd_${item.id}_${idx}`,
+        id: `dyn_shabd_${item.id || idx}`,
         question_pawari: `पवारी शब्द '${item.word_pawari}' का सही हिंदी अर्थ क्या है?`,
         question_hindi: `पवारी शब्द '${item.word_pawari}' का सही हिंदी अर्थ क्या है?`,
         options: [item.meaning_hindi, ...picked],
@@ -843,11 +853,20 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       });
     });
 
-    // 2. Paheli (Pahlodi) Questions - Ensure ALL paheli items are included
-    const validPaheli = (paheliList || []).filter(p => p.riddle_pawari && p.answer_hindi);
+    // 2. Paheli (Pahlodi) Questions - Ensure ALL 400+ paheli items are included
+    const allPaheliCombined = [...(paheliList || []), ...SAMPLE_PAHELI];
+    const seenPaheliIds = new Set<string>();
+    const validPaheli = allPaheliCombined.filter(p => {
+      if (!p || !p.riddle_pawari || !p.answer_hindi) return false;
+      const key = p.id || p.riddle_pawari;
+      if (seenPaheliIds.has(key)) return false;
+      seenPaheliIds.add(key);
+      return true;
+    });
+
     validPaheli.forEach((item, idx) => {
       let distractors = validPaheli
-        .filter(p => p.id !== item.id && p.answer_hindi !== item.answer_hindi)
+        .filter(p => (p.id || p.riddle_pawari) !== (item.id || item.riddle_pawari) && p.answer_hindi !== item.answer_hindi)
         .map(p => p.answer_hindi);
 
       if (distractors.length < 3) {
@@ -856,9 +875,9 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
       }
       const picked = [...distractors].sort(() => 0.5 - Math.random()).slice(0, 3);
       dynamicList.push({
-        id: `dyn_pah_${item.id}_${idx}`,
-        question_pawari: `पवारी पहेली (पाहलोड़ी): "${item.riddle_pawari}" का सही उत्तर क्या है?`,
-        question_hindi: `पवारी पहेली (पाहलोड़ी): "${item.riddle_pawari}" का सही उत्तर क्या है?`,
+        id: `dyn_pah_${item.id || idx}`,
+        question_pawari: `पवारी पहेली: "${item.riddle_pawari}" का सही उत्तर क्या है?`,
+        question_hindi: `पवारी पहेली: "${item.riddle_pawari}" का सही उत्तर क्या है?`,
         options: [item.answer_hindi, ...picked],
         correct_option_index: 0,
         explanation: `इस पवारी पहेली का सही उत्तर '${item.answer_hindi}' है।${item.hint_hindi ? ' संकेत: ' + item.hint_hindi : ''}`,
@@ -2229,7 +2248,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                           {[
                             { id: 'all', label: '🌟 सभी विषय (All)' },
                             { id: 'shabdkosh', label: `📖 शब्दकोश (${(shabdkoshList || []).length})` },
-                            { id: 'paheli', label: `🧩 पहेली (पाहलोड़ी) (${(paheliList || []).length})` },
+                            { id: 'paheli', label: `🧩 पहेलियाँ (${(paheliList || []).length})` },
                             { id: 'lokgeet', label: `🎵 लोकगीत (${(lokgeetList || []).length})` },
                             { id: 'writers', label: `✒️ साहित्यकार (${(writers || []).length})` },
                           ].map((cat) => (
@@ -2289,7 +2308,7 @@ export const PawariCulturalSection: React.FC<PawariCulturalSectionProps> = ({ in
                         {activeQuizQuestions[currentQIndex]?.section_type && (
                           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                             {activeQuizQuestions[currentQIndex]?.section_type === 'shabdkosh' ? '📖 शब्दकोश' :
-                             activeQuizQuestions[currentQIndex]?.section_type === 'paheli' ? '🧩 पहेली (पाहलोड़ी)' :
+                             activeQuizQuestions[currentQIndex]?.section_type === 'paheli' ? '🧩 पवारी पहेली' :
                              activeQuizQuestions[currentQIndex]?.section_type === 'lokgeet' ? '🎵 लोकगीत' :
                              activeQuizQuestions[currentQIndex]?.section_type === 'writers' ? '✒️ साहित्यकार' :
                              activeQuizQuestions[currentQIndex]?.section_type === 'articles' ? '📜 शोध पत्र' : '📚 ग्रन्थ/पुस्तक'}

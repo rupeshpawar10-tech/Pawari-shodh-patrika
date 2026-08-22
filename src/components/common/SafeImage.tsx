@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { fileBlobManager } from '../../lib/fileBlobManager';
+import { DEFAULT_PAWARI_MEMBER_AVATAR } from '../../data/seedData';
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src?: string | null;
   alt?: string;
   fallbackSrc?: string;
+  fallbackType?: 'avatar' | 'book' | 'default' | string;
   className?: string;
   aspectRatio?: string;
   showFallbackIconOnFail?: boolean;
@@ -12,6 +14,12 @@ interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 }
 
 const DEFAULT_FALLBACK = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80';
+
+const getEffectiveFallback = (fallbackSrc?: string, fallbackType?: string): string => {
+  if (fallbackSrc) return fallbackSrc;
+  if (fallbackType === 'avatar') return DEFAULT_PAWARI_MEMBER_AVATAR;
+  return DEFAULT_FALLBACK;
+};
 
 const getInitialResolvedUrl = (src?: string | null, fallbackSrc?: string): string => {
   if (!src || src.trim() === '') return fallbackSrc || DEFAULT_FALLBACK;
@@ -30,8 +38,10 @@ const getInitialResolvedUrl = (src?: string | null, fallbackSrc?: string): strin
 export const SafeImage: React.FC<SafeImageProps> = ({
   src,
   alt = 'Image preview',
-  fallbackSrc = DEFAULT_FALLBACK,
+  fallbackSrc: customFallbackSrc,
+  fallbackType,
   className = '',
+  aspectRatio,
   showFallbackIconOnFail = true,
   onError,
   loading: loadingProp,
@@ -39,6 +49,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   fetchPriority,
   ...props
 }) => {
+  const fallbackSrc = getEffectiveFallback(customFallbackSrc, fallbackType);
   const initialUrl = getInitialResolvedUrl(src, fallbackSrc);
   const [resolvedUrl, setResolvedUrl] = useState<string>(initialUrl);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -56,7 +67,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
     }
 
     if (!src || src.trim() === '') {
-      setResolvedUrl(fallbackSrc || DEFAULT_FALLBACK);
+      setResolvedUrl(fallbackSrc);
       setHasError(false);
       setLoading(false);
       return;
@@ -71,14 +82,14 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         if (resolved && resolved.trim() !== '') {
           setResolvedUrl(resolved);
         } else {
-          setResolvedUrl(fallbackSrc || DEFAULT_FALLBACK);
+          setResolvedUrl(fallbackSrc);
         }
         setLoading(false);
       }
     }).catch(err => {
       console.warn('[SafeImage] Failed to resolve URL:', err);
       if (isMounted) {
-        setResolvedUrl(fallbackSrc || DEFAULT_FALLBACK);
+        setResolvedUrl(fallbackSrc);
         setLoading(false);
       }
     });
@@ -114,7 +125,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 
   return (
     <img
-      src={resolvedUrl || fallbackSrc || DEFAULT_FALLBACK}
+      src={resolvedUrl || fallbackSrc}
       alt={alt}
       referrerPolicy="no-referrer"
       onError={handleError}

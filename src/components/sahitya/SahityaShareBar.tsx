@@ -3,8 +3,9 @@ import {
   Share2, 
   Copy, 
   Check, 
-  ExternalLink,
-  MessageCircle
+  MessageCircle,
+  Instagram,
+  Facebook
 } from 'lucide-react';
 
 export interface SahityaShareBarProps {
@@ -29,6 +30,7 @@ export const SahityaShareBar: React.FC<SahityaShareBarProps> = ({
   className = ''
 }) => {
   const [copied, setCopied] = useState(false);
+  const [instaNotif, setInstaNotif] = useState(false);
 
   const getFullUrl = () => {
     if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
@@ -77,15 +79,17 @@ export const SahityaShareBar: React.FC<SahityaShareBarProps> = ({
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
   };
 
-  const handleTelegramShare = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    const text = `${title}${category ? ` (${category})` : ''} — माँ ताप्ती पवारी शोध पत्रिका`;
-    window.open(`https://t.me/share/url?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
-  };
-
   const handleFacebookShare = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleInstagramShare = async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    await handleCopyLink();
+    setInstaNotif(true);
+    setTimeout(() => setInstaNotif(false), 3500);
+    window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
   };
 
   const handleTwitterShare = (e?: React.MouseEvent) => {
@@ -104,7 +108,6 @@ export const SahityaShareBar: React.FC<SahityaShareBarProps> = ({
           url: currentUrl
         });
       } catch (err) {
-        // User cancelled or share failed, fallback to copy
         handleCopyLink();
       }
     } else {
@@ -122,6 +125,22 @@ export const SahityaShareBar: React.FC<SahityaShareBarProps> = ({
           title="WhatsApp पर साझा करें"
         >
           <MessageCircle className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={handleFacebookShare}
+          className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition cursor-pointer"
+          title="Facebook पर साझा करें"
+        >
+          <Facebook className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={handleInstagramShare}
+          className="p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 transition cursor-pointer"
+          title="Instagram पर शेयर करें (लिंक कॉपी होगा)"
+        >
+          <Instagram className="w-3.5 h-3.5" />
         </button>
         <button
           type="button"
@@ -175,11 +194,19 @@ export const SahityaShareBar: React.FC<SahityaShareBarProps> = ({
           </button>
           <button
             type="button"
-            onClick={handleTelegramShare}
-            className="p-1.5 rounded-md bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 transition cursor-pointer"
-            title="Telegram पर भेजें"
+            onClick={handleFacebookShare}
+            className="p-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition cursor-pointer"
+            title="Facebook पर साझा करें"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
+            <Facebook className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={handleInstagramShare}
+            className="p-1.5 rounded-md bg-gradient-to-tr from-amber-50 via-rose-50 to-pink-50 hover:from-amber-100 hover:to-pink-100 text-pink-700 border border-pink-200 transition cursor-pointer"
+            title="Instagram पर शेयर करें (लिंक कॉपी होगा)"
+          >
+            <Instagram className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -202,9 +229,14 @@ export const SahityaShareBar: React.FC<SahityaShareBarProps> = ({
           </div>
           <p className="text-xs text-stone-600">
             {lang === 'hi'
-              ? 'इस प्रामाणिक सामग्री को सीधे लिंक द्वारा व्हाट्सएप, टेलीग्राम, फेसबुक पर साझा करें।'
-              : 'Share this authentic cultural content with direct permalink across social platforms.'}
+              ? 'इस प्रामाणिक सामग्री को सीधे लिंक द्वारा व्हाट्सएप, फेसबुक, इंस्टाग्राम पर साझा करें।'
+              : 'Share this authentic cultural content with direct permalink across WhatsApp, Facebook, Instagram.'}
           </p>
+          {instaNotif && (
+            <p className="text-[11px] text-pink-700 font-semibold animate-in fade-in duration-200">
+              ✓ {lang === 'hi' ? 'लिंक कॉपी हो गया! इंस्टाग्राम पर पेस्ट करके स्टोरी या पोस्ट में शेयर करें।' : 'Link copied! Open Instagram and paste to share in story or post.'}
+            </p>
+          )}
         </div>
 
         {/* Share Buttons Row */}
@@ -245,26 +277,26 @@ export const SahityaShareBar: React.FC<SahityaShareBarProps> = ({
             <span>WhatsApp</span>
           </button>
 
-          {/* Telegram Button */}
-          <button
-            type="button"
-            onClick={handleTelegramShare}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold transition cursor-pointer shadow-2xs"
-            title="Telegram पर शेयर करें"
-          >
-            <span className="font-mono text-xs">✈</span>
-            <span>Telegram</span>
-          </button>
-
           {/* Facebook Button */}
           <button
             type="button"
             onClick={handleFacebookShare}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition cursor-pointer shadow-2xs"
-            title="Facebook पर पोस्ट करें"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white text-xs font-bold transition cursor-pointer shadow-2xs"
+            title="Facebook पर साझा करें"
           >
-            <span className="font-bold text-xs">f</span>
+            <Facebook className="w-3.5 h-3.5" />
             <span>Facebook</span>
+          </button>
+
+          {/* Instagram Button */}
+          <button
+            type="button"
+            onClick={handleInstagramShare}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] hover:opacity-90 text-white text-xs font-bold transition cursor-pointer shadow-2xs"
+            title="Instagram पर साझा करें (लिंक कॉपी होगा)"
+          >
+            <Instagram className="w-3.5 h-3.5" />
+            <span>Instagram</span>
           </button>
 
           {/* Twitter / X Button */}
@@ -297,3 +329,4 @@ export const SahityaShareBar: React.FC<SahityaShareBarProps> = ({
     </div>
   );
 };
+

@@ -14,6 +14,7 @@ import { ShabdkoshView } from '../sahitya/ShabdkoshView';
 import { PaheliView } from '../sahitya/PaheliView';
 import { LokgeetView } from '../sahitya/LokgeetView';
 import { BooksLibraryView } from '../sahitya/BooksLibraryView';
+import { WritersView } from '../sahitya/WritersView';
 import { ReviewsView } from '../sahitya/ReviewsView';
 import { QuizView } from '../sahitya/QuizView';
 import { 
@@ -82,7 +83,9 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
     selectedBookId,
     setSelectedBookId,
     selectedBlogId,
-    setSelectedBlogId
+    setSelectedBlogId,
+    selectedWriterId,
+    setSelectedWriterId
   } = useCms();
 
   const rawBooks = (cmsBooks && cmsBooks.length > 0) ? cmsBooks : SAMPLE_BOOKS;
@@ -479,10 +482,13 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
     );
   }
 
-  const handleNavigateSection = (sec: 'hub' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'reviews' | 'quiz') => {
+  const handleNavigateSection = (sec: 'hub' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'writers' | 'reviews' | 'quiz') => {
     if (sec === 'hub') {
       window.history.pushState({}, '', '/sahitya');
       setActiveTab('all');
+    } else if (sec === 'writers') {
+      window.history.pushState({}, '', '/scholars');
+      setActiveTab('writers');
     } else if (sec === 'shabdkosh') {
       window.history.pushState({}, '', '/pawari-shabdkosh');
       setActiveTab('shabdkosh');
@@ -587,71 +593,19 @@ export const BooksBlogsView: React.FC<BooksBlogsViewProps> = ({ initialTab = 'al
       )}
 
       {activeTab === 'writers' && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-4">
-            <div>
-              <h2 className="text-2xl font-serif font-bold text-stone-900">
-                {lang === 'hi' ? 'पवारी भाषा एवं साहित्यकार संदर्भ' : 'Pawari Writers & Scholars Directory'}
-              </h2>
-              <p className="text-xs text-stone-500">
-                {lang === 'hi' ? 'पवारी भाषा एवं साहित्य के मूर्धन्य रचनाकार एवं शोधकर्ता' : 'Eminent authors and folklorists of Pawari language'}
-              </p>
-            </div>
-            <button
-              onClick={() => handleNavigateSection('hub')}
-              className="px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold cursor-pointer"
-            >
-              ← {lang === 'hi' ? 'साहित्य हब पर लौटें' : 'Back to Hub'}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {writersList.map((writer) => (
-              <div
-                key={writer.id}
-                onClick={() => {
-                  setSelectedWriter(writer);
-                  if (setActiveView) setActiveView('pawari_writers');
-                }}
-                className="bg-white border border-stone-200/90 hover:border-amber-400 rounded-2xl p-5 shadow-xs hover:shadow-md transition cursor-pointer flex flex-col justify-between group space-y-4"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-stone-100 shrink-0 border border-amber-200">
-                    <SafeImage
-                      src={writer.photo_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300'}
-                      alt={writer.name_hindi}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-900 font-bold border border-amber-200">
-                      {writer.location_hindi || writer.region || 'मध्य भारत'}
-                    </span>
-                    <h3 className="text-base font-serif font-bold text-stone-900 group-hover:text-red-950 transition truncate mt-1">
-                      {writer.name_hindi}
-                    </h3>
-                    <p className="text-xs text-stone-500 truncate">
-                      {writer.designation_hindi || writer.designation || 'पवारी साहित्यकार'}
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-xs text-stone-600 line-clamp-3 leading-relaxed bg-stone-50 p-3 rounded-xl border border-stone-100">
-                  {writer.bio_hindi || writer.bio_english || 'पवारी भाषा व साहित्य के मूर्धन्य रचनाकार।'}
-                </p>
-
-                <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-amber-800">
-                  <span>{lang === 'hi' ? 'प्रोफाइल देखें →' : 'View Profile →'}</span>
-                  {writer.books_count && (
-                    <span className="font-mono text-[11px] text-stone-500">
-                      📚 {writer.books_count} कृतियाँ
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <WritersView
+          onNavigateSection={handleNavigateSection}
+          onOpenWriterDetail={(w) => {
+            setSelectedWriter(w);
+            if (setSelectedWriterId) setSelectedWriterId(w.slug || w.id);
+            if (setActiveView) setActiveView('writer_profile');
+            window.history.pushState({}, '', `/scholars/${w.slug || w.id}`);
+          }}
+          onOpenContributeModal={() => {
+            setContribDefaultTab('writers');
+            setIsContribModalOpen(true);
+          }}
+        />
       )}
 
       {/* Legacy hidden */}

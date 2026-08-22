@@ -121,7 +121,7 @@ export const PaheliView: React.FC<PaheliViewProps> = ({
     <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Shared Header */}
       <SahityaHeader
-        titleHindi="पवारी पाहलोड़ी (पारम्परिक पहेलियाँ)"
+        titleHindi="पवारी पारम्परिक पहेलियाँ"
         titleEnglish="Pawari Folklore Riddles (Paheli)"
         subtitleHindi="ग्रामीण जीवन, खेती-किसानी, पशु-पक्षी, प्रकृति एवं लोक-ज्ञान पर आधारित मनोरंजक एवं ज्ञानवर्धक पहेलियाँ।"
         subtitleEnglish="Authentic cultural riddles and folklore brainteasers reflecting rural agrarian life, Satpura ecology, and ancestral wisdom."
@@ -196,7 +196,7 @@ export const PaheliView: React.FC<PaheliViewProps> = ({
                   {/* Top Badge & Counter */}
                   <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
                     <span className="text-[11px] font-mono font-bold text-amber-900 bg-amber-100/70 px-2.5 py-0.5 rounded-full border border-amber-200">
-                      पाहलोड़ी #{idx + 1}
+                      पहेली #{idx + 1}
                     </span>
                     <span className="text-[10px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200">
                       {category}
@@ -268,11 +268,11 @@ export const PaheliView: React.FC<PaheliViewProps> = ({
 
                   <div onClick={(e) => e.stopPropagation()}>
                     <SahityaShareBar
-                      title={`पवारी पाहलोड़ी: "${riddlePawari}"`}
+                      title={`पवारी पहेली: "${riddlePawari}"`}
                       subtitle={`पहेली बूझें व मित्रों से पूछें`}
                       url={`/paheli/${paheliSlug}`}
                       category={category}
-                      typeLabel="पवारी पाहलोड़ी"
+                      typeLabel="पवारी पहेली"
                       lang={lang}
                       variant="card"
                     />

@@ -7,10 +7,11 @@ import {
   Image as ImageIcon, 
   Copy, 
   Check, 
-  ExternalLink,
   MessageCircle,
   Sparkles,
-  Award
+  Award,
+  Instagram,
+  Facebook
 } from 'lucide-react';
 import { QuizCertificate } from '../../types';
 import { downloadCertificateImage, downloadCertificatePdf, shareCertificate } from '../../utils/certificateExporter';
@@ -32,6 +33,7 @@ export const ShareCertificateModal: React.FC<ShareCertificateModalProps> = ({
 }) => {
   const [isExporting, setIsExporting] = useState<'image' | 'pdf' | 'native' | null>(null);
   const [copied, setCopied] = useState(false);
+  const [instaCopied, setInstaCopied] = useState(false);
 
   if (!isOpen || !certificate) return null;
 
@@ -48,6 +50,13 @@ ${quizUrl}`;
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     }
+  };
+
+  const handleInstagramShare = () => {
+    handleCopyLink();
+    setInstaCopied(true);
+    setTimeout(() => setInstaCopied(false), 3500);
+    window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
   };
 
   const handleDownloadImage = async () => {
@@ -106,7 +115,6 @@ ${quizUrl}`;
   const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(quizUrl)}&quote=${encodeURIComponent(shareText)}`;
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&hashtags=PawariCulture,MaaTapti,ShodhPatrika`;
-  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(quizUrl)}&text=${encodeURIComponent(shareText)}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/75 backdrop-blur-xs animate-in fade-in duration-200">
@@ -197,30 +205,34 @@ ${quizUrl}`;
                 rel="noopener noreferrer"
                 className="p-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 text-xs font-bold transition flex flex-col items-center justify-center gap-1 text-center"
               >
-                <Share2 className="w-5 h-5 text-blue-600" />
+                <Facebook className="w-5 h-5 text-blue-600" />
                 <span>Facebook</span>
               </a>
+
+              <button
+                type="button"
+                onClick={handleInstagramShare}
+                className="p-3 rounded-xl bg-pink-50 hover:bg-pink-100 border border-pink-300 text-pink-900 text-xs font-bold transition flex flex-col items-center justify-center gap-1 text-center cursor-pointer"
+              >
+                <Instagram className="w-5 h-5 text-pink-600" />
+                <span>Instagram</span>
+              </button>
 
               <a
                 href={twitterUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-300 text-sky-900 text-xs font-bold transition flex flex-col items-center justify-center gap-1 text-center"
+                className="p-3 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-300 text-stone-900 text-xs font-bold transition flex flex-col items-center justify-center gap-1 text-center"
               >
-                <Share2 className="w-5 h-5 text-sky-600" />
-                <span>Twitter / X</span>
-              </a>
-
-              <a
-                href={telegramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-300 text-indigo-900 text-xs font-bold transition flex flex-col items-center justify-center gap-1 text-center"
-              >
-                <Share2 className="w-5 h-5 text-indigo-600" />
-                <span>Telegram</span>
+                <span className="font-mono text-base font-bold">𝕏</span>
+                <span>X (Twitter)</span>
               </a>
             </div>
+            {instaCopied && (
+              <p className="text-[11px] text-pink-700 font-semibold text-center animate-in fade-in duration-200">
+                ✓ {lang === 'hi' ? 'प्रमाण-पत्र लिंक कॉपी हुआ! इंस्टाग्राम ओपन करके स्टोरी/पोस्ट में शेयर करें।' : 'Certificate text & link copied! Open Instagram to share.'}
+              </p>
+            )}
           </div>
 
           {/* Copy Share Text / Web Share */}

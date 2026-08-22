@@ -5,6 +5,9 @@ import { downloadPdf } from '../../lib/pdfUtils';
 import { SafeImage } from '../common/SafeImage';
 import { SharePaperModal } from '../common/SharePaperModal';
 import { EditorialBoardDisplay } from '../common/EditorialBoardDisplay';
+import { AcademicBreadcrumbs } from '../common/AcademicBreadcrumbs';
+import { TopicClusterNav } from '../common/TopicClusterNav';
+import { RelatedKnowledgeHub } from '../common/RelatedKnowledgeHub';
 import { BookOpen, Download, Eye, Calendar, User, FileText, ArrowRight, Share2, Users } from 'lucide-react';
 
 export const CurrentIssueView: React.FC = () => {
@@ -75,6 +78,18 @@ export const CurrentIssueView: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-8 animate-in fade-in duration-200">
       
+      {/* ----------------- BREADCRUMB NAVIGATION ----------------- */}
+      <AcademicBreadcrumbs
+        items={[
+          { label: 'शोध आलेख', labelEn: 'Articles', view: 'articles' },
+          { 
+            label: selectedIssue ? `वर्तमान अंक: Vol. ${selectedIssue.volume} Iss. ${selectedIssue.issue_number}` : 'वर्तमान अंक', 
+            labelEn: selectedIssue ? `Current Issue: Vol. ${selectedIssue.volume} Iss. ${selectedIssue.issue_number}` : 'Current Issue', 
+            view: 'current_issue' 
+          }
+        ]}
+      />
+
       {/* Issues selector dropdown if multiple issues available */}
       {issues.length > 1 && (
         <div className="flex flex-wrap items-center justify-between gap-3 gloss-3d-card p-4 rounded-2xl text-xs">

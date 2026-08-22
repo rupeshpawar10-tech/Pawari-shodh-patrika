@@ -31,16 +31,18 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { useCms } from '../../lib/CmsContext';
-import { QuizQuestion, QuizCertificate, QuizCategoryType } from '../../types';
+import { QuizQuestion, QuizCertificate, QuizCategoryType, PawariShabdkoshItem, PawariPaheliItem } from '../../types';
 import { SahityaHeader } from './SahityaHeader';
 import { SahityaFooter } from './SahityaFooter';
+import { SAMPLE_SHABDKOSH, SAMPLE_PAHELI } from '../../data/pawariCulturalData';
 import { 
   MASTER_QUESTION_BANK, 
   QUIZ_CATEGORIES, 
   generateBalancedQuizQuestions,
   getQuizPerformanceGrade,
   DEFAULT_QUIZ_CONFIG,
-  QuizConfig
+  QuizConfig,
+  buildMasterQuizQuestionPool
 } from '../../data/quizQuestionBank';
 import { CertificateCard } from './CertificateCard';
 import { ShareCertificateModal } from './ShareCertificateModal';
@@ -67,6 +69,8 @@ export const QuizView: React.FC<QuizViewProps> = ({
   const { 
     lang, 
     quizQuestions: cmsQuestions, 
+    shabdkoshList,
+    paheliList,
     quizLeaderboard, 
     saveQuizCertificate, 
     editorialMembers 
@@ -74,7 +78,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
   const [activeTab, setActiveTab] = useState<'quiz' | 'leaderboard'>('quiz');
   const [userName, setUserName] = useState('');
-  const [examMode, setExamMode] = useState<'standard' | 'quick' | 'master'>('standard');
+  const [examMode, setExamMode] = useState<'standard' | 'shabdkosh' | 'paheli' | 'quick' | 'master'>('standard');
   const [examStarted, setExamStarted] = useState(false);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
@@ -105,20 +109,61 @@ export const QuizView: React.FC<QuizViewProps> = ({
   const chiefEditorName = chiefEditor ? (lang === 'hi' ? chiefEditor.name_hindi : chiefEditor.name_english) : 'प्रो. (डॉ.) रमाकांत शर्मा';
   const patronName = patronDirector ? (lang === 'hi' ? patronDirector.name_hindi : patronDirector.name_english) : 'डॉ. कैलाश पवार';
 
-  // Master question pool combined with CMS questions
+  // Deduplicate and combine shabdkosh list (including real-time additions)
+  const effectiveShabdkoshList = useMemo(() => {
+    const combined = [...(shabdkoshList || []), ...SAMPLE_SHABDKOSH];
+    const seen = new Set<string>();
+    return combined.filter(item => {
+      if (!item || !item.id || seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  }, [shabdkoshList]);
+
+  // Deduplicate and combine paheli list (including real-time additions)
+  const effectivePaheliList = useMemo(() => {
+    const combined = [...(paheliList || []), ...SAMPLE_PAHELI];
+    const seen = new Set<string>();
+    return combined.filter(item => {
+      if (!item || !item.id || seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+  }, [paheliList]);
+
+  // Master question pool dynamically merging all shabdkosh, paheli, books, songs, and custom questions
   const allQuestionsPool = useMemo(() => {
-    if (cmsQuestions && cmsQuestions.length > 0) {
-      const customIds = new Set(cmsQuestions.map(q => q.id));
-      const combined = [...cmsQuestions, ...MASTER_QUESTION_BANK.filter(q => !customIds.has(q.id))];
-      return combined;
-    }
-    return MASTER_QUESTION_BANK;
-  }, [cmsQuestions]);
+    return buildMasterQuizQuestionPool({
+      shabdkoshList: effectiveShabdkoshList,
+      paheliList: effectivePaheliList,
+      cmsQuestions
+    });
+  }, [effectiveShabdkoshList, effectivePaheliList, cmsQuestions]);
+
+  // Dynamic pool counts per category
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    allQuestionsPool.forEach(q => {
+      const cat = q.section_type || 'general';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [allQuestionsPool]);
 
   // Initialize randomized question session
-  const initExamSession = (mode: 'standard' | 'quick' | 'master' = examMode) => {
+  const initExamSession = (mode: 'standard' | 'shabdkosh' | 'paheli' | 'quick' | 'master' = examMode) => {
     let config: QuizConfig = DEFAULT_QUIZ_CONFIG;
-    if (mode === 'quick') {
+    if (mode === 'shabdkosh') {
+      config = {
+        totalQuestions: 10,
+        distribution: { shabdkosh: 10, paheli: 0, lokgeet: 0, books: 0, reviews: 0, general: 0 }
+      };
+    } else if (mode === 'paheli') {
+      config = {
+        totalQuestions: 10,
+        distribution: { shabdkosh: 0, paheli: 10, lokgeet: 0, books: 0, reviews: 0, general: 0 }
+      };
+    } else if (mode === 'quick') {
       config = {
         totalQuestions: 5,
         distribution: { shabdkosh: 2, paheli: 1, lokgeet: 1, books: 0, reviews: 0, general: 1 }
@@ -298,7 +343,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
       <SahityaHeader
         titleHindi="पवारी भोयरी संस्कृति ज्ञान परीक्षा व प्रमाण-पत्र"
         titleEnglish="Pawari Cultural Knowledge Examination & Verified Certificate"
-        subtitleHindi="पवारी शब्दावली, पाहलोड़ी (पहेलियाँ), लोकगीत, ग्रन्थ साहित्य एवं शोध समीक्षा की ऑनलाइन परीक्षा दें और संस्थान से डिजिटल ई-प्रमाण-पत्र प्राप्त करें।"
+        subtitleHindi="पवारी शब्दावली, पारम्परिक पहेलियाँ, लोकगीत, ग्रन्थ साहित्य एवं शोध समीक्षा की ऑनलाइन परीक्षा दें और संस्थान से डिजिटल ई-प्रमाण-पत्र प्राप्त करें।"
         subtitleEnglish="Take the comprehensive cultural assessment across vocabulary, riddles, folk songs, and literature. Earn verified digital certificates of achievement."
         icon={Award}
         badgeHindi="प्रमाणित ई-परीक्षा 2026"
@@ -364,23 +409,37 @@ export const QuizView: React.FC<QuizViewProps> = ({
               
               {/* Category Distribution Showcase */}
               <div className="bg-white border border-stone-200/90 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
-                <div className="border-b border-stone-100 pb-4">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-mono font-bold uppercase tracking-wider mb-2">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-700" />
-                    <span>परीक्षा पाठ्यक्रम एवं श्रेणी विभाजन (Curriculum Blueprint)</span>
+                <div className="border-b border-stone-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs font-mono font-bold uppercase tracking-wider mb-2">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                      <span>परीक्षा पाठ्यक्रम एवं सक्रिय प्रश्न बैंक ({allQuestionsPool.length} कुल प्रश्न)</span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-serif font-bold text-stone-900">
+                      पवारी भोयरी संस्कृति ज्ञान परीक्षा 2026
+                    </h2>
+                    <p className="text-xs sm:text-sm text-stone-600 mt-1">
+                      सम्पूर्ण पवारी शब्दकोश (वर्तमान व भविष्य में जोड़े जाने वाले सभी नए शब्द) एवं पारम्परिक पहेलियों का 100% संकलन सम्मिलित है:
+                    </p>
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-serif font-bold text-stone-900">
-                    पवारी भोयरी संस्कृति ज्ञान परीक्षा 2026
-                  </h2>
-                  <p className="text-xs sm:text-sm text-stone-600 mt-1">
-                    प्रत्येक परीक्षा सत्र में 6 सांस्कृतिक श्रेणियों से यादृच्छिक रूप से संतुलित प्रश्न चयनित होते हैं:
-                  </p>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="px-3.5 py-2 rounded-2xl bg-amber-100/70 border border-amber-300/80 text-center">
+                      <div className="text-sm font-bold font-mono text-red-950">{effectiveShabdkoshList.length}</div>
+                      <div className="text-[10px] font-sans text-amber-900 font-medium">शब्दकोश पद</div>
+                    </div>
+                    <div className="px-3.5 py-2 rounded-2xl bg-orange-100/70 border border-orange-300/80 text-center">
+                      <div className="text-sm font-bold font-mono text-orange-950">{effectivePaheliList.length}</div>
+                      <div className="text-[10px] font-sans text-orange-900 font-medium">पारम्परिक पहेलियाँ</div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 6 Category Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   {Object.values(QUIZ_CATEGORIES).map((cat) => {
                     const Icon = CATEGORY_ICON_MAP[cat.id] || BookOpen;
+                    const liveCount = categoryCounts[cat.id] || cat.default_count;
                     return (
                       <div 
                         key={cat.id}
@@ -391,7 +450,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                             <Icon className="w-5 h-5" />
                           </div>
                           <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-white/90 border border-stone-200 text-stone-700">
-                            {cat.default_count} {lang === 'hi' ? 'प्रश्न' : 'Q'}
+                            {liveCount} {lang === 'hi' ? 'उपलब्ध प्रश्न' : 'Q in Pool'}
                           </span>
                         </div>
 
@@ -414,7 +473,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                 <div className="space-y-1">
                   <div className="text-xs font-mono font-bold text-amber-300 uppercase tracking-widest flex items-center gap-1.5">
                     <Award className="w-4 h-4 text-amber-400" />
-                    <span>प्रतिभागी विवरण एवं परीक्षा प्रारूप (Candidate Details)</span>
+                    <span>प्रतिभागी विवरण एवं परीक्षा प्रारूप (Candidate Details & Modes)</span>
                   </div>
                   <h3 className="text-xl sm:text-2xl font-serif font-bold text-white">
                     ई-प्रमाण-पत्र हेतु प्रतिभागी पंजीकरण
@@ -443,9 +502,9 @@ export const QuizView: React.FC<QuizViewProps> = ({
                   {/* Exam Mode Toggle */}
                   <div className="space-y-2">
                     <label className="block text-xs font-mono font-bold text-amber-200 uppercase">
-                      {lang === 'hi' ? 'परीक्षा मोड चयन:' : 'Select Examination Mode:'}
+                      {lang === 'hi' ? 'परीक्षा प्रारूप का चयन करें:' : 'Select Examination Mode:'}
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       <button
                         type="button"
                         onClick={() => setExamMode('standard')}
@@ -457,10 +516,46 @@ export const QuizView: React.FC<QuizViewProps> = ({
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold font-serif text-amber-300">★ मानक परीक्षा (Standard)</span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200">10 प्रश्न</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200 font-bold">10 प्रश्न</span>
                         </div>
                         <p className="text-[11px] text-stone-300">
-                          आधिकारिक प्रमाण-पत्र हेतु अनुशंसित संतुलित प्रारूप।
+                          आधिकारिक प्रमाण-पत्र हेतु 6 श्रेणियों से अनुशंसित संतुलित प्रारूप।
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setExamMode('shabdkosh')}
+                        className={`p-3.5 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          examMode === 'shabdkosh'
+                            ? 'bg-amber-500/20 border-amber-400 text-white ring-2 ring-amber-400/50 shadow-md'
+                            : 'bg-white/5 border-white/10 text-stone-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold font-serif text-amber-300">📖 शब्दकोश विशेष (Vocab)</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200 font-bold">10 प्रश्न</span>
+                        </div>
+                        <p className="text-[11px] text-stone-300">
+                          सम्पूर्ण पवारी शब्दावली, मुहावरे व पर्यायवाची पर केंद्रित परीक्षा।
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setExamMode('paheli')}
+                        className={`p-3.5 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          examMode === 'paheli'
+                            ? 'bg-amber-500/20 border-amber-400 text-white ring-2 ring-amber-400/50 shadow-md'
+                            : 'bg-white/5 border-white/10 text-stone-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold font-serif text-amber-300">🧩 पहेली विशेष (Paheli)</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200 font-bold">10 प्रश्न</span>
+                        </div>
+                        <p className="text-[11px] text-stone-300">
+                          पारम्परिक पहेलियों व लोक बुझौवल के 400+ संग्रह से यादृच्छिक प्रश्न।
                         </p>
                       </button>
 
@@ -474,8 +569,8 @@ export const QuizView: React.FC<QuizViewProps> = ({
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold font-serif text-amber-300">त्वरित अभ्यास (Quick)</span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/20 text-stone-200">5 प्रश्न</span>
+                          <span className="text-xs font-bold font-serif text-amber-300">⚡ त्वरित अभ्यास (Quick)</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/20 text-stone-200 font-bold">5 प्रश्न</span>
                         </div>
                         <p className="text-[11px] text-stone-300">
                           कम समय में त्वरित सांस्कृतिक ज्ञान स्व-मूल्यांकन।
@@ -492,11 +587,11 @@ export const QuizView: React.FC<QuizViewProps> = ({
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold font-serif text-amber-300">महा-परीक्षा (Master)</span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200">20 प्रश्न</span>
+                          <span className="text-xs font-bold font-serif text-amber-300">🏆 महा-परीक्षा (Master)</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200 font-bold">20 प्रश्न</span>
                         </div>
                         <p className="text-[11px] text-stone-300">
-                          गहन शोधार्थी व भाषाविद् हेतु सम्पूर्ण मूल्यांकन।
+                          गहन शोधार्थी व भाषाविद् हेतु सम्पूर्ण बहु-विषयक मूल्यांकन।
                         </p>
                       </button>
                     </div>
@@ -684,7 +779,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                   </h2>
                   <p className="text-xs sm:text-sm text-stone-600 max-w-xl mx-auto">
                     {lang === 'hi'
-                      ? 'आपने पवारी भाषा, शब्दावली, पाहलोड़ी (पहेलियाँ), लोकगीत व शोध समीक्षा परीक्षा सफलतापूर्वक संपन्न कर डिजिटल ई-प्रमाण-पत्र अर्जित किया है।'
+                      ? 'आपने पवारी भाषा, शब्दावली, पारम्परिक पहेलियाँ, लोकगीत व शोध समीक्षा परीक्षा सफलतापूर्वक संपन्न कर डिजिटल ई-प्रमाण-पत्र अर्जित किया है।'
                       : 'You have successfully completed the comprehensive Pawari cultural knowledge assessment.'}
                   </p>
                 </div>

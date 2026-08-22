@@ -21,13 +21,15 @@ import { SahityaHeader } from './SahityaHeader';
 import { SahityaFooter } from './SahityaFooter';
 
 export interface SahityaHubViewProps {
-  onNavigateSection: (section: 'hub' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'reviews' | 'quiz') => void;
+  onNavigateSection: (section: 'hub' | 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'writers' | 'reviews' | 'quiz') => void;
   onOpenContributeModal?: () => void;
+  onSelectWriter?: (writerId: string) => void;
 }
 
 export const SahityaHubView: React.FC<SahityaHubViewProps> = ({
   onNavigateSection,
-  onOpenContributeModal
+  onOpenContributeModal,
+  onSelectWriter
 }) => {
   const { 
     lang, 
@@ -36,19 +38,38 @@ export const SahityaHubView: React.FC<SahityaHubViewProps> = ({
     lokgeetList, 
     books: cmsBooks, 
     blogs: cmsBlogs, 
-    quizQuestions 
+    writers: cmsWriters,
+    quizQuestions,
+    setSelectedWriterId,
+    setActiveView
   } = useCms();
 
   const approvedShabdkoshCount = (shabdkoshList || []).filter(s => s.status === 'approved' || s.status === 'published' || (!s.status && !s.id.startsWith('contrib_'))).length || 120;
   const approvedPaheliCount = (paheliList || []).filter(p => p.status === 'approved' || p.status === 'published' || (!p.status && !p.id.startsWith('contrib_'))).length || 35;
   const approvedLokgeetCount = (lokgeetList || []).filter(l => l.status === 'approved' || l.status === 'published' || (!l.status && !l.id.startsWith('contrib_'))).length || 24;
   const booksCount = (cmsBooks || []).filter(b => b.status === 'approved' || b.status === 'published' || (!b.status && !b.id.startsWith('contrib_'))).length || 18;
+  const writersCount = (cmsWriters || []).filter(w => w.status === 'approved' || w.status === 'published' || !w.status).length || 12;
   const reviewsCount = (cmsBlogs || []).filter(b => b.category?.includes('समीक्षा') || b.title?.includes('समीक्षा') || b.status === 'approved' || (!b.status && !b.id.startsWith('contrib_'))).length || 12;
   const quizCount = (quizQuestions || []).length || 12;
 
-  const totalEntries = approvedShabdkoshCount + approvedPaheliCount + approvedLokgeetCount + booksCount + reviewsCount;
+  const totalEntries = approvedShabdkoshCount + approvedPaheliCount + approvedLokgeetCount + booksCount + writersCount + reviewsCount;
+
+  const featuredWritersList = (cmsWriters || []).slice(0, 4);
 
   const resourceCards = [
+    {
+      id: 'writers' as const,
+      icon: UserCheck,
+      iconBg: 'bg-red-500/15 text-red-900 border-red-300',
+      titleHindi: 'लेखक एवं साहित्यकार संदर्भ (Writers & Scholars)',
+      titleEnglish: 'Writers & Authors Directory',
+      countLabel: `${writersCount} विद्वत सर्जक`,
+      badgeHindi: 'विद्वत संदर्भ',
+      descriptionHindi: 'पवारी भाषाविद्, कोषकार, महाकाव्यकार, लोकगायिका, गम्मत नाटककार एवं शोधकर्ताओं की प्रामाणिक प्रोफ़ाइल व कृतियां।',
+      descriptionEnglish: 'Comprehensive directory of eminent Pawari linguists, poets, ballad singers, dramatists, and cultural researchers.',
+      ctaHindi: 'साहित्यकार संदर्भ देखें →',
+      ctaEnglish: 'Explore Writers & Works →'
+    },
     {
       id: 'shabdkosh' as const,
       icon: BookOpen,
@@ -66,7 +87,7 @@ export const SahityaHubView: React.FC<SahityaHubViewProps> = ({
       id: 'paheli' as const,
       icon: HelpCircle,
       iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-300',
-      titleHindi: 'पारम्परिक पाहलोड़ी (पहेलियाँ)',
+      titleHindi: 'पारम्परिक पहेलियाँ (Paheli)',
       titleEnglish: 'Folklore Riddles (Paheli)',
       countLabel: `${approvedPaheliCount} पहेलियाँ`,
       badgeHindi: 'मौखिक साहित्य',
@@ -147,7 +168,7 @@ export const SahityaHubView: React.FC<SahityaHubViewProps> = ({
       />
 
       {/* Overview Stat Ribbon */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
         {resourceCards.map((res) => {
           const Icon = res.icon;
           return (
@@ -178,7 +199,7 @@ export const SahityaHubView: React.FC<SahityaHubViewProps> = ({
         })}
       </div>
 
-      {/* Main 6 Knowledge Pillars Grid */}
+      {/* Main 7 Knowledge Pillars Grid */}
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 pb-3">
           <div>
@@ -190,7 +211,7 @@ export const SahityaHubView: React.FC<SahityaHubViewProps> = ({
             </p>
           </div>
           <span className="text-xs font-mono font-medium text-stone-500 bg-stone-100 px-2.5 py-1 rounded-md">
-            6 Core Pillars
+            7 Core Pillars
           </span>
         </div>
 
@@ -240,6 +261,71 @@ export const SahityaHubView: React.FC<SahityaHubViewProps> = ({
         </div>
       </section>
 
+      {/* Featured Writers & Scholars Quick Strip */}
+      <section className="bg-white border border-stone-200 rounded-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="text-lg font-serif font-bold text-stone-900 flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-red-900" />
+              <span>{lang === 'hi' ? 'प्रमुख पवारी लेखक एवं साहित्यकार संदर्भ' : 'Featured Pawari Authors & Scholars'}</span>
+            </h3>
+            <p className="text-xs text-stone-500">
+              {lang === 'hi' ? 'सतपुड़ा, ताप्ती व वैनगंगा अंचल के मूर्धन्य शोधकर्ता व सर्जक' : 'Eminent researchers and literary figures from Satpura, Tapti & Wainganga belt'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigateSection('writers')}
+            className="text-xs font-semibold text-red-900 hover:text-red-950 flex items-center gap-1 cursor-pointer"
+          >
+            <span>{lang === 'hi' ? 'सभी साहित्यकार देखें' : 'View All Authors'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+          {featuredWritersList.map((w) => (
+            <div
+              key={w.id}
+              onClick={() => {
+                if (setSelectedWriterId) {
+                  setSelectedWriterId(w.slug || w.id);
+                }
+                if (setActiveView) {
+                  setActiveView('writer_profile');
+                }
+              }}
+              className="p-4 rounded-xl border border-stone-200 hover:border-amber-400 bg-stone-50/60 hover:bg-white hover:shadow-xs transition group cursor-pointer flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={w.photo_url}
+                    alt={w.name_hindi || w.name_english}
+                    className="w-12 h-12 rounded-xl object-cover border border-stone-200 shrink-0 group-hover:scale-105 transition"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-serif font-bold text-stone-900 group-hover:text-red-900 transition truncate">
+                      {w.name_hindi || w.name_english}
+                    </h4>
+                    <p className="text-[11px] text-stone-500 truncate">
+                      {w.location_hindi || w.location_english}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-stone-600 line-clamp-2 mt-2.5 leading-relaxed">
+                  {w.specialization_hindi || w.bio_hindi}
+                </p>
+              </div>
+              <div className="mt-3 pt-2 border-t border-stone-200/60 flex items-center justify-between text-[11px] text-red-900 font-semibold">
+                <span>{lang === 'hi' ? 'प्रोफ़ाइल देखें' : 'View Profile'}</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Scholarly Significance & Institute Notice */}
       <section className="bg-stone-50 border border-stone-200/90 rounded-2xl p-6 sm:p-8 space-y-4">
         <div className="flex items-start gap-4">
@@ -252,7 +338,7 @@ export const SahityaHubView: React.FC<SahityaHubViewProps> = ({
             </h3>
             <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
               {lang === 'hi'
-                ? 'माँ ताप्ती पवारी शोध संस्थान, मुलताई (बैतूल) मध्य भारत के सतपुड़ा अंचल की प्राचीन एवं समृद्ध पवारी बोली के समस्त साहित्यिक रूपों—कोष, पाहलोड़ी, मंगल गीत, आलेख व ग्रन्थों—को डिजिटल माध्यम से सुरक्षित एवं विश्वव्यापी शोधार्थियों तक सुलभ बनाने हेतु निरंतर कार्य कर रहा है।'
+                ? 'माँ ताप्ती पवारी शोध संस्थान, मुलताई (बैतूल) मध्य भारत के सतपुड़ा अंचल की प्राचीन एवं समृद्ध पवारी बोली के समस्त साहित्यिक रूपों—कोष, पहेलियाँ, मंगल गीत, आलेख व ग्रन्थों—को डिजिटल माध्यम से सुरक्षित एवं विश्वव्यापी शोधार्थियों तक सुलभ बनाने हेतु निरंतर कार्य कर रहा है।'
                 : 'Maa Tapti Pawari Research Institute, Multai is dedicated to documenting, archiving, and disseminating the linguistic and folklore heritage of the Satpura region through peer-reviewed academic rigor.'}
             </p>
           </div>

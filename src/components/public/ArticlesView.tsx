@@ -4,6 +4,9 @@ import { getUrlForView } from '../../lib/router';
 import { downloadPdf } from '../../lib/pdfUtils';
 import { SharePaperModal } from '../common/SharePaperModal';
 import { SafeImage } from '../common/SafeImage';
+import { AcademicBreadcrumbs } from '../common/AcademicBreadcrumbs';
+import { TopicClusterNav } from '../common/TopicClusterNav';
+import { RelatedKnowledgeHub } from '../common/RelatedKnowledgeHub';
 import { Article, Issue } from '../../types';
 import { 
   Search, 
@@ -184,6 +187,13 @@ export const ArticlesView: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-8 animate-in fade-in duration-200">
       
+      {/* ----------------- BREADCRUMB NAVIGATION ----------------- */}
+      <AcademicBreadcrumbs
+        items={[
+          { label: 'शोध आलेख व पुरालेख', labelEn: 'Articles & Archives', view: 'articles' }
+        ]}
+      />
+
       {/* Page Header */}
       <div className="bg-gradient-to-r from-red-950 via-red-900 to-amber-950 text-amber-100 rounded-2xl p-6 sm:p-8 shadow-md border border-amber-500/30">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -722,6 +732,12 @@ export const ArticlesView: React.FC = () => {
         onClose={() => setShareModalArticle(null)}
         lang={lang}
       />
+
+      {/* ----------------- INTERLINKED KNOWLEDGE CLUSTERS ----------------- */}
+      <div className="space-y-6 pt-4 border-t border-stone-200/80">
+        <RelatedKnowledgeHub contextType="article" />
+        <TopicClusterNav />
+      </div>
 
     </div>
   );

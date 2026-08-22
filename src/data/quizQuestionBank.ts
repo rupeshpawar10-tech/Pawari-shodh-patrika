@@ -1,4 +1,4 @@
-import { QuizQuestion, QuizCategoryType } from '../types';
+import { QuizQuestion, QuizCategoryType, PawariShabdkoshItem, PawariPaheliItem } from '../types';
 
 export interface QuizCategoryMeta {
   id: QuizCategoryType;
@@ -26,8 +26,8 @@ export const QUIZ_CATEGORIES: Record<string, QuizCategoryMeta> = {
   },
   paheli: {
     id: 'paheli',
-    title_hindi: 'पवारी पाहलोड़ी (पहेलियाँ)',
-    title_english: 'Pawari Riddles (Paheli / Pahalodi)',
+    title_hindi: 'पवारी पारम्परिक पहेलियाँ',
+    title_english: 'Pawari Riddles (Paheli)',
     description_hindi: 'लोक पहेलियाँ, बुझौवल, आलंकारिक बिंब एवं लोक प्रतीक',
     description_english: 'Traditional folklore riddles, metaphors, and cultural wordplays',
     icon: 'HelpCircle',
@@ -184,11 +184,11 @@ export const MASTER_QUESTION_BANK: QuizQuestion[] = [
     cultural_notes: 'पवारी वनौषधि एवं कृषि शब्दावली'
   },
 
-  // ==================== 2. PAHELI (पवारी पाहलोड़ी / पहेलियाँ) ====================
+  // ==================== 2. PAHELI (पवारी पारम्परिक पहेलियाँ) ====================
   {
     id: 'phl-1',
     section_type: 'paheli',
-    question_pawari: '"एक थार मा मोती भरा, सब का सिर पर औंधा धरा" - या पवारी पाहलोड़ी का सही उत्तर का है?',
+    question_pawari: '"एक थार मा मोती भरा, सब का सिर पर औंधा धरा" - या पवारी पहेली का सही उत्तर का है?',
     question_hindi: 'उपरोक्त प्रसिद्ध पवारी लोक पहेली का सही उत्तर क्या है?',
     options: ['आकाश और तारे (Sky & Stars)', 'थाली और मोती (Plate & Pearls)', 'पेड़ और फल (Tree & Fruits)', 'बादल और वर्षा (Clouds & Rain)'],
     correct_option_index: 0,
@@ -203,7 +203,7 @@ export const MASTER_QUESTION_BANK: QuizQuestion[] = [
     options: ['सुई और धागा (Needle & Thread)', 'धनुष और बाण (Bow & Arrow)', 'पेड़ और जड़ (Tree & Root)', 'हल और रस्सी (Plough & Rope)'],
     correct_option_index: 0,
     explanation: 'छोटी सी सुई (ककड़ी) और उसमें पिरोया हुआ लंबा धागा (बीज) सिलाई का सजीव बिंब है।',
-    cultural_notes: 'पवारी पाहलोड़ी संग्रह'
+    cultural_notes: 'पवारी पहेली संग्रह'
   },
   {
     id: 'phl-3',
@@ -592,3 +592,184 @@ export function getQuizPerformanceGrade(percentage: number): {
     };
   }
 }
+
+// Fallback diverse distractors for Shabdkosh meanings
+const DEFAULT_SHABDKOSH_DISTRACTORS: string[] = [
+  'आंख / नेत्र (Eye)',
+  'ज्वार या गेहूं की रोटी (Traditional Flatbread)',
+  'झाड़ू (Broom)',
+  'माता / माँ (Mother)',
+  'पशु / मवेशी (Cattle / Livestock)',
+  'अक्षय तृतीया का लोक पर्व (Akshaya Tritiya)',
+  'घर का मुख्य दरवाजा (Front Door)',
+  'खेत का गहरा कुआं (Deep Well)',
+  'विवाह का मांगलिक मंडप (Wedding Altar)',
+  'ताजा मक्खन / माखन (Fresh Butter)',
+  'सुबह का सूर्योदय (Sunrise)',
+  'वर्षा की पहली फुहार (First Rain)',
+  'सिर की पगड़ी / फेंटा (Traditional Turban)',
+  'मिट्टी का पारंपरिक मटका (Clay Pot)',
+  'गाँव का सार्वजनिक चौराहा (Village Square)',
+  'ताप्ती नदी का पावन तट (Holy River Bank)',
+  'कमर की पारंपरिक करधनी (Waistband Ornament)',
+  'सतपुड़ा का सघन वन क्षेत्र (Dense Forest)',
+  'बैलगाड़ी का पहिया (Cart Wheel)',
+  'लोकगीत गायन की धुन (Folksong Melody)'
+];
+
+// Fallback diverse distractors for Paheli answers
+const DEFAULT_PAHELI_DISTRACTORS: string[] = [
+  'दीपक / दीया (Oil Lamp)',
+  'बंदूक और गोली (Gun & Bullet)',
+  'जूं (Louse)',
+  'माखन और मट्ठा (Butter & Buttermilk)',
+  'घड़ी (Clock)',
+  'सूरज और चाँद (Sun & Moon)',
+  'कुआं और रस्सी (Well & Rope)',
+  'मटका और पानी (Clay Pot & Water)',
+  'आँखें और पलकें (Eyes & Eyelids)',
+  'जूता / चप्पल (Footwear)',
+  'सुई और धागा (Needle & Thread)',
+  'ताला और चाबी (Lock & Key)',
+  'आईना / दर्पण (Mirror)',
+  'छाता / छतरी (Umbrella)',
+  'हुक्का / चिलम (Traditional Pipe)',
+  'चक्की / जांता (Flour Mill Stone)',
+  'हल और बैल (Plough & Oxen)',
+  'धुआं और आग (Smoke & Fire)',
+  'कपास / रुई (Cotton Plant)',
+  'आसमान और तारे (Sky & Stars)'
+];
+
+/**
+ * Dynamically converts any list of Shabdkosh items (present and newly added) into high-quality Quiz Questions
+ */
+export function generateQuestionsFromShabdkosh(shabdkoshList: PawariShabdkoshItem[] = []): QuizQuestion[] {
+  if (!shabdkoshList || shabdkoshList.length === 0) return [];
+
+  // Filter valid items with a word and meaning
+  const validItems = shabdkoshList.filter(item => item && item.word_pawari && item.meaning_hindi);
+  const allMeanings = Array.from(new Set(validItems.map(item => item.meaning_hindi.trim())));
+
+  return validItems.map((item, idx) => {
+    const correctAnswer = item.meaning_hindi.trim();
+    
+    // Pick 3 distractors from other shabdkosh entries first
+    let availableDistractors = allMeanings.filter(m => m !== correctAnswer);
+    
+    // If not enough from shabdkosh list, supplement with curated default distractors
+    if (availableDistractors.length < 3) {
+      const extra = DEFAULT_SHABDKOSH_DISTRACTORS.filter(d => d !== correctAnswer && !availableDistractors.includes(d));
+      availableDistractors = [...availableDistractors, ...extra];
+    }
+
+    const pickedDistractors = shuffleArray(availableDistractors).slice(0, 3);
+    const options = shuffleArray([correctAnswer, ...pickedDistractors]);
+    const correctOptionIndex = options.indexOf(correctAnswer);
+
+    const cleanWord = item.word_pawari.replace(/\s*\([^)]*\)/g, '').trim();
+
+    return {
+      id: `dyn_shabd_${item.id || `word_${idx}`}`,
+      section_type: 'shabdkosh',
+      question_pawari: `पवारी शब्द "${item.word_pawari}" का सही हिंदी अर्थ क्या होता है?`,
+      question_hindi: `पवारी शब्द "${item.word_pawari}" का प्रामाणिक अर्थ क्या है?`,
+      options,
+      correct_option_index: correctOptionIndex !== -1 ? correctOptionIndex : 0,
+      explanation: `पवारी शब्द '${cleanWord}' का सही अर्थ '${item.meaning_hindi}' है।${item.example_pawari ? ` उदाहरण: "${item.example_pawari}"` : ''}`,
+      cultural_notes: `पवारी शब्दकोश व मुहावरे (${item.category || 'पारम्परिक शब्दावली'})`
+    };
+  });
+}
+
+/**
+ * Dynamically converts any list of Paheli items into high-quality Quiz Questions
+ */
+export function generateQuestionsFromPaheli(paheliList: PawariPaheliItem[] = []): QuizQuestion[] {
+  if (!paheliList || paheliList.length === 0) return [];
+
+  const validItems = paheliList.filter(item => item && item.riddle_pawari && item.answer_hindi);
+  const allAnswers = Array.from(new Set(validItems.map(item => item.answer_hindi.trim())));
+
+  return validItems.map((item, idx) => {
+    const correctAnswer = item.answer_hindi.trim();
+
+    // Pick 3 distractors from other paheli answers first
+    let availableDistractors = allAnswers.filter(a => a !== correctAnswer);
+
+    // If not enough, supplement with curated default distractors
+    if (availableDistractors.length < 3) {
+      const extra = DEFAULT_PAHELI_DISTRACTORS.filter(d => d !== correctAnswer && !availableDistractors.includes(d));
+      availableDistractors = [...availableDistractors, ...extra];
+    }
+
+    const pickedDistractors = shuffleArray(availableDistractors).slice(0, 3);
+    const options = shuffleArray([correctAnswer, ...pickedDistractors]);
+    const correctOptionIndex = options.indexOf(correctAnswer);
+
+    return {
+      id: `dyn_pah_${item.id || `paheli_${idx}`}`,
+      section_type: 'paheli',
+      question_pawari: `पवारी पारम्परिक पहेली: "${item.riddle_pawari}" का सही उत्तर क्या है?`,
+      question_hindi: `पवारी लोक-पहेली: "${item.riddle_pawari}" का सही उत्तर क्या है?`,
+      options,
+      correct_option_index: correctOptionIndex !== -1 ? correctOptionIndex : 0,
+      explanation: `इस पवारी पहेली का सही उत्तर '${item.answer_hindi}' है।${item.hint_hindi ? ` (संकेत: ${item.hint_hindi})` : ''}`,
+      cultural_notes: `पवारी पारम्परिक पहेलियाँ (${item.category || 'लोक बुझौवल'})`
+    };
+  });
+}
+
+/**
+ * Builds a unified, master dynamic question pool merging:
+ * 1. All Shabdkosh words (present & future real-time added words)
+ * 2. All Paheli riddles (complete collection)
+ * 3. Base MASTER_QUESTION_BANK (covering lokgeet, books, reviews, general heritage)
+ * 4. Custom CMS / Firestore questions
+ */
+export function buildMasterQuizQuestionPool(params: {
+  shabdkoshList?: PawariShabdkoshItem[];
+  paheliList?: PawariPaheliItem[];
+  cmsQuestions?: QuizQuestion[];
+}): QuizQuestion[] {
+  const { shabdkoshList = [], paheliList = [], cmsQuestions = [] } = params;
+
+  // Generate dynamic questions from full shabdkosh and paheli collections
+  const dynamicShabdkoshQuestions = generateQuestionsFromShabdkosh(shabdkoshList);
+  const dynamicPaheliQuestions = generateQuestionsFromPaheli(paheliList);
+
+  // Combine custom CMS questions with master static bank
+  const customIds = new Set(cmsQuestions.map(q => q.id));
+  const basePool = [...cmsQuestions, ...MASTER_QUESTION_BANK.filter(q => !customIds.has(q.id))];
+
+  // Merge everything into one comprehensive pool with unique IDs
+  const seenIds = new Set<string>();
+  const combinedPool: QuizQuestion[] = [];
+
+  // Add custom and base questions first
+  basePool.forEach(q => {
+    if (!seenIds.has(q.id)) {
+      seenIds.add(q.id);
+      combinedPool.push(q);
+    }
+  });
+
+  // Add all dynamic shabdkosh questions (both current and future ones)
+  dynamicShabdkoshQuestions.forEach(q => {
+    if (!seenIds.has(q.id)) {
+      seenIds.add(q.id);
+      combinedPool.push(q);
+    }
+  });
+
+  // Add all dynamic paheli questions
+  dynamicPaheliQuestions.forEach(q => {
+    if (!seenIds.has(q.id)) {
+      seenIds.add(q.id);
+      combinedPool.push(q);
+    }
+  });
+
+  return combinedPool;
+}
+

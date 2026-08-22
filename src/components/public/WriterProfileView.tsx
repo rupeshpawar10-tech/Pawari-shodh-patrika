@@ -33,7 +33,9 @@ import {
   Book,
   GraduationCap,
   Library,
-  Feather
+  Feather,
+  Instagram,
+  Facebook
 } from 'lucide-react';
 import { PublicContributionModal } from './PublicContributionModal';
 
@@ -171,7 +173,11 @@ export const WriterProfileView: React.FC<WriterProfileViewProps> = ({ writerIdOr
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(writerCanonicalUrl)}`;
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(writerCanonicalUrl)}&hashtags=PawariLiterature,PawariShodhPatrika,PawariLanguage`;
   const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(writerCanonicalUrl)}`;
-  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(writerCanonicalUrl)}&text=${encodeURIComponent(shareText)}`;
+
+  const handleInstagramShare = () => {
+    handleCopyLink();
+    window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+  };
 
   if (!currentWriter) {
     return (
@@ -470,8 +476,20 @@ export const WriterProfileView: React.FC<WriterProfileViewProps> = ({ writerIdOr
                   className="px-3.5 py-2 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white text-xs font-bold font-sans shadow-xs hover:shadow-md transition flex items-center space-x-1.5 cursor-pointer"
                   title="Share on Facebook"
                 >
+                  <Facebook className="w-4 h-4" />
                   <span>Facebook</span>
                 </a>
+
+                {/* Instagram */}
+                <button
+                  type="button"
+                  onClick={handleInstagramShare}
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] hover:opacity-90 text-white text-xs font-bold font-sans shadow-xs hover:shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                  title="Share on Instagram (Copies link)"
+                >
+                  <Instagram className="w-4 h-4" />
+                  <span>Instagram</span>
+                </button>
 
                 {/* X (Twitter) */}
                 <a
@@ -482,17 +500,6 @@ export const WriterProfileView: React.FC<WriterProfileViewProps> = ({ writerIdOr
                   title="Share on X"
                 >
                   <span>𝕏 (Twitter)</span>
-                </a>
-
-                {/* Telegram */}
-                <a
-                  href={telegramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-[#229ED9] hover:bg-[#1e8cc0] text-white text-xs font-bold font-sans shadow-xs hover:shadow-md transition flex items-center space-x-1.5 cursor-pointer"
-                  title="Share on Telegram"
-                >
-                  <span>Telegram</span>
                 </a>
 
                 {/* LinkedIn */}
