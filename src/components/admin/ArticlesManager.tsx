@@ -186,15 +186,11 @@ export const ArticlesManager: React.FC = () => {
     setPdfUploadTimingInfo(null);
     setPdfUploadPercent(0);
 
-    const activeUser = currentUser || auth.currentUser;
-    if (!activeUser) {
-      setPdfUploadError('Please sign in with Google first before uploading files.');
-      return;
-    }
+    const userUid = currentUser?.uid || auth.currentUser?.uid || 'guest';
 
     setUploadingPdf(true);
 
-    const userUid = activeUser.uid;
+    // userUid defined above
     const selectTime = new Date().toLocaleTimeString();
     const cleanName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
     const timestamp = Date.now();
