@@ -38,6 +38,7 @@ import {
   SAMPLE_QUIZ_QUESTIONS,
   SAMPLE_QUIZ_LEADERBOARD
 } from '../data/pawariCulturalData';
+import { MASTER_QUESTION_BANK } from '../data/quizQuestionBank';
 import { 
   DEFAULT_SETTINGS, 
   DEFAULT_PAGES, 
@@ -132,6 +133,9 @@ export type PublicPageView =
   | 'archive' 
   | 'articles' 
   | 'books_blogs'
+  | 'blog_list'
+  | 'blog_detail'
+  | 'submit_blog'
   | 'pawari_writers'
   | 'writer_profile'
   | 'pawari_shabdkosh'
@@ -151,6 +155,7 @@ export type AdminTab =
   | 'articles' 
   | 'issues' 
   | 'books_blogs'
+  | 'blogs'
   | 'writers'
   | 'shabdkosh'
   | 'paheli'
@@ -183,6 +188,12 @@ interface CmsContextType {
   setSelectedBlogId: (id: string | null) => void;
   selectedWriterId: string | null;
   setSelectedWriterId: (id: string | null) => void;
+  selectedLokgeetId: string | null;
+  setSelectedLokgeetId: (idOrSlug: string | null) => void;
+  selectedPaheliId: string | null;
+  setSelectedPaheliId: (idOrSlug: string | null) => void;
+  selectedShabdkoshId: string | null;
+  setSelectedShabdkoshId: (idOrSlug: string | null) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   isNotFound: boolean;
@@ -233,6 +244,11 @@ interface CmsContextType {
   deleteBook: (id: string) => Promise<void>;
   saveBlog: (blog: BlogItem) => Promise<void>;
   deleteBlog: (id: string) => Promise<void>;
+  submitPublicBlog: (blogData: Partial<BlogItem>) => Promise<{ success: boolean; refId: string; error?: string }>;
+  approveBlog: (blogId: string) => Promise<void>;
+  rejectBlog: (blogId: string, comments?: string) => Promise<void>;
+  publishBlog: (blogId: string) => Promise<void>;
+  unpublishBlog: (blogId: string) => Promise<void>;
   saveWriter: (writer: PawariWriterItem) => Promise<void>;
   deleteWriter: (id: string) => Promise<void>;
   
@@ -433,6 +449,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedBookId, setSelectedBookIdRaw] = useState<string | null>(initialRoute.bookId || null);
   const [selectedBlogId, setSelectedBlogIdRaw] = useState<string | null>(initialRoute.blogId || null);
   const [selectedWriterId, setSelectedWriterIdRaw] = useState<string | null>(initialRoute.writerId || null);
+  const [selectedLokgeetId, setSelectedLokgeetIdRaw] = useState<string | null>(initialRoute.lokgeetSlugOrId || null);
+  const [selectedPaheliId, setSelectedPaheliIdRaw] = useState<string | null>(initialRoute.paheliSlugOrId || null);
+  const [selectedShabdkoshId, setSelectedShabdkoshIdRaw] = useState<string | null>(initialRoute.shabdkoshSlugOrId || null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isNotFound, setIsNotFound] = useState<boolean>(initialRoute.isNotFound);
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('dashboard');
@@ -525,6 +544,33 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const setSelectedLokgeetId = (idOrSlug: string | null) => {
+    setSelectedLokgeetIdRaw(idOrSlug);
+    if (idOrSlug) {
+      navigateTo('pawari_lokgeet', null, null, null, null, idOrSlug);
+    } else {
+      navigateTo('pawari_lokgeet');
+    }
+  };
+
+  const setSelectedPaheliId = (idOrSlug: string | null) => {
+    setSelectedPaheliIdRaw(idOrSlug);
+    if (idOrSlug) {
+      navigateTo('pawari_paheli', null, null, null, null, idOrSlug);
+    } else {
+      navigateTo('pawari_paheli');
+    }
+  };
+
+  const setSelectedShabdkoshId = (idOrSlug: string | null) => {
+    setSelectedShabdkoshIdRaw(idOrSlug);
+    if (idOrSlug) {
+      navigateTo('pawari_shabdkosh', null, null, null, null, idOrSlug);
+    } else {
+      navigateTo('pawari_shabdkosh');
+    }
+  };
+
   useEffect(() => {
     const handlePopState = () => {
       const currentRoute = parseRouteFromUrl();
@@ -534,6 +580,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (currentRoute.blogId !== undefined) setSelectedBlogIdRaw(currentRoute.blogId);
       if (currentRoute.writerId !== undefined) setSelectedWriterIdRaw(currentRoute.writerId);
       if (currentRoute.issueId !== undefined) setSelectedIssueIdRaw(currentRoute.issueId);
+      if (currentRoute.lokgeetSlugOrId !== undefined) setSelectedLokgeetIdRaw(currentRoute.lokgeetSlugOrId);
+      if (currentRoute.paheliSlugOrId !== undefined) setSelectedPaheliIdRaw(currentRoute.paheliSlugOrId);
+      if (currentRoute.shabdkoshSlugOrId !== undefined) setSelectedShabdkoshIdRaw(currentRoute.shabdkoshSlugOrId);
       setIsNotFound(currentRoute.isNotFound);
     };
     window.addEventListener('popstate', handlePopState);
@@ -679,13 +728,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const merged = deduplicateList([...parsed, ...SAMPLE_QUIZ_QUESTIONS]);
+          const merged = deduplicateList([...parsed, ...MASTER_QUESTION_BANK, ...SAMPLE_QUIZ_QUESTIONS]);
           try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(merged)); } catch (e) {}
           return merged;
         }
       }
     } catch (e) {}
-    return deduplicateList(SAMPLE_QUIZ_QUESTIONS);
+    return deduplicateList([...MASTER_QUESTION_BANK, ...SAMPLE_QUIZ_QUESTIONS]);
   });
 
   const [quizLeaderboard, setQuizLeaderboard] = useState<QuizLeaderboardEntry[]>(() => {
@@ -1471,16 +1520,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const blogToSave: BlogItem = {
       ...blog,
       slug,
-      status: blog.status || 'published'
+      status: blog.status || 'published',
+      updated_at: new Date().toISOString()
     };
-    const updated = blogs.filter(b => b.id !== blogToSave.id);
-    updated.unshift(blogToSave);
+    const cleanData = JSON.parse(JSON.stringify(blogToSave));
+    const updated = blogs.filter(b => b.id !== cleanData.id);
+    updated.unshift(cleanData);
     setBlogs(updated);
     try {
       localStorage.setItem('local_blogs_cache', JSON.stringify(updated));
     } catch (e) {}
     try {
-      await setDoc(doc(db, 'blogs', blogToSave.id), blogToSave);
+      await setDoc(doc(db, 'blogs', cleanData.id), cleanData);
     } catch (e) {
       console.error('Error saving blog:', e);
     }
@@ -1488,9 +1539,106 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logActivity({
       category: 'blogs',
       action: isNew ? 'create' : 'update',
-      title: isNew ? `Published Blog Post "${blogToSave.title_hindi || blogToSave.title_english}"` : `Updated Blog Post "${blogToSave.title_hindi || blogToSave.title_english}"`,
-      details: `Author: ${blogToSave.author || 'N/A'}, Category: ${blogToSave.category || 'N/A'}`
+      title: isNew ? `Published Blog Post "${cleanData.title_hindi || cleanData.title_english}"` : `Updated Blog Post "${cleanData.title_hindi || cleanData.title_english}"`,
+      details: `Author: ${cleanData.author || 'N/A'}, Category: ${cleanData.category || 'N/A'}, Status: ${cleanData.status}`
     }).catch(console.warn);
+  };
+
+  const submitPublicBlog = async (blogData: Partial<BlogItem>): Promise<{ success: boolean; refId: string; error?: string }> => {
+    try {
+      const now = new Date();
+      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const refId = `BLOG-${now.getFullYear()}-${randomSuffix}`;
+      const blogId = 'blog_sub_' + Date.now();
+      const baseTitle = blogData.title_hindi || blogData.title_english || 'आलेख';
+      const cleanSlug = ensureUniqueSlug(baseTitle, blogId, blogs);
+
+      const contentText = blogData.content_hindi || blogData.content_english || '';
+      const wordCount = contentText.trim() ? contentText.trim().split(/\s+/).length : 0;
+      const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 180));
+
+      const newSubmission: BlogItem = {
+        id: blogId,
+        title_hindi: blogData.title_hindi || '',
+        title_english: blogData.title_english || blogData.title_hindi || '',
+        author: blogData.author || blogData.contributor_name || 'अज्ञात लेखक',
+        author_role: blogData.author_role || 'रचनाकार / शोधार्थी',
+        author_avatar: blogData.author_avatar || '',
+        date: now.toLocaleDateString('hi-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
+        read_time: `${readTimeMinutes} मिनट`,
+        category: blogData.category || 'साहित्य एवं विचार',
+        language: blogData.language || 'hindi',
+        cover_image: blogData.cover_image || '',
+        excerpt_hindi: blogData.excerpt_hindi || (contentText ? contentText.slice(0, 180) + '...' : ''),
+        excerpt_english: blogData.excerpt_english || '',
+        content_hindi: contentText,
+        content_english: blogData.content_english || contentText,
+        tags: blogData.tags && blogData.tags.length > 0 ? blogData.tags : ['पवारी', blogData.category || 'साहित्य'],
+        slug: cleanSlug,
+        status: 'pending', // CRITICAL: NEVER auto-publish public submissions!
+        contributor_name: blogData.contributor_name || blogData.author,
+        contributor_email: blogData.contributor_email || '',
+        contributor_phone: blogData.contributor_phone || '',
+        consent_given: blogData.consent_given ?? true,
+        submission_ref: refId,
+        submitted_at: now.toISOString(),
+        updated_at: now.toISOString(),
+        likes_count: 0,
+        views_count: 0
+      };
+
+      const cleanObj: BlogItem = JSON.parse(JSON.stringify(newSubmission));
+
+      // Update state & local storage
+      const updated = [cleanObj, ...blogs.filter(b => b.id !== blogId)];
+      setBlogs(updated);
+      try {
+        localStorage.setItem('local_blogs_cache', JSON.stringify(updated));
+      } catch (e) {}
+
+      // Write to Firestore blogs collection
+      try {
+        await setDoc(doc(db, 'blogs', blogId), cleanObj);
+      } catch (e) {
+        console.warn('Firestore blog submission write (fallback handled):', e);
+      }
+
+      logActivity({
+        category: 'blogs',
+        action: 'create',
+        title: `नया ब्लॉग प्राप्त (New Submission): "${newSubmission.title_hindi}"`,
+        details: `लेखक: ${newSubmission.contributor_name} (${newSubmission.contributor_phone || newSubmission.contributor_email || 'N/A'}), संदर्भ संख्या: ${refId}`
+      }).catch(console.warn);
+
+      return { success: true, refId };
+    } catch (err: any) {
+      console.error('Error in submitPublicBlog:', err);
+      return { success: false, refId: '', error: err?.message || 'ब्लॉग सबमिशन में त्रुटि आई।' };
+    }
+  };
+
+  const approveBlog = async (blogId: string) => {
+    const blog = blogs.find(b => b.id === blogId);
+    if (!blog) return;
+    await saveBlog({ ...blog, status: 'approved' });
+  };
+
+  const rejectBlog = async (blogId: string, comments?: string) => {
+    const blog = blogs.find(b => b.id === blogId);
+    if (!blog) return;
+    await saveBlog({ ...blog, status: 'rejected', editorial_comments: comments || blog.editorial_comments });
+  };
+
+  const publishBlog = async (blogId: string) => {
+    const blog = blogs.find(b => b.id === blogId);
+    if (!blog) return;
+    await saveBlog({ ...blog, status: 'published', published_at: new Date().toISOString() });
+  };
+
+  const unpublishBlog = async (blogId: string) => {
+    const blog = blogs.find(b => b.id === blogId);
+    if (!blog) return;
+    await saveBlog({ ...blog, status: 'draft' });
   };
 
   const deleteBlog = async (id: string) => {
@@ -2344,6 +2492,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedBlogId,
         selectedWriterId,
         setSelectedWriterId,
+        selectedLokgeetId,
+        setSelectedLokgeetId,
+        selectedPaheliId,
+        setSelectedPaheliId,
+        selectedShabdkoshId,
+        setSelectedShabdkoshId,
         searchQuery,
         setSearchQuery,
         isNotFound,
@@ -2387,6 +2541,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteBook,
         saveBlog,
         deleteBlog,
+        submitPublicBlog,
+        approveBlog,
+        rejectBlog,
+        publishBlog,
+        unpublishBlog,
         saveWriter,
         deleteWriter,
         saveShabdkosh,

@@ -1,5 +1,6 @@
 import { PawariShabdkoshItem, PawariPaheliItem, PawariLokgeetItem, QuizQuestion } from '../types';
 import { GOPINATH_KALBHOR_LOKGEET_COLLECTION } from './pawariLokgeetGopinathData';
+import { MASTER_QUESTION_BANK } from './quizQuestionBank';
 
 export const SAMPLE_SHABDKOSH: PawariShabdkoshItem[] = [
   {

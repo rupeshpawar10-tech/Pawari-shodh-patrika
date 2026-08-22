@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCms } from '../../lib/CmsContext';
+import { EditorialBoardDisplay } from '../common/EditorialBoardDisplay';
 import { 
   BookOpen, 
   ShieldCheck, 
@@ -22,13 +23,14 @@ import {
   Mail,
   Building,
   MapPin,
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react';
 
 export const AboutView: React.FC = () => {
   const { lang, settings, setActiveView } = useCms();
 
-  const [activeTab, setActiveTab] = useState<'paper' | 'specs' | 'workflow' | 'citation'>('paper');
+  const [activeTab, setActiveTab] = useState<'paper' | 'specs' | 'workflow' | 'editorial' | 'citation'>('paper');
   const [copiedCitation, setCopiedCitation] = useState<string | null>(null);
   const [showCitationModal, setShowCitationModal] = useState(false);
 
@@ -62,23 +64,23 @@ export const AboutView: React.FC = () => {
     <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8 space-y-8 animate-in fade-in duration-300">
       
       {/* ----------------- COMPACT TRUST SUMMARY HEADER BAR ----------------- */}
-      <div className="bg-gradient-to-r from-red-950 via-red-900 to-amber-950 text-amber-100 rounded-3xl p-6 sm:p-8 shadow-xl border border-amber-500/30 space-y-6">
+      <div className="gloss-3d-card-dark text-amber-100 rounded-3xl p-6 sm:p-8 space-y-6 gloss-sheen">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="px-3 py-1 bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-bold uppercase rounded-full tracking-wider flex items-center space-x-1.5">
+          <span className="px-3.5 py-1 bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-bold uppercase rounded-full tracking-wider flex items-center space-x-1.5 shadow-inner">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>{lang === 'hi' ? 'आधिकारिक शोध पत्रिका' : 'Official Peer-Reviewed Journal'}</span>
           </span>
-          <div className="flex items-center space-x-3 text-xs font-mono text-amber-200/90 bg-red-900/60 px-3.5 py-1.5 rounded-xl border border-amber-500/20">
+          <div className="flex items-center space-x-3 text-xs font-mono text-amber-200/90 bg-stone-900/80 px-3.5 py-1.5 rounded-xl border border-amber-500/30 shadow-inner">
             <Clock className="w-3.5 h-3.5 text-amber-400" />
             <span>{lang === 'hi' ? 'समीक्षा समय: 15-30 दिन' : 'Review Speed: 15-30 Days'}</span>
           </div>
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-amber-100 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-amber-100 tracking-tight drop-shadow-sm">
             {lang === 'hi' ? 'पवारी शोध पत्रिका (Pawari Shodh Patrika)' : 'Pawari Shodh Patrika'}
           </h1>
-          <p className="text-amber-200/90 text-sm sm:text-base max-w-3xl leading-relaxed">
+          <p className="text-stone-300 text-sm sm:text-base max-w-3xl leading-relaxed">
             {lang === 'hi' 
               ? 'पवारी भाषा, साहित्य, लोकसंस्कृति, क्षेत्रीय इतिहास एवं मध्यप्रदेश तथा समीपवर्ती अंचलों की जनजातीय बोलियों पर केंद्रित द्विभाषी (हिंदी/अंग्रेजी) अर्धवार्षिक शोध पत्रिका।' 
               : 'A bilingual (Hindi & English) half-yearly peer-reviewed research journal dedicated to Pawari language, literature, folklore, regional history, and Central Indian tribal dialects.'}
@@ -87,23 +89,23 @@ export const AboutView: React.FC = () => {
 
         {/* Trust Badges Bar */}
         <div className="pt-4 border-t border-amber-500/20 grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <div className="bg-red-900/40 border border-amber-500/20 p-3 rounded-2xl text-center">
+          <div className="bg-stone-900/70 border border-amber-500/25 p-3 rounded-2xl text-center shadow-inner">
             <span className="text-[10px] font-mono text-amber-300 block uppercase">Language</span>
             <span className="font-bold text-xs text-white">Bilingual (हि/Eng)</span>
           </div>
-          <div className="bg-red-900/40 border border-amber-500/20 p-3 rounded-2xl text-center">
+          <div className="bg-stone-900/70 border border-amber-500/25 p-3 rounded-2xl text-center shadow-inner">
             <span className="text-[10px] font-mono text-amber-300 block uppercase">Review Process</span>
             <span className="font-bold text-xs text-white">Double-Blind Peer</span>
           </div>
-          <div className="bg-red-900/40 border border-amber-500/20 p-3 rounded-2xl text-center">
+          <div className="bg-stone-900/70 border border-amber-500/25 p-3 rounded-2xl text-center shadow-inner">
             <span className="text-[10px] font-mono text-amber-300 block uppercase">Frequency</span>
             <span className="font-bold text-xs text-white">Half-Yearly</span>
           </div>
-          <div className="bg-red-900/40 border border-amber-500/20 p-3 rounded-2xl text-center">
+          <div className="bg-stone-900/70 border border-amber-500/25 p-3 rounded-2xl text-center shadow-inner">
             <span className="text-[10px] font-mono text-amber-300 block uppercase">Access Model</span>
             <span className="font-bold text-xs text-white">Open Access (CC-BY)</span>
           </div>
-          <div className="bg-red-900/40 border border-amber-500/20 p-3 rounded-2xl text-center col-span-2 sm:col-span-1">
+          <div className="bg-stone-900/70 border border-amber-500/25 p-3 rounded-2xl text-center col-span-2 sm:col-span-1 shadow-inner">
             <span className="text-[10px] font-mono text-amber-300 block uppercase">Publication Fee</span>
             <span className="font-bold text-xs text-emerald-300">Zero (Free APC)</span>
           </div>
@@ -111,14 +113,14 @@ export const AboutView: React.FC = () => {
       </div>
 
       {/* ----------------- VIEW MODE TABS ----------------- */}
-      <div className="flex items-center justify-between border-b border-amber-900/10 pb-2">
+      <div className="flex items-center justify-between border-b border-stone-200/80 pb-2">
         <div className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto">
           <button
             onClick={() => setActiveTab('paper')}
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap ${
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap cursor-pointer ${
               activeTab === 'paper'
-                ? 'bg-red-950 text-amber-100 shadow-md'
-                : 'bg-white hover:bg-amber-50 text-slate-700 border border-slate-200'
+                ? 'gloss-3d-btn-maroon'
+                : 'gloss-3d-btn-secondary text-stone-700'
             }`}
           >
             <BookOpen className="w-4 h-4 text-amber-400" />
@@ -127,10 +129,10 @@ export const AboutView: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('specs')}
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap ${
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap cursor-pointer ${
               activeTab === 'specs'
-                ? 'bg-red-950 text-amber-100 shadow-md'
-                : 'bg-white hover:bg-amber-50 text-slate-700 border border-slate-200'
+                ? 'gloss-3d-btn-maroon'
+                : 'gloss-3d-btn-secondary text-stone-700'
             }`}
           >
             <FileSpreadsheet className="w-4 h-4 text-amber-400" />
@@ -139,20 +141,32 @@ export const AboutView: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('workflow')}
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap ${
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap cursor-pointer ${
               activeTab === 'workflow'
-                ? 'bg-red-950 text-amber-100 shadow-md'
-                : 'bg-white hover:bg-amber-50 text-slate-700 border border-slate-200'
+                ? 'gloss-3d-btn-maroon'
+                : 'gloss-3d-btn-secondary text-stone-700'
             }`}
           >
             <Layers className="w-4 h-4 text-amber-400" />
             <span>{lang === 'hi' ? 'पीर रिव्यू प्रक्रिया (Review Workflow)' : 'Review Pipeline'}</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('editorial')}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap cursor-pointer ${
+              activeTab === 'editorial'
+                ? 'gloss-3d-btn-maroon'
+                : 'gloss-3d-btn-secondary text-stone-700'
+            }`}
+          >
+            <Users className="w-4 h-4 text-amber-400" />
+            <span>{lang === 'hi' ? 'संपादकीय मंडल (Editorial Board)' : 'Editorial Board'}</span>
+          </button>
         </div>
 
         <button
           onClick={() => setActiveView('author_guidelines')}
-          className="hidden md:inline-flex items-center space-x-1.5 text-xs font-bold text-red-900 hover:text-red-700 bg-amber-500/10 px-3.5 py-2 rounded-xl border border-amber-500/30 transition"
+          className="hidden md:inline-flex items-center space-x-1.5 text-xs font-bold text-red-950 hover:text-red-800 bg-amber-500/10 px-3.5 py-2 rounded-xl border border-amber-500/30 transition shadow-2xs cursor-pointer"
         >
           <span>{lang === 'hi' ? 'लेखक दिशानिर्देश' : 'Submit Manuscript'}</span>
           <ArrowRight className="w-3.5 h-3.5" />
@@ -161,7 +175,7 @@ export const AboutView: React.FC = () => {
 
       {/* ----------------- TAB 1: JOURNAL OVERVIEW & AIMS & SCOPE ----------------- */}
       {activeTab === 'paper' && (
-        <div className="bg-white border-2 border-slate-200/80 rounded-3xl shadow-xl overflow-hidden p-6 sm:p-10 space-y-10">
+        <div className="gloss-3d-card rounded-3xl p-6 sm:p-10 space-y-10">
           
           {/* Section 1: Introduction */}
           <section className="space-y-4">
@@ -200,7 +214,7 @@ export const AboutView: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
               
-              <div className="bg-amber-50/50 p-5 rounded-2xl border border-amber-200/80 space-y-2">
+              <div className="gloss-3d-card p-5 rounded-2xl space-y-2">
                 <div className="flex items-center space-x-2 text-red-950 font-bold font-serif text-base">
                   <CheckCircle2 className="w-5 h-5 text-amber-600 flex-shrink-0" />
                   <h3>{lang === 'hi' ? 'पवारी भाषा, साहित्य एवं व्याकरण' : 'Pawari Language & Literature'}</h3>
@@ -210,7 +224,7 @@ export const AboutView: React.FC = () => {
                 </p>
               </div>
 
-              <div className="bg-amber-50/50 p-5 rounded-2xl border border-amber-200/80 space-y-2">
+              <div className="gloss-3d-card p-5 rounded-2xl space-y-2">
                 <div className="flex items-center space-x-2 text-red-950 font-bold font-serif text-base">
                   <CheckCircle2 className="w-5 h-5 text-amber-600 flex-shrink-0" />
                   <h3>{lang === 'hi' ? 'मध्यप्रदेश की बोलियाँ एवं लोकभाषाएँ' : 'Regional Dialects of MP'}</h3>
@@ -220,7 +234,7 @@ export const AboutView: React.FC = () => {
                 </p>
               </div>
 
-              <div className="bg-amber-50/50 p-5 rounded-2xl border border-amber-200/80 space-y-2">
+              <div className="gloss-3d-card p-5 rounded-2xl space-y-2">
                 <div className="flex items-center space-x-2 text-red-950 font-bold font-serif text-base">
                   <CheckCircle2 className="w-5 h-5 text-amber-600 flex-shrink-0" />
                   <h3>{lang === 'hi' ? 'जनजातीय भाषिक एवं सांस्कृतिक अध्ययन' : 'Tribal Linguistics & Culture'}</h3>
@@ -230,7 +244,7 @@ export const AboutView: React.FC = () => {
                 </p>
               </div>
 
-              <div className="bg-amber-50/50 p-5 rounded-2xl border border-amber-200/80 space-y-2">
+              <div className="gloss-3d-card p-5 rounded-2xl space-y-2">
                 <div className="flex items-center space-x-2 text-red-950 font-bold font-serif text-base">
                   <CheckCircle2 className="w-5 h-5 text-amber-600 flex-shrink-0" />
                   <h3>{lang === 'hi' ? 'लोकसाहित्य एवं मौखिक परंपराएँ' : 'Folklore & Oral Traditions'}</h3>
@@ -250,7 +264,7 @@ export const AboutView: React.FC = () => {
               <span>{lang === 'hi' ? '3. प्रकाशक एवं संपर्क विवरण (Publisher & Secretariat)' : '3. Publisher & Secretariat'}</span>
             </h2>
 
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-700">
+            <div className="gloss-3d-card p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-700">
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <Building className="w-5 h-5 text-amber-700 mt-0.5 shrink-0" />
@@ -292,7 +306,7 @@ export const AboutView: React.FC = () => {
           </section>
 
           {/* Action Callout */}
-          <div className="bg-red-950 text-amber-100 p-6 sm:p-8 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
+          <div className="gloss-3d-card-dark text-amber-100 p-6 sm:p-8 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="space-y-1 text-center sm:text-left">
               <h3 className="font-serif font-bold text-lg text-amber-300">
                 {lang === 'hi' ? 'क्या आप अपना शोध पत्र प्रकाशित करना चाहते हैं?' : 'Would you like to submit your research manuscript?'}
@@ -307,7 +321,7 @@ export const AboutView: React.FC = () => {
             <div className="flex items-center space-x-3 shrink-0">
               <button
                 onClick={() => setActiveView('author_guidelines')}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition shadow-md flex items-center space-x-1"
+                className="gloss-3d-btn-primary px-5 py-2.5 text-xs font-bold rounded-xl transition flex items-center space-x-1 cursor-pointer"
               >
                 <span>{lang === 'hi' ? 'लेखक दिशानिर्देश देखें' : 'Author Guidelines'}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -320,7 +334,7 @@ export const AboutView: React.FC = () => {
 
       {/* ----------------- TAB 2: JOURNAL SPECIFICATIONS ----------------- */}
       {activeTab === 'specs' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 shadow-lg space-y-8 animate-in fade-in">
+        <div className="gloss-3d-card rounded-2xl p-6 sm:p-10 space-y-8 animate-in fade-in">
           
           <div className="border-b border-slate-200 pb-4">
             <h2 className="text-2xl font-serif font-bold text-red-950">
@@ -333,13 +347,13 @@ export const AboutView: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-2">
+            <div className="gloss-3d-card p-5 rounded-2xl space-y-2">
               <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">{lang === 'hi' ? 'पत्रिका का नाम' : 'Journal Title'}</span>
               <h3 className="font-serif font-bold text-lg text-slate-900">{settings.journal_title_hindi}</h3>
               <p className="text-xs text-slate-500 font-serif">{settings.journal_title_english}</p>
             </div>
 
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-2">
+            <div className="gloss-3d-card p-5 rounded-2xl space-y-2">
               <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">ISSN Numbers</span>
               <div className="text-sm font-mono font-bold text-slate-900 space-y-1">
                 <p>Online: <span className="text-red-900">{settings.issn_online || '2583-9128'}</span></p>
@@ -347,25 +361,25 @@ export const AboutView: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-2">
+            <div className="gloss-3d-card p-5 rounded-2xl space-y-2">
               <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">{lang === 'hi' ? 'प्रकाशन आवृत्ति' : 'Publication Frequency'}</span>
               <h3 className="font-serif font-bold text-base text-slate-900">{lang === 'hi' ? 'अर्द्धवार्षिक' : 'Half-Yearly'}</h3>
               <p className="text-xs text-slate-500">{lang === 'hi' ? 'वर्ष में 2 अंक (जून और दिसंबर)' : '2 Issues per Year (Published in June & December)'}</p>
             </div>
 
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-2">
+            <div className="gloss-3d-card p-5 rounded-2xl space-y-2">
               <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">{lang === 'hi' ? 'प्रकाशक संस्थान' : 'Publisher'}</span>
               <h3 className="font-serif font-bold text-base text-slate-900">{settings.publisher_hindi || 'माँ ताप्ती शोध संस्थान, मुलताई'}</h3>
               <p className="text-xs text-slate-500">{settings.publisher_english || 'Maa Tapti Research Institute, Multai, M.P.'}</p>
             </div>
 
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-2">
+            <div className="gloss-3d-card p-5 rounded-2xl space-y-2">
               <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">{lang === 'hi' ? 'जेनोडो डीओआई' : 'Zenodo DOI Repository'}</span>
               <h3 className="font-mono font-bold text-base text-slate-900">10.5281/zenodo.10892341</h3>
               <p className="text-xs text-slate-500 font-mono">Open Access Repository DOI</p>
             </div>
 
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-2">
+            <div className="gloss-3d-card p-5 rounded-2xl space-y-2">
               <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">{lang === 'hi' ? 'समीक्षा मानक' : 'Review Standard'}</span>
               <h3 className="font-mono font-bold text-base text-red-900">Double-Blind Peer Review</h3>
               <p className="text-xs text-slate-500">15-30 Days Average Review Timeline</p>
@@ -380,25 +394,25 @@ export const AboutView: React.FC = () => {
             </h3>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-              <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200/60 font-bold text-xs text-amber-950 flex flex-col items-center justify-center space-y-1">
+              <div className="p-4 gloss-3d-card rounded-xl font-bold text-xs text-stone-900 flex flex-col items-center justify-center space-y-1">
                 <Globe className="w-6 h-6 text-sky-600 mb-1" />
                 <span>Google Scholar</span>
                 <span className="text-[10px] text-slate-500 font-mono">Academic Indexing</span>
               </div>
 
-              <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200/60 font-bold text-xs text-amber-950 flex flex-col items-center justify-center space-y-1">
+              <div className="p-4 gloss-3d-card rounded-xl font-bold text-xs text-stone-900 flex flex-col items-center justify-center space-y-1">
                 <Award className="w-6 h-6 text-amber-600 mb-1" />
                 <span>Zenodo</span>
                 <span className="text-[10px] text-slate-700 font-mono font-bold">10.5281/zenodo</span>
               </div>
 
-              <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200/60 font-bold text-xs text-amber-950 flex flex-col items-center justify-center space-y-1">
+              <div className="p-4 gloss-3d-card rounded-xl font-bold text-xs text-stone-900 flex flex-col items-center justify-center space-y-1">
                 <ShieldCheck className="w-6 h-6 text-emerald-600 mb-1" />
                 <span>ResearchGate</span>
                 <span className="text-[10px] text-slate-500 font-mono">Scholarly Network</span>
               </div>
 
-              <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200/60 font-bold text-xs text-amber-950 flex flex-col items-center justify-center space-y-1">
+              <div className="p-4 gloss-3d-card rounded-xl font-bold text-xs text-stone-900 flex flex-col items-center justify-center space-y-1">
                 <BookOpen className="w-6 h-6 text-red-800 mb-1" />
                 <span>Academia.edu</span>
                 <span className="text-[10px] text-slate-500 font-mono">Research Sharing</span>
@@ -411,7 +425,7 @@ export const AboutView: React.FC = () => {
 
       {/* ----------------- TAB 3: REVIEW WORKFLOW ----------------- */}
       {activeTab === 'workflow' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 shadow-lg space-y-8 animate-in fade-in">
+        <div className="gloss-3d-card rounded-2xl p-6 sm:p-10 space-y-8 animate-in fade-in">
           
           <div className="border-b border-slate-200 pb-4">
             <h2 className="text-2xl font-serif font-bold text-red-950">
@@ -424,8 +438,8 @@ export const AboutView: React.FC = () => {
 
           <div className="space-y-6 max-w-4xl mx-auto">
             
-            <div className="flex items-start space-x-4 p-5 bg-amber-50/60 rounded-2xl border border-amber-200">
-              <div className="w-10 h-10 bg-amber-500 text-slate-950 font-bold font-mono text-base rounded-xl flex items-center justify-center shrink-0 shadow-md">
+            <div className="flex items-start space-x-4 p-5 gloss-3d-card rounded-2xl">
+              <div className="w-10 h-10 gloss-3d-btn-primary font-bold font-mono text-base rounded-xl flex items-center justify-center shrink-0">
                 1
               </div>
               <div className="space-y-1">
@@ -438,8 +452,8 @@ export const AboutView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-start space-x-4 p-5 bg-slate-50 rounded-2xl border border-slate-200">
-              <div className="w-10 h-10 bg-red-950 text-amber-100 font-bold font-mono text-base rounded-xl flex items-center justify-center shrink-0 shadow-md">
+            <div className="flex items-start space-x-4 p-5 gloss-3d-card rounded-2xl">
+              <div className="w-10 h-10 gloss-3d-btn-maroon font-bold font-mono text-base rounded-xl flex items-center justify-center shrink-0">
                 2
               </div>
               <div className="space-y-1">
@@ -452,7 +466,7 @@ export const AboutView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-start space-x-4 p-5 bg-sky-50/70 rounded-2xl border border-sky-200">
+            <div className="flex items-start space-x-4 p-5 gloss-3d-card rounded-2xl">
               <div className="w-10 h-10 bg-sky-700 text-white font-bold font-mono text-base rounded-xl flex items-center justify-center shrink-0 shadow-md">
                 3
               </div>
@@ -466,7 +480,7 @@ export const AboutView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-start space-x-4 p-5 bg-slate-50 rounded-2xl border border-slate-200">
+            <div className="flex items-start space-x-4 p-5 gloss-3d-card rounded-2xl">
               <div className="w-10 h-10 bg-slate-800 text-slate-100 font-bold font-mono text-base rounded-xl flex items-center justify-center shrink-0 shadow-md">
                 4
               </div>
@@ -480,7 +494,7 @@ export const AboutView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-start space-x-4 p-5 bg-emerald-50/70 rounded-2xl border border-emerald-200">
+            <div className="flex items-start space-x-4 p-5 gloss-3d-card rounded-2xl">
               <div className="w-10 h-10 bg-emerald-700 text-white font-bold font-mono text-base rounded-xl flex items-center justify-center shrink-0 shadow-md">
                 5
               </div>
@@ -499,13 +513,32 @@ export const AboutView: React.FC = () => {
           <div className="pt-6 border-t border-slate-200 text-center">
             <button
               onClick={() => setActiveView('author_guidelines')}
-              className="inline-flex items-center space-x-2 bg-red-900 hover:bg-red-800 text-amber-100 px-8 py-3 rounded-xl font-bold text-sm shadow-md transition"
+              className="gloss-3d-btn-maroon inline-flex items-center space-x-2 px-8 py-3 rounded-xl font-bold text-sm cursor-pointer"
             >
               <FileCheck2 className="w-4 h-4" />
               <span>{lang === 'hi' ? 'अपनी पांडुलिपि सबमिट करें' : 'Submit Manuscript Now'}</span>
             </button>
           </div>
 
+        </div>
+      )}
+
+      {/* ----------------- TAB 4: EDITORIAL BOARD ----------------- */}
+      {activeTab === 'editorial' && (
+        <div className="space-y-6 animate-in fade-in">
+          <div className="gloss-3d-card rounded-2xl p-6 sm:p-8">
+            <div className="border-b border-slate-200 pb-4 mb-6">
+              <h2 className="text-2xl font-serif font-bold text-red-950">
+                {lang === 'hi' ? 'संपादकीय मंडल एवं सलाहकार परिषद' : 'Editorial Board & Advisory Council'}
+              </h2>
+              <p className="text-sm text-slate-600 mt-1">
+                {lang === 'hi' 
+                  ? 'पवारी शोध पत्रिका का आधिकारिक विद्वत मार्गदर्शक एवं समीक्षा मंडल (केंद्रीय डेटाबेस से स्वचालित सिंक)' 
+                  : 'Official editorial council and scholarly peer-review oversight board.'}
+              </p>
+            </div>
+            <EditorialBoardDisplay variant="full" />
+          </div>
         </div>
       )}
 

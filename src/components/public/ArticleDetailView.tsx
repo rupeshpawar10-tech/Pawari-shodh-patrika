@@ -525,6 +525,35 @@ export const ArticleDetailView: React.FC = () => {
           </div>
         </section>
 
+        {/* ----------------- EDITORIAL & PEER REVIEW VERIFICATION ----------------- */}
+        <section className="bg-stone-50 border border-stone-200/80 rounded-2xl p-4 sm:p-5 space-y-3 font-sans">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-2.5">
+              <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0" />
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-stone-900">
+                  {lang === 'hi' ? 'संपादकीय एवं पीर-रिव्यू प्रमाणीकरण' : 'Editorial Oversight & Peer-Review Verification'}
+                </h4>
+                <p className="text-[11px] text-stone-600">
+                  {lang === 'hi' 
+                    ? 'यह शोध पत्र पवारी शोध पत्रिका के संपादकीय मंडल द्वारा डबल-ब्लाइंड समीक्षा उपरांत स्वीकृत किया गया है।' 
+                    : 'This paper has undergone double-blind peer-review governed by the journal editorial council.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setActiveView('editorial_board');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="text-xs font-bold text-red-950 hover:text-red-800 bg-amber-500/15 hover:bg-amber-500/25 px-3 py-1.5 rounded-xl border border-amber-500/30 transition shrink-0 cursor-pointer"
+            >
+              {lang === 'hi' ? 'संपादकीय मंडल देखें ➔' : 'View Editorial Board ➔'}
+            </button>
+          </div>
+        </section>
+
       </article>
 
       {/* ----------------- RELATED ARTICLES SECTION ----------------- */}

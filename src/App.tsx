@@ -23,6 +23,12 @@ const AuthorGuidelinesView = React.lazy(() => import('./components/public/Author
 const ManuscriptSubmissionView = React.lazy(() => import('./components/public/ManuscriptSubmissionView').then(m => ({ default: m.ManuscriptSubmissionView })));
 const ContactView = React.lazy(() => import('./components/public/ContactView').then(m => ({ default: m.ContactView })));
 const PawariLokgeetView = React.lazy(() => import('./components/public/PawariLokgeetView').then(m => ({ default: m.PawariLokgeetView })));
+const BlogListingView = React.lazy(() => import('./components/public/BlogListingView').then(m => ({ default: m.BlogListingView })));
+const BlogDetailPage = React.lazy(() => import('./components/public/BlogDetailPage').then(m => ({ default: m.BlogDetailPage })));
+const BlogSubmissionView = React.lazy(() => import('./components/public/BlogSubmissionView').then(m => ({ default: m.BlogSubmissionView })));
+const LokgeetDetailView = React.lazy(() => import('./components/sahitya/LokgeetDetailView').then(m => ({ default: m.LokgeetDetailView })));
+const ShabdkoshDetailView = React.lazy(() => import('./components/sahitya/ShabdkoshDetailView').then(m => ({ default: m.ShabdkoshDetailView })));
+const PaheliDetailView = React.lazy(() => import('./components/sahitya/PaheliDetailView').then(m => ({ default: m.PaheliDetailView })));
 const NotFoundView = React.lazy(() => import('./components/common/NotFoundView').then(m => ({ default: m.NotFoundView })));
 
 // Lazy-loaded global modals & admin components
@@ -122,6 +128,13 @@ const MainContent: React.FC = () => {
     activeView, 
     selectedArticleId, 
     selectedWriterId,
+    selectedBlogId,
+    selectedLokgeetId,
+    setSelectedLokgeetId,
+    selectedShabdkoshId,
+    setSelectedShabdkoshId,
+    selectedPaheliId,
+    setSelectedPaheliId,
     articles, 
     issues,
     isNotFound, 
@@ -232,11 +245,26 @@ const MainContent: React.FC = () => {
       case 'archive': return <ArchiveView />;
       case 'articles': return <ArticlesView />;
       case 'books_blogs': return <BooksBlogsView />;
+      case 'blog_list': return <BlogListingView />;
+      case 'blog_detail': return <BlogDetailPage slugOrId={selectedBlogId} />;
+      case 'submit_blog': return <BlogSubmissionView />;
       case 'pawari_writers': return <BooksBlogsView initialTab="writers" />;
       case 'writer_profile': return <WriterProfileView writerIdOrSlug={selectedWriterId} />;
-      case 'pawari_shabdkosh': return <BooksBlogsView initialTab="shabdkosh" />;
-      case 'pawari_paheli': return <BooksBlogsView initialTab="paheli" />;
-      case 'pawari_lokgeet': return <PawariLokgeetView />;
+      case 'pawari_shabdkosh': 
+        if (selectedShabdkoshId) {
+          return <ShabdkoshDetailView slugOrId={selectedShabdkoshId} onBack={() => setSelectedShabdkoshId(null)} />;
+        }
+        return <BooksBlogsView initialTab="shabdkosh" />;
+      case 'pawari_paheli': 
+        if (selectedPaheliId) {
+          return <PaheliDetailView slugOrId={selectedPaheliId} onBack={() => setSelectedPaheliId(null)} />;
+        }
+        return <BooksBlogsView initialTab="paheli" />;
+      case 'pawari_lokgeet': 
+        if (selectedLokgeetId) {
+          return <LokgeetDetailView slugOrId={selectedLokgeetId} onBack={() => setSelectedLokgeetId(null)} />;
+        }
+        return <BooksBlogsView initialTab="lokgeet" />;
       case 'pawari_quiz': return <BooksBlogsView initialTab="quiz" />;
       case 'article_detail': 
         if (!currentArticle) return <NotFoundView />;

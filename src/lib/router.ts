@@ -71,7 +71,18 @@ export function parseRouteFromUrl(): RouteMatch {
 
     if (hash.startsWith('#/blog/')) {
       const targetId = hash.replace('#/blog/', '').split('?')[0];
-      if (targetId) return { view: 'books_blogs', articleIdOrSlug: null, issueId: null, tab: 'blogs', bookId: null, blogId: targetId, writerId: null, isNotFound: false };
+      if (targetId === 'submit' || targetId === 'submit-blog') {
+        return { view: 'submit_blog', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, writerId: null, isNotFound: false };
+      }
+      if (targetId) return { view: 'blog_detail', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: targetId, writerId: null, isNotFound: false };
+    }
+
+    if (hash === '#/blog' || hash === '#/blogs') {
+      return { view: 'blog_list', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, writerId: null, isNotFound: false };
+    }
+
+    if (hash === '#/submit-blog' || hash === '#/submit_blog') {
+      return { view: 'submit_blog', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, writerId: null, isNotFound: false };
     }
 
     if (hash.startsWith('#/writer/')) {
@@ -91,6 +102,26 @@ export function parseRouteFromUrl(): RouteMatch {
 
     if (pathname === '/about' || pathname === '/about-us') {
       return { view: 'about', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+    }
+
+    if (pathname === '/blog' || pathname === '/blogs') {
+      return { view: 'blog_list', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+    }
+
+    if (pathname === '/submit-blog' || pathname === '/submit_blog' || pathname === '/blog/submit') {
+      return { view: 'submit_blog', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+    }
+
+    if (pathname.startsWith('/blog/')) {
+      let blogSlugOrId = pathname.replace('/blog/', '').trim();
+      try { blogSlugOrId = decodeURIComponent(blogSlugOrId); } catch (e) {}
+      if (blogSlugOrId === '' || blogSlugOrId === 'all') {
+        return { view: 'blog_list', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+      }
+      if (blogSlugOrId === 'submit' || blogSlugOrId === 'submit-blog' || blogSlugOrId === 'new') {
+        return { view: 'submit_blog', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: null, isNotFound: false };
+      }
+      return { view: 'blog_detail', articleIdOrSlug: null, issueId: null, tab: null, bookId: null, blogId: blogSlugOrId, isNotFound: false };
     }
 
     if (pathname === '/current-issue' || pathname === '/current') {
@@ -139,17 +170,20 @@ export function parseRouteFromUrl(): RouteMatch {
     }
 
     if (pathname.startsWith('/lokgeet/')) {
-      const slugOrId = pathname.replace('/lokgeet/', '').trim();
+      let slugOrId = pathname.replace('/lokgeet/', '').trim();
+      try { slugOrId = decodeURIComponent(slugOrId); } catch (e) {}
       return { view: 'pawari_lokgeet', articleIdOrSlug: null, issueId: null, tab: 'lokgeet', lokgeetSlugOrId: slugOrId || null, isNotFound: false };
     }
 
     if (pathname.startsWith('/paheli/')) {
-      const slugOrId = pathname.replace('/paheli/', '').trim();
+      let slugOrId = pathname.replace('/paheli/', '').trim();
+      try { slugOrId = decodeURIComponent(slugOrId); } catch (e) {}
       return { view: 'pawari_paheli', articleIdOrSlug: null, issueId: null, tab: 'paheli', paheliSlugOrId: slugOrId || null, isNotFound: false };
     }
 
     if (pathname.startsWith('/shabdkosh/')) {
-      const slugOrId = pathname.replace('/shabdkosh/', '').trim();
+      let slugOrId = pathname.replace('/shabdkosh/', '').trim();
+      try { slugOrId = decodeURIComponent(slugOrId); } catch (e) {}
       return { view: 'pawari_shabdkosh', articleIdOrSlug: null, issueId: null, tab: 'shabdkosh', shabdkoshSlugOrId: slugOrId || null, isNotFound: false };
     }
 
@@ -253,6 +287,9 @@ export function getUrlForView(
     case 'archive': return issueId ? `/issue/${issueId}` : '/archives';
     case 'articles': return '/articles';
     case 'books_blogs': return '/books-literature';
+    case 'blog_list': return '/blog';
+    case 'blog_detail': return blogId ? (blogId.startsWith('/') ? blogId : `/blog/${blogId}`) : '/blog';
+    case 'submit_blog': return '/submit-blog';
     case 'pawari_writers': return '/writers';
     case 'writer_profile': return writerId ? `/writer/${writerId}` : '/writers';
     case 'pawari_shabdkosh': return itemSlugOrId ? `/shabdkosh/${itemSlugOrId}` : '/shabdkosh';

@@ -22,7 +22,14 @@ export function createSlug(title: string, fallbackId: string = ''): string {
   return slug;
 }
 
-import { Article } from '../types';
+import { 
+  Article, 
+  PawariLokgeetItem, 
+  PawariShabdkoshItem, 
+  PawariPaheliItem, 
+  PawariWriterItem 
+} from '../types';
+import { BookItem, BlogItem } from '../data/booksBlogsData';
 
 export function findArticle(articles: Article[], identifier: string | null): Article | null {
   if (!identifier) return null;
@@ -73,6 +80,203 @@ export function findArticle(articles: Article[], identifier: string | null): Art
     );
   }
   return found || null;
+}
+
+export function findLokgeet(lokgeetList: PawariLokgeetItem[], identifier: string | null): PawariLokgeetItem | null {
+  if (!identifier || !lokgeetList || lokgeetList.length === 0) return null;
+  let cleanId = identifier.trim().toLowerCase();
+  try {
+    cleanId = decodeURIComponent(cleanId).trim().toLowerCase();
+  } catch (e) {}
+  if (!cleanId) return null;
+
+  // 1. Exact ID match
+  let found = lokgeetList.find(l => l.id && l.id.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 2. Exact slug match
+  found = lokgeetList.find(l => l.slug && l.slug.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 3. Slugified title match
+  const targetSlug = createSlug(cleanId);
+  found = lokgeetList.find(l => {
+    const slugPawari = createSlug(l.title_pawari || (l as any).title || '');
+    const slugHi = createSlug(l.title_hindi || '');
+    const storedSlug = l.slug ? createSlug(l.slug) : '';
+    return storedSlug === targetSlug || slugPawari === targetSlug || slugHi === targetSlug;
+  });
+  if (found) return found;
+
+  // 4. Prefix or substring match for IDs like lokgeet-gopinath-1 or 1
+  if (/^\d+$/.test(cleanId)) {
+    const num = parseInt(cleanId, 10);
+    if (num > 0 && num <= lokgeetList.length) {
+      return lokgeetList[num - 1];
+    }
+  }
+
+  return null;
+}
+
+export function findShabdkosh(shabdkoshList: PawariShabdkoshItem[], identifier: string | null): PawariShabdkoshItem | null {
+  if (!identifier || !shabdkoshList || shabdkoshList.length === 0) return null;
+  let cleanId = identifier.trim().toLowerCase();
+  try {
+    cleanId = decodeURIComponent(cleanId).trim().toLowerCase();
+  } catch (e) {}
+  if (!cleanId) return null;
+
+  // 1. Exact ID
+  let found = shabdkoshList.find(s => s.id && s.id.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 2. Exact Slug
+  found = shabdkoshList.find(s => s.slug && s.slug.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 3. Word match (Devanagari word or English pronunciation)
+  found = shabdkoshList.find(s => {
+    const wordHi = s.word_pawari ? s.word_pawari.trim().toLowerCase() : '';
+    const pron = s.pronunciation_hindi ? s.pronunciation_hindi.trim().toLowerCase() : '';
+    const slugWord = createSlug(s.word_pawari);
+    const targetSlug = createSlug(cleanId);
+    return wordHi === cleanId || pron === cleanId || slugWord === targetSlug;
+  });
+  if (found) return found;
+
+  // 4. Numeric index fallback
+  if (/^\d+$/.test(cleanId)) {
+    const num = parseInt(cleanId, 10);
+    if (num > 0 && num <= shabdkoshList.length) {
+      return shabdkoshList[num - 1];
+    }
+  }
+
+  return null;
+}
+
+export function findPaheli(paheliList: PawariPaheliItem[], identifier: string | null): PawariPaheliItem | null {
+  if (!identifier || !paheliList || paheliList.length === 0) return null;
+  let cleanId = identifier.trim().toLowerCase();
+  try {
+    cleanId = decodeURIComponent(cleanId).trim().toLowerCase();
+  } catch (e) {}
+  if (!cleanId) return null;
+
+  // 1. Exact ID
+  let found = paheliList.find(p => p.id && p.id.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 2. Exact Slug
+  found = paheliList.find(p => p.slug && p.slug.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 3. Slug match on riddle text
+  const targetSlug = createSlug(cleanId);
+  found = paheliList.find(p => {
+    const rPawari = createSlug(p.riddle_pawari || (p as any).riddle_hindi || '');
+    const ans = createSlug(p.answer_hindi || (p as any).answer || '');
+    const storedSlug = p.slug ? createSlug(p.slug) : '';
+    return storedSlug === targetSlug || rPawari === targetSlug || ans === targetSlug;
+  });
+  if (found) return found;
+
+  // 4. Numeric index fallback
+  if (/^\d+$/.test(cleanId)) {
+    const num = parseInt(cleanId, 10);
+    if (num > 0 && num <= paheliList.length) {
+      return paheliList[num - 1];
+    }
+  }
+
+  return null;
+}
+
+export function findBook(books: BookItem[], identifier: string | null): BookItem | null {
+  if (!identifier || !books || books.length === 0) return null;
+  let cleanId = identifier.trim().toLowerCase();
+  try {
+    cleanId = decodeURIComponent(cleanId).trim().toLowerCase();
+  } catch (e) {}
+  if (!cleanId) return null;
+
+  // 1. Exact ID
+  let found = books.find(b => b.id && b.id.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 2. Exact Slug
+  found = books.find(b => b.slug && b.slug.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 3. Title slug match
+  const targetSlug = createSlug(cleanId);
+  found = books.find(b => {
+    const slugHi = createSlug(b.title_hindi);
+    const slugEn = createSlug(b.title_english);
+    const stored = b.slug ? createSlug(b.slug) : '';
+    return stored === targetSlug || slugHi === targetSlug || slugEn === targetSlug;
+  });
+  if (found) return found;
+
+  return null;
+}
+
+export function findBlog(blogs: BlogItem[], identifier: string | null): BlogItem | null {
+  if (!identifier || !blogs || blogs.length === 0) return null;
+  let cleanId = identifier.trim().toLowerCase();
+  try {
+    cleanId = decodeURIComponent(cleanId).trim().toLowerCase();
+  } catch (e) {}
+  if (!cleanId) return null;
+
+  // 1. Exact ID
+  let found = blogs.find(b => b.id && b.id.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 2. Exact Slug
+  found = blogs.find(b => b.slug && b.slug.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 3. Title slug match
+  const targetSlug = createSlug(cleanId);
+  found = blogs.find(b => {
+    const slugHi = createSlug(b.title_hindi);
+    const slugEn = createSlug(b.title_english);
+    const stored = b.slug ? createSlug(b.slug) : '';
+    return stored === targetSlug || slugHi === targetSlug || slugEn === targetSlug;
+  });
+  if (found) return found;
+
+  return null;
+}
+
+export function findWriter(writers: PawariWriterItem[], identifier: string | null): PawariWriterItem | null {
+  if (!identifier || !writers || writers.length === 0) return null;
+  let cleanId = identifier.trim().toLowerCase();
+  try {
+    cleanId = decodeURIComponent(cleanId).trim().toLowerCase();
+  } catch (e) {}
+  if (!cleanId) return null;
+
+  // 1. Exact ID
+  let found = writers.find(w => w.id && w.id.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 2. Exact Slug
+  found = writers.find(w => (w as any).slug && (w as any).slug.toLowerCase() === cleanId);
+  if (found) return found;
+
+  // 3. Name slug match
+  const targetSlug = createSlug(cleanId);
+  found = writers.find(w => {
+    const slugHi = createSlug(w.name_hindi);
+    const slugEn = createSlug(w.name_english);
+    return slugHi === targetSlug || slugEn === targetSlug;
+  });
+  if (found) return found;
+
+  return null;
 }
 
 export function ensureUniqueSlug(

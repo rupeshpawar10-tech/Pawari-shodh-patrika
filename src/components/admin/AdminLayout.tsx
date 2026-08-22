@@ -15,6 +15,7 @@ import { UsersManager } from './UsersManager';
 import { RolesManager } from './RolesManager';
 import { SubmissionsManager } from './SubmissionsManager';
 import { BooksBlogsManager } from './BooksBlogsManager';
+import { BlogsManager } from './BlogsManager';
 import { ActivityLogManager } from './ActivityLogManager';
 import { ShabdkoshManager } from './ShabdkoshManager';
 import { PaheliManager } from './PaheliManager';
@@ -103,7 +104,8 @@ export const AdminLayout: React.FC = () => {
     shabdkoshList,
     paheliList,
     lokgeetList,
-    submissions
+    submissions,
+    blogs
   } = useCms();
   const { 
     userProfile, 
@@ -139,6 +141,7 @@ export const AdminLayout: React.FC = () => {
     lokgeetList.filter(i => i.status === 'pending').length;
 
   const pendingSubmissionsCount = submissions.filter(s => s.status === 'pending').length;
+  const pendingBlogsCount = (blogs || []).filter(b => b.status === 'pending').length;
 
   // Grouped Navigation Categories
   const navCategories = [
@@ -158,15 +161,22 @@ export const AdminLayout: React.FC = () => {
     {
       title: '📁 डिजिटलकरण संग्रह / Digitalization Repository',
       items: [
-        { id: 'books_blogs', label: '1. पुस्तकें एवं ब्लॉग (Books & Blogs)', icon: Book },
-        { id: 'writers', label: '2. लेखक एवं साहित्यकार (Writers & Authors)', icon: UserCheck },
-        { id: 'shabdkosh', label: '3. पवारी शब्दकोश (Shabdkosh)', icon: BookOpen },
-        { id: 'paheli', label: '4. पवारी पहेली (Paheli)', icon: HelpCircle },
-        { id: 'lokgeet', label: '5. पवारी लोकगीत (Lokgeet)', icon: Music },
-        { id: 'cultural_quizzes', label: '6. पवारी प्रश्नोत्तरी (Quiz)', icon: Award },
+        { 
+          id: 'blogs', 
+          label: '1. शोध व विचार ब्लॉग (Blog CMS)', 
+          icon: BookOpen,
+          badge: pendingBlogsCount > 0 ? `${pendingBlogsCount} new` : null,
+          badgeColor: 'bg-amber-600 text-white font-bold'
+        },
+        { id: 'books_blogs', label: '2. ई-पुस्तकें एवं साहित्य (Books & Lit)', icon: Book },
+        { id: 'writers', label: '3. लेखक एवं साहित्यकार (Writers & Authors)', icon: UserCheck },
+        { id: 'shabdkosh', label: '4. पवारी शब्दकोश (Shabdkosh)', icon: BookOpen },
+        { id: 'paheli', label: '5. पवारी पहेली (Paheli)', icon: HelpCircle },
+        { id: 'lokgeet', label: '6. पवारी लोकगीत (Lokgeet)', icon: Music },
+        { id: 'cultural_quizzes', label: '7. पवारी प्रश्नोत्तरी (Quiz)', icon: Award },
         { 
           id: 'public_contributions', 
-          label: '7. पाठक योगदान (Reader Contributions)', 
+          label: '8. पाठक योगदान (Reader Contributions)', 
           icon: UserPlus,
           badge: pendingContributionsCount > 0 ? `${pendingContributionsCount} new` : null,
           badgeColor: 'bg-amber-500 text-red-950 font-bold'
@@ -221,6 +231,8 @@ export const AdminLayout: React.FC = () => {
     switch (activeAdminTab) {
       case 'dashboard':
         return <AdminDashboard />;
+      case 'blogs':
+        return (canManageBooks || canManageBlogs) ? <BlogsManager /> : <AccessRestrictedCard sectionTitle="Blog Articles CMS" requiredPermission="Blogs Management" />;
       case 'articles':
         return canManageArticles ? <ArticlesManager /> : <AccessRestrictedCard sectionTitle="Research Papers & Articles" requiredPermission="Articles Management" />;
       case 'issues':

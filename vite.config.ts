@@ -10,6 +10,7 @@ export default defineConfig(() => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+      dedupe: ['react', 'react-dom'],
     },
     build: {
       chunkSizeWarningLimit: 1000,
@@ -17,7 +18,9 @@ export default defineConfig(() => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              if (id.includes('react') || id.includes('react-dom')) return 'vendor-react';
+              if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
+                return 'vendor-react';
+              }
               if (id.includes('firebase')) return 'vendor-firebase';
               if (id.includes('pdfjs-dist')) return 'vendor-pdfjs';
               if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-jspdf';

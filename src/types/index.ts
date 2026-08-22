@@ -430,6 +430,8 @@ export interface PawariLokgeetItem {
   created_at: string;
 }
 
+export type QuizCategoryType = 'shabdkosh' | 'paheli' | 'lokgeet' | 'books' | 'reviews' | 'general' | 'writers' | 'articles';
+
 export interface QuizQuestion {
   id: string;
   question_pawari: string;
@@ -437,7 +439,9 @@ export interface QuizQuestion {
   options: string[];
   correct_option_index: number;
   explanation: string;
-  section_type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'writers' | 'articles' | 'books';
+  section_type: QuizCategoryType;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  cultural_notes?: string;
 }
 
 export interface QuizCertificate {
@@ -449,6 +453,12 @@ export interface QuizCertificate {
   percentage: number;
   issued_date: string;
   certificate_no: string;
+  exam_title?: string;
+  grade?: string;
+  category_breakdown?: Record<string, { score: number; total: number }>;
+  verification_url?: string;
+  patron_name?: string;
+  chief_editor_name?: string;
 }
 
 export interface QuizLeaderboardEntry {
@@ -461,6 +471,7 @@ export interface QuizLeaderboardEntry {
   issued_date: string;
   certificate_no: string;
   created_at?: string;
+  grade?: string;
 }
 
 export interface PawariWriterItem {
