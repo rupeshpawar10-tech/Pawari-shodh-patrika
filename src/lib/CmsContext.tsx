@@ -8,8 +8,23 @@ import {
   updateDoc, 
   deleteDoc, 
   increment,
-  onSnapshot
+  query,
+  where
 } from 'firebase/firestore';
+
+export function sanitizeForFirestore<T>(obj: T): T {
+  if (obj === null || obj === undefined) return null as any;
+  if (typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeForFirestore) as any;
+  const cleaned: any = {};
+  for (const key of Object.keys(obj as any)) {
+    const val = (obj as any)[key];
+    if (val !== undefined) {
+      cleaned[key] = sanitizeForFirestore(val);
+    }
+  }
+  return cleaned as T;
+}
 import { ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage, auth, firebaseConfig } from './firebase';
 import { 
@@ -26,44 +41,25 @@ import {
   PawariPaheliItem,
   PawariLokgeetItem,
   QuizQuestion,
-  QuizCertificate,
-  QuizLeaderboardEntry,
-  PawariWriterItem
+  QuizCertificate
 } from '../types';
-import { BookItem, BlogItem, SAMPLE_BOOKS, SAMPLE_BLOGS, SAMPLE_WRITERS } from '../data/booksBlogsData';
+import { BookItem, BlogItem, SAMPLE_BOOKS, SAMPLE_BLOGS } from '../data/booksBlogsData';
 import { 
   SAMPLE_SHABDKOSH, 
   SAMPLE_PAHELI, 
   SAMPLE_LOKGEET, 
-  SAMPLE_QUIZ_QUESTIONS,
-  SAMPLE_QUIZ_LEADERBOARD
+  SAMPLE_QUIZ_QUESTIONS 
 } from '../data/pawariCulturalData';
-import { MASTER_QUESTION_BANK } from '../data/quizQuestionBank';
 import { 
   DEFAULT_SETTINGS, 
   DEFAULT_PAGES, 
   SAMPLE_ISSUES, 
   SAMPLE_ARTICLES, 
   SAMPLE_EDITORIAL_BOARD, 
-  DEFAULT_PAWARI_MEMBER_AVATAR,
-  SAMPLE_PDF_BLOB,
   SAMPLE_ANNOUNCEMENTS 
 } from '../data/seedData';
-import { ensureUniqueSlug } from './slugUtils';
 import { fileBlobManager, saveFileToIndexedDB, base64ToBlob } from './fileBlobManager';
 import { parseRouteFromUrl, navigateTo } from './router';
-
-export function deduplicateList<T extends { id: string }>(items: T[]): T[] {
-  if (!Array.isArray(items)) return [];
-  const map = new Map<string, T>();
-  for (const item of items) {
-    if (item && item.id) {
-      const existing = map.get(item.id);
-      map.set(item.id, existing ? { ...existing, ...item } : item);
-    }
-  }
-  return Array.from(map.values());
-}
 
 export interface UploadProgressDetails {
   loaded: number;
@@ -133,11 +129,6 @@ export type PublicPageView =
   | 'archive' 
   | 'articles' 
   | 'books_blogs'
-  | 'blog_list'
-  | 'blog_detail'
-  | 'submit_blog'
-  | 'pawari_writers'
-  | 'writer_profile'
   | 'pawari_shabdkosh'
   | 'pawari_paheli'
   | 'pawari_lokgeet'
@@ -147,16 +138,13 @@ export type PublicPageView =
   | 'author_guidelines' 
   | 'submit_manuscript'
   | 'contact' 
-  | 'admin'
-  | 'author_article_editor';
+  | 'admin';
 
 export type AdminTab = 
   | 'dashboard' 
   | 'articles' 
   | 'issues' 
   | 'books_blogs'
-  | 'blogs'
-  | 'writers'
   | 'shabdkosh'
   | 'paheli'
   | 'lokgeet'
@@ -177,25 +165,9 @@ interface CmsContextType {
   lang: 'hi' | 'en';
   setLang: (lang: 'hi' | 'en') => void;
   activeView: PublicPageView;
-  setActiveView: (view: PublicPageView, articleIdOrSlug?: string | null, issueId?: string | null, bookId?: string | null, blogId?: string | null, writerId?: string | null) => void;
+  setActiveView: (view: PublicPageView, articleIdOrSlug?: string | null, issueId?: string | null) => void;
   selectedArticleId: string | null;
   setSelectedArticleId: (id: string | null) => void;
-  selectedIssueId: string | null;
-  setSelectedIssueId: (id: string | null) => void;
-  selectedBookId: string | null;
-  setSelectedBookId: (id: string | null) => void;
-  selectedBlogId: string | null;
-  setSelectedBlogId: (id: string | null) => void;
-  selectedWriterId: string | null;
-  setSelectedWriterId: (id: string | null) => void;
-  selectedLokgeetId: string | null;
-  setSelectedLokgeetId: (idOrSlug: string | null) => void;
-  selectedPaheliId: string | null;
-  setSelectedPaheliId: (idOrSlug: string | null) => void;
-  selectedShabdkoshId: string | null;
-  setSelectedShabdkoshId: (idOrSlug: string | null) => void;
-  searchQuery: string;
-  setSearchQuery: (q: string) => void;
   isNotFound: boolean;
   setIsNotFound: (val: boolean) => void;
   activeAdminTab: AdminTab;
@@ -206,15 +178,10 @@ interface CmsContextType {
   issues: Issue[];
   books: BookItem[];
   blogs: BlogItem[];
-  writers: PawariWriterItem[];
   shabdkoshList: PawariShabdkoshItem[];
   paheliList: PawariPaheliItem[];
   lokgeetList: PawariLokgeetItem[];
-  lokgeetCategories: string[];
-  saveLokgeetCategory: (catName: string) => Promise<void>;
-  deleteLokgeetCategory: (catName: string) => Promise<void>;
   quizQuestions: QuizQuestion[];
-  quizLeaderboard: QuizLeaderboardEntry[];
   pages: Record<string, PageContent>;
   editorialMembers: EditorialMember[];
   announcements: Announcement[];
@@ -244,13 +211,6 @@ interface CmsContextType {
   deleteBook: (id: string) => Promise<void>;
   saveBlog: (blog: BlogItem) => Promise<void>;
   deleteBlog: (id: string) => Promise<void>;
-  submitPublicBlog: (blogData: Partial<BlogItem>) => Promise<{ success: boolean; refId: string; error?: string }>;
-  approveBlog: (blogId: string) => Promise<void>;
-  rejectBlog: (blogId: string, comments?: string) => Promise<void>;
-  publishBlog: (blogId: string) => Promise<void>;
-  unpublishBlog: (blogId: string) => Promise<void>;
-  saveWriter: (writer: PawariWriterItem) => Promise<void>;
-  deleteWriter: (id: string) => Promise<void>;
   
   // Shabdkosh, Paheli, Lokgeet, Quiz CRUD
   saveShabdkosh: (item: PawariShabdkoshItem) => Promise<void>;
@@ -261,9 +221,8 @@ interface CmsContextType {
   deleteLokgeet: (id: string) => Promise<void>;
   saveQuizQuestion: (question: QuizQuestion) => Promise<void>;
   deleteQuizQuestion: (id: string) => Promise<void>;
-  saveQuizCertificate: (cert: QuizCertificate) => Promise<void>;
-  submitPublicContribution: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'writers' | 'cultural_quizzes' | 'reviews', itemData: any) => Promise<void>;
-  updateContributionStatus: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'writers' | 'cultural_quizzes' | 'submissions', id: string, status: 'approved' | 'pending' | 'rejected', editorial_comments?: string) => Promise<void>;
+  submitPublicContribution: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books', itemData: any) => Promise<void>;
+  updateContributionStatus: (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'submissions', id: string, status: 'approved' | 'pending' | 'rejected') => Promise<void>;
 
   savePage: (page: PageContent) => Promise<void>;
   saveEditorialMember: (member: EditorialMember) => Promise<void>;
@@ -283,6 +242,8 @@ interface CmsContextType {
   deleteSubmission: (id: string) => Promise<void>;
   
   seedDatabaseIfEmpty: () => Promise<void>;
+  fetchArticleByIdOrSlug: (idOrSlug: string) => Promise<Article | null>;
+  syncAllArticlesToCloud: () => Promise<{ synced: number; errors: number }>;
 }
 
 const CmsContext = createContext<CmsContextType | undefined>(undefined);
@@ -445,68 +406,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [lang, setLang] = useState<'hi' | 'en'>('hi');
   const [activeView, setActiveViewRaw] = useState<PublicPageView>(initialRoute.view);
   const [selectedArticleId, setSelectedArticleIdRaw] = useState<string | null>(initialRoute.articleIdOrSlug);
-  const [selectedIssueId, setSelectedIssueIdRaw] = useState<string | null>(initialRoute.issueId || null);
-  const [selectedBookId, setSelectedBookIdRaw] = useState<string | null>(initialRoute.bookId || null);
-  const [selectedBlogId, setSelectedBlogIdRaw] = useState<string | null>(initialRoute.blogId || null);
-  const [selectedWriterId, setSelectedWriterIdRaw] = useState<string | null>(initialRoute.writerId || null);
-  const [selectedLokgeetId, setSelectedLokgeetIdRaw] = useState<string | null>(initialRoute.lokgeetSlugOrId || null);
-  const [selectedPaheliId, setSelectedPaheliIdRaw] = useState<string | null>(initialRoute.paheliSlugOrId || null);
-  const [selectedShabdkoshId, setSelectedShabdkoshIdRaw] = useState<string | null>(initialRoute.shabdkoshSlugOrId || null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
   const [isNotFound, setIsNotFound] = useState<boolean>(initialRoute.isNotFound);
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('dashboard');
 
-  const setActiveView = (
-    view: PublicPageView, 
-    articleIdOrSlug?: string | null, 
-    issueId?: string | null,
-    bookId?: string | null,
-    blogId?: string | null,
-    writerId?: string | null
-  ) => {
+  const setActiveView = (view: PublicPageView, articleIdOrSlug?: string | null, issueId?: string | null) => {
     setIsNotFound(false);
     setActiveViewRaw(view);
-    
-    let targetArticleId = selectedArticleId;
     if (articleIdOrSlug !== undefined) {
       setSelectedArticleIdRaw(articleIdOrSlug);
-      targetArticleId = articleIdOrSlug;
     }
-
-    let targetIssueId = selectedIssueId;
-    if (issueId !== undefined) {
-      setSelectedIssueIdRaw(issueId);
-      targetIssueId = issueId;
-    }
-    
-    let targetBookId = selectedBookId;
-    if (bookId !== undefined) {
-      setSelectedBookIdRaw(bookId);
-      targetBookId = bookId;
-    }
-    
-    let targetBlogId = selectedBlogId;
-    if (blogId !== undefined) {
-      setSelectedBlogIdRaw(blogId);
-      targetBlogId = blogId;
-    }
-
-    let targetWriterId = selectedWriterId;
-    if (writerId !== undefined) {
-      setSelectedWriterIdRaw(writerId);
-      targetWriterId = writerId;
-    }
-
-    navigateTo(
-      view, 
-      targetArticleId, 
-      targetIssueId,
-      targetBookId,
-      targetBlogId,
-      null,
-      false,
-      targetWriterId
-    );
+    navigateTo(view, articleIdOrSlug !== undefined ? articleIdOrSlug : selectedArticleId, issueId);
   };
 
   const setSelectedArticleId = (id: string | null) => {
@@ -516,73 +425,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const setSelectedIssueId = (id: string | null) => {
-    setSelectedIssueIdRaw(id);
-    if (activeView === 'current_issue' || activeView === 'archive') {
-      navigateTo(activeView, null, id);
-    }
-  };
-
-  const setSelectedBookId = (id: string | null) => {
-    setSelectedBookIdRaw(id);
-    if (id) {
-      navigateTo('books_blogs', null, null, id, null);
-    }
-  };
-
-  const setSelectedBlogId = (id: string | null) => {
-    setSelectedBlogIdRaw(id);
-    if (id) {
-      navigateTo('books_blogs', null, null, null, id);
-    }
-  };
-
-  const setSelectedWriterId = (id: string | null) => {
-    setSelectedWriterIdRaw(id);
-    if (id) {
-      navigateTo('writer_profile', null, null, null, null, null, false, id);
-    }
-  };
-
-  const setSelectedLokgeetId = (idOrSlug: string | null) => {
-    setSelectedLokgeetIdRaw(idOrSlug);
-    if (idOrSlug) {
-      navigateTo('pawari_lokgeet', null, null, null, null, idOrSlug);
-    } else {
-      navigateTo('pawari_lokgeet');
-    }
-  };
-
-  const setSelectedPaheliId = (idOrSlug: string | null) => {
-    setSelectedPaheliIdRaw(idOrSlug);
-    if (idOrSlug) {
-      navigateTo('pawari_paheli', null, null, null, null, idOrSlug);
-    } else {
-      navigateTo('pawari_paheli');
-    }
-  };
-
-  const setSelectedShabdkoshId = (idOrSlug: string | null) => {
-    setSelectedShabdkoshIdRaw(idOrSlug);
-    if (idOrSlug) {
-      navigateTo('pawari_shabdkosh', null, null, null, null, idOrSlug);
-    } else {
-      navigateTo('pawari_shabdkosh');
-    }
-  };
-
   useEffect(() => {
     const handlePopState = () => {
       const currentRoute = parseRouteFromUrl();
       setActiveViewRaw(currentRoute.view);
       setSelectedArticleIdRaw(currentRoute.articleIdOrSlug);
-      if (currentRoute.bookId !== undefined) setSelectedBookIdRaw(currentRoute.bookId);
-      if (currentRoute.blogId !== undefined) setSelectedBlogIdRaw(currentRoute.blogId);
-      if (currentRoute.writerId !== undefined) setSelectedWriterIdRaw(currentRoute.writerId);
-      if (currentRoute.issueId !== undefined) setSelectedIssueIdRaw(currentRoute.issueId);
-      if (currentRoute.lokgeetSlugOrId !== undefined) setSelectedLokgeetIdRaw(currentRoute.lokgeetSlugOrId);
-      if (currentRoute.paheliSlugOrId !== undefined) setSelectedPaheliIdRaw(currentRoute.paheliSlugOrId);
-      if (currentRoute.shabdkoshSlugOrId !== undefined) setSelectedShabdkoshIdRaw(currentRoute.shabdkoshSlugOrId);
       setIsNotFound(currentRoute.isNotFound);
     };
     window.addEventListener('popstate', handlePopState);
@@ -590,56 +437,27 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const [settings, setSettings] = useState<JournalSettings>(DEFAULT_SETTINGS);
-  const [articles, setArticles] = useState<Article[]>(() => {
-    try {
-      const saved = localStorage.getItem('local_articles_cache');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
-      }
-    } catch (e) {}
-    return deduplicateList(SAMPLE_ARTICLES);
-  });
-  const [issues, setIssues] = useState<Issue[]>(() => {
-    try {
-      const saved = localStorage.getItem('local_issues_cache');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
-      }
-    } catch (e) {}
-    return deduplicateList(SAMPLE_ISSUES);
-  });
+  const [articles, setArticles] = useState<Article[]>(SAMPLE_ARTICLES);
+  const [issues, setIssues] = useState<Issue[]>(SAMPLE_ISSUES);
   const [books, setBooks] = useState<BookItem[]>(() => {
     try {
       const saved = localStorage.getItem('local_books_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return deduplicateList(SAMPLE_BOOKS);
+    return SAMPLE_BOOKS;
   });
   const [blogs, setBlogs] = useState<BlogItem[]>(() => {
     try {
       const saved = localStorage.getItem('local_blogs_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return deduplicateList(SAMPLE_BLOGS);
-  });
-
-  const [writers, setWriters] = useState<PawariWriterItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('pawari_writers_cache');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
-      }
-    } catch (e) {}
-    return deduplicateList(SAMPLE_WRITERS);
+    return SAMPLE_BLOGS;
   });
 
   const [shabdkoshList, setShabdkoshList] = useState<PawariShabdkoshItem[]>(() => {
@@ -647,10 +465,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('pawari_shabdkosh_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return deduplicateList(SAMPLE_SHABDKOSH);
+    return SAMPLE_SHABDKOSH;
   });
 
   const [paheliList, setPaheliList] = useState<PawariPaheliItem[]>(() => {
@@ -659,13 +477,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const merged = deduplicateList([...parsed, ...SAMPLE_PAHELI]);
-          try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(merged)); } catch (e) {}
-          return merged;
+          const existingIds = new Set(parsed.map((p: PawariPaheliItem) => p.id));
+          const missingSamples = SAMPLE_PAHELI.filter(s => !existingIds.has(s.id));
+          if (missingSamples.length > 0) {
+            const merged = [...parsed, ...missingSamples];
+            try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(merged)); } catch (e) {}
+            return merged;
+          }
+          return parsed;
         }
       }
     } catch (e) {}
-    return deduplicateList(SAMPLE_PAHELI);
+    return SAMPLE_PAHELI;
   });
 
   const [lokgeetList, setLokgeetList] = useState<PawariLokgeetItem[]>(() => {
@@ -673,54 +496,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('pawari_lokgeet_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const merged = deduplicateList([...parsed, ...SAMPLE_LOKGEET]);
-          return merged;
-        }
-      }
-    } catch (e) {}
-    return deduplicateList(SAMPLE_LOKGEET);
-  });
-
-  const DEFAULT_LOKGEET_CATEGORIES = [
-    'भजन / भक्ति गीत',
-    'बधावा एवं जन्मोत्सव गीत',
-    'विवाह एवं सगाई गीत',
-    'खेती-किसानी एवं श्रम गीत',
-    'भुजरिया / त्यौहार गीत',
-    'ऋतु व बरखा गीत',
-    'विरह व संदेश गीत',
-    'लोरी व बालगीत',
-    'हास्य व नक़ल गीत',
-    'अन्य'
-  ];
-
-  const [lokgeetCategories, setLokgeetCategories] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('lokgeet_categories_cache');
-      if (saved) {
-        const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return DEFAULT_LOKGEET_CATEGORIES;
+    return SAMPLE_LOKGEET;
   });
-
-  const saveLokgeetCategory = async (catName: string) => {
-    const trimmed = catName.trim();
-    if (!trimmed || lokgeetCategories.includes(trimmed)) return;
-    const updated = [...lokgeetCategories, trimmed];
-    setLokgeetCategories(updated);
-    try { localStorage.setItem('lokgeet_categories_cache', JSON.stringify(updated)); } catch (e) {}
-    try { await setDoc(doc(db, 'settings', 'lokgeet_categories'), { categories: updated }); } catch (e) {}
-  };
-
-  const deleteLokgeetCategory = async (catName: string) => {
-    const updated = lokgeetCategories.filter(c => c !== catName);
-    setLokgeetCategories(updated);
-    try { localStorage.setItem('lokgeet_categories_cache', JSON.stringify(updated)); } catch (e) {}
-    try { await setDoc(doc(db, 'settings', 'lokgeet_categories'), { categories: updated }); } catch (e) {}
-  };
 
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(() => {
     try {
@@ -728,24 +508,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const merged = deduplicateList([...parsed, ...MASTER_QUESTION_BANK, ...SAMPLE_QUIZ_QUESTIONS]);
-          try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(merged)); } catch (e) {}
-          return merged;
+          const existingIds = new Set(parsed.map((q: QuizQuestion) => q.id));
+          const missingSamples = SAMPLE_QUIZ_QUESTIONS.filter(s => !existingIds.has(s.id));
+          if (missingSamples.length > 0) {
+            const merged = [...parsed, ...missingSamples];
+            try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(merged)); } catch (e) {}
+            return merged;
+          }
+          return parsed;
         }
       }
     } catch (e) {}
-    return deduplicateList([...MASTER_QUESTION_BANK, ...SAMPLE_QUIZ_QUESTIONS]);
-  });
-
-  const [quizLeaderboard, setQuizLeaderboard] = useState<QuizLeaderboardEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem('pawari_quiz_leaderboard');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
-      }
-    } catch (e) {}
-    return deduplicateList(SAMPLE_QUIZ_LEADERBOARD);
+    return SAMPLE_QUIZ_QUESTIONS;
   });
   const [pages, setPages] = useState<Record<string, PageContent>>(DEFAULT_PAGES);
   const [editorialMembers, setEditorialMembers] = useState<EditorialMember[]>(() => {
@@ -753,10 +527,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('local_editorial_members_cache');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return deduplicateList(parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return deduplicateList(SAMPLE_EDITORIAL_BOARD);
+    return SAMPLE_EDITORIAL_BOARD;
   });
   const [announcements, setAnnouncements] = useState<Announcement[]>(SAMPLE_ANNOUNCEMENTS);
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
@@ -816,9 +590,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activePdfTitle, setActivePdfTitle] = useState<string | null>(null);
 
   const openPdfViewer = (url: string, title: string) => {
-    const targetUrl = (url && url.trim() !== '' && !url.includes('dummy.pdf') && !url.includes('w3.org')) ? url : SAMPLE_PDF_BLOB;
-    setActivePdfUrl(targetUrl);
-    setActivePdfTitle(title || 'Pawari Research Document');
+    setActivePdfUrl(url);
+    setActivePdfTitle(title);
   };
 
   const closePdfViewer = () => {
@@ -852,79 +625,73 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           loadedArticles = articlesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Article));
         }
 
-        // Merge with local cache if local cache has custom pdf_url or newly created/updated articles
+        // Merge with local cache if local cache has custom pdf_url or newly created articles
         const cached = localStorage.getItem('local_articles_cache');
         if (cached) {
           try {
             const parsed = JSON.parse(cached);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              const dedupedCached = deduplicateList<Article>(parsed);
-              dedupedCached.forEach((cachedArt: Article) => {
+              parsed.forEach((cachedArt: Article) => {
                 const idx = loadedArticles.findIndex(a => a.id === cachedArt.id);
                 if (idx !== -1) {
-                  // Merge cached article updates (like published status, page numbers, title)
-                  loadedArticles[idx] = {
-                    ...loadedArticles[idx],
-                    ...cachedArt,
-                    status: cachedArt.status || loadedArticles[idx].status,
-                    pdf_url: cachedArt.pdf_url || loadedArticles[idx].pdf_url
-                  };
+                  if (cachedArt.pdf_url && !loadedArticles[idx].pdf_url) {
+                    loadedArticles[idx].pdf_url = cachedArt.pdf_url;
+                    loadedArticles[idx].pdf_storage_path = cachedArt.pdf_storage_path || loadedArticles[idx].pdf_storage_path;
+                  }
                 } else {
                   loadedArticles.unshift(cachedArt);
-                  // Sync newly created local article to Firestore so other devices/browsers see it
-                  const clean = JSON.parse(JSON.stringify(cachedArt));
-                  setDoc(doc(db, 'articles', cachedArt.id), clean).catch(console.warn);
+                  // Background auto-sync missing local article to Cloud Firestore
+                  setDoc(doc(db, 'articles', cachedArt.id), sanitizeForFirestore(cachedArt)).catch(err => {
+                    console.warn(`[AutoSync] Background sync for article ${cachedArt.id}:`, err);
+                  });
                 }
               });
             }
           } catch (e) {}
         }
 
-        // Ensure all default SAMPLE_ARTICLES are present in loadedArticles
-        SAMPLE_ARTICLES.forEach(sampleArt => {
-          if (!loadedArticles.some(a => a.id === sampleArt.id)) {
+        // Ensure all sample articles exist in loadedArticles
+        SAMPLE_ARTICLES.forEach((sampleArt) => {
+          if (!loadedArticles.some(a => a.id === sampleArt.id || a.slug === sampleArt.slug)) {
             loadedArticles.push(sampleArt);
-            // Seed to Firestore if missing
-            const clean = JSON.parse(JSON.stringify(sampleArt));
-            setDoc(doc(db, 'articles', sampleArt.id), clean).catch(console.warn);
           }
         });
 
-        // Ensure every article has a valid, working CORS-free pdf_url
-        loadedArticles.forEach(art => {
-          if (!art.pdf_url || art.pdf_url.includes('w3.org') || art.pdf_url.includes('dummy.pdf')) {
-            art.pdf_url = SAMPLE_PDF_BLOB;
-          }
-        });
-
-        const finalArticles = deduplicateList(loadedArticles);
-
-        if (finalArticles.length > 0 && isMounted) {
-          setArticles(finalArticles);
-          try { localStorage.setItem('local_articles_cache', JSON.stringify(finalArticles)); } catch (e) {}
+        if (loadedArticles.length > 0 && isMounted) {
+          setArticles(loadedArticles);
+          try { localStorage.setItem('local_articles_cache', JSON.stringify(loadedArticles)); } catch (e) {}
         } else if (isMounted) {
           if (auth.currentUser) {
             SAMPLE_ARTICLES.forEach(art => {
               setDoc(doc(db, 'articles', art.id), art).catch(() => {});
             });
           }
-          setArticles(deduplicateList(SAMPLE_ARTICLES));
+          setArticles(SAMPLE_ARTICLES);
         }
       } catch (e) {
         const cached = localStorage.getItem('local_articles_cache');
+        let fallbackArticles: Article[] = SAMPLE_ARTICLES;
         if (cached && isMounted) {
           try {
             const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) setArticles(deduplicateList(parsed));
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              SAMPLE_ARTICLES.forEach((sampleArt) => {
+                if (!parsed.some((a: Article) => a.id === sampleArt.id || a.slug === sampleArt.slug)) {
+                  parsed.push(sampleArt);
+                }
+              });
+              fallbackArticles = parsed;
+            }
           } catch (err) {}
         }
+        if (isMounted) setArticles(fallbackArticles);
       }
 
       // 3. Issues
       try {
         const issuesSnap = await getDocs(collection(db, 'issues'));
         if (!issuesSnap.empty && isMounted) {
-          const loadedIssues = deduplicateList(issuesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Issue)));
+          const loadedIssues = issuesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Issue));
           setIssues(loadedIssues);
           try { localStorage.setItem('local_issues_cache', JSON.stringify(loadedIssues)); } catch (e) {}
         } else {
@@ -932,7 +699,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (cached) {
             try {
               const parsed = JSON.parse(cached);
-              if (Array.isArray(parsed) && parsed.length > 0) setIssues(deduplicateList(parsed));
+              if (Array.isArray(parsed) && parsed.length > 0) setIssues(parsed);
             } catch (e) {}
           } else if (auth.currentUser) {
             SAMPLE_ISSUES.forEach(iss => {
@@ -945,7 +712,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (cached && isMounted) {
           try {
             const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) setIssues(deduplicateList(parsed));
+            if (Array.isArray(parsed) && parsed.length > 0) setIssues(parsed);
           } catch (err) {}
         }
       }
@@ -954,7 +721,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const booksSnap = await getDocs(collection(db, 'books'));
         if (!booksSnap.empty && isMounted) {
-          const loadedBooks = deduplicateList(booksSnap.docs.map(d => ({ id: d.id, ...d.data() } as BookItem)));
+          const loadedBooks = booksSnap.docs.map(d => ({ id: d.id, ...d.data() } as BookItem));
           setBooks(loadedBooks);
           try { localStorage.setItem('local_books_cache', JSON.stringify(loadedBooks)); } catch (e) {}
         } else {
@@ -962,7 +729,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (cached) {
             try {
               const parsed = JSON.parse(cached);
-              if (Array.isArray(parsed) && parsed.length > 0) setBooks(deduplicateList(parsed));
+              if (Array.isArray(parsed) && parsed.length > 0) setBooks(parsed);
             } catch (e) {}
           }
         }
@@ -974,7 +741,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const blogsSnap = await getDocs(collection(db, 'blogs'));
         if (!blogsSnap.empty && isMounted) {
-          const loadedBlogs = deduplicateList(blogsSnap.docs.map(d => ({ id: d.id, ...d.data() } as BlogItem)));
+          const loadedBlogs = blogsSnap.docs.map(d => ({ id: d.id, ...d.data() } as BlogItem));
           setBlogs(loadedBlogs);
           try { localStorage.setItem('local_blogs_cache', JSON.stringify(loadedBlogs)); } catch (e) {}
         } else {
@@ -982,76 +749,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (cached) {
             try {
               const parsed = JSON.parse(cached);
-              if (Array.isArray(parsed) && parsed.length > 0) setBlogs(deduplicateList(parsed));
+              if (Array.isArray(parsed) && parsed.length > 0) setBlogs(parsed);
             } catch (e) {}
           }
         }
       } catch (e) {
         // Fallback silently
       }
-
-      // 3.3 Writers & Authors
-      try {
-        const writersSnap = await getDocs(collection(db, 'writers'));
-        if (!writersSnap.empty && isMounted) {
-          const loadedWriters = deduplicateList(writersSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariWriterItem)));
-          setWriters(loadedWriters);
-          try { localStorage.setItem('pawari_writers_cache', JSON.stringify(loadedWriters)); } catch (e) {}
-        }
-      } catch (e) {
-        // Fallback silently
-      }
-
-      // 3.4 Shabdkosh
-      try {
-        const shabdkoshSnap = await getDocs(collection(db, 'shabdkosh'));
-        if (!shabdkoshSnap.empty && isMounted) {
-          const loaded = deduplicateList(shabdkoshSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariShabdkoshItem)));
-          setShabdkoshList(loaded);
-          try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(loaded)); } catch (e) {}
-        }
-      } catch (e) {}
-
-      // 3.5 Paheli
-      try {
-        const paheliSnap = await getDocs(collection(db, 'paheli'));
-        if (!paheliSnap.empty && isMounted) {
-          const loaded = deduplicateList(paheliSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariPaheliItem)));
-          setPaheliList(loaded);
-          try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(loaded)); } catch (e) {}
-        }
-      } catch (e) {}
-
-      // 3.6 Lokgeet
-      try {
-        const lokgeetSnap = await getDocs(collection(db, 'lokgeet'));
-        if (!lokgeetSnap.empty && isMounted) {
-          const loaded = lokgeetSnap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
-          const fullList = deduplicateList([...loaded, ...SAMPLE_LOKGEET]);
-          setLokgeetList(fullList);
-          try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(fullList)); } catch (e) {}
-        }
-      } catch (e) {}
-
-      // 3.7 Quiz Questions
-      try {
-        const quizSnap = await getDocs(collection(db, 'quiz_questions'));
-        if (!quizSnap.empty && isMounted) {
-          const loaded = deduplicateList(quizSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizQuestion)));
-          setQuizQuestions(loaded);
-          try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(loaded)); } catch (e) {}
-        }
-      } catch (e) {}
-
-      // 3.8 Quiz Leaderboard
-      try {
-        const leaderSnap = await getDocs(collection(db, 'quiz_leaderboard'));
-        if (!leaderSnap.empty && isMounted) {
-          const loaded = deduplicateList(leaderSnap.docs.map(d => ({ id: d.id, ...d.data() } as QuizLeaderboardEntry)));
-          setQuizLeaderboard(loaded);
-          try { localStorage.setItem('pawari_quiz_leaderboard', JSON.stringify(loaded)); } catch (e) {}
-        }
-      } catch (e) {}
 
       // 4. Pages
       try {
@@ -1073,55 +777,49 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // 5. Editorial Board
       try {
-        let boardSnap = await getDocs(collection(db, 'editorial_members'));
-        if (boardSnap.empty) {
-          boardSnap = await getDocs(collection(db, 'editorial_board'));
-        }
+        const boardSnap = await getDocs(collection(db, 'editorial_members'));
         let loadedBoard: EditorialMember[] = [];
         if (!boardSnap.empty) {
           loadedBoard = boardSnap.docs.map(d => ({ id: d.id, ...d.data() } as EditorialMember));
         }
 
-        if (loadedBoard.length > 0 && isMounted) {
-          loadedBoard.sort((a, b) => (a.order || 0) - (b.order || 0));
-          const dedupedBoard = deduplicateList(loadedBoard);
-          setEditorialMembers(dedupedBoard);
-          try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(dedupedBoard)); } catch (e) {}
-        } else {
-          // If Firestore is empty, check localStorage cache first
-          const cached = localStorage.getItem('local_editorial_members_cache');
-          if (cached) {
-            try {
-              const parsed = JSON.parse(cached);
-              if (Array.isArray(parsed) && parsed.length > 0 && isMounted) {
-                parsed.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
-                const deduped = deduplicateList(parsed);
-                setEditorialMembers(deduped);
-                loadedBoard = deduped;
-              }
-            } catch (e) {}
-          }
+        const cached = localStorage.getItem('local_editorial_members_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.forEach((cachedMember: EditorialMember) => {
+                const idx = loadedBoard.findIndex(m => m.id === cachedMember.id);
+                if (idx !== -1) {
+                  if (cachedMember.photo_url && (!loadedBoard[idx].photo_url || loadedBoard[idx].photo_url === '')) {
+                    loadedBoard[idx].photo_url = cachedMember.photo_url;
+                  }
+                } else {
+                  loadedBoard.push(cachedMember);
+                }
+              });
+            }
+          } catch (e) {}
+        }
 
-          if (loadedBoard.length === 0 && isMounted) {
-            // Auto-seed SAMPLE_EDITORIAL_BOARD to Firestore if completely empty
+        if (loadedBoard.length > 0 && isMounted) {
+          loadedBoard.sort((a, b) => a.order - b.order);
+          setEditorialMembers(loadedBoard);
+          try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(loadedBoard)); } catch (e) {}
+        } else if (isMounted) {
+          if (auth.currentUser) {
             SAMPLE_EDITORIAL_BOARD.forEach(member => {
-              const clean = JSON.parse(JSON.stringify(member));
-              setDoc(doc(db, 'editorial_members', member.id), clean).catch(() => {});
-              setDoc(doc(db, 'editorial_board', member.id), clean).catch(() => {});
+              setDoc(doc(db, 'editorial_members', member.id), member).catch(() => {});
             });
-            setEditorialMembers(deduplicateList(SAMPLE_EDITORIAL_BOARD));
-            try { localStorage.setItem('local_editorial_members_cache', JSON.stringify(SAMPLE_EDITORIAL_BOARD)); } catch (e) {}
           }
+          setEditorialMembers(SAMPLE_EDITORIAL_BOARD);
         }
       } catch (e) {
         const cached = localStorage.getItem('local_editorial_members_cache');
         if (cached && isMounted) {
           try {
             const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              parsed.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
-              setEditorialMembers(deduplicateList(parsed));
-            }
+            if (Array.isArray(parsed) && parsed.length > 0) setEditorialMembers(parsed);
           } catch (err) {}
         }
       }
@@ -1130,7 +828,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const annSnap = await getDocs(collection(db, 'announcements'));
         if (!annSnap.empty && isMounted) {
-          const loadedAnn = deduplicateList(annSnap.docs.map(d => ({ id: d.id, ...d.data() } as Announcement)));
+          const loadedAnn = annSnap.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
           setAnnouncements(loadedAnn);
         } else if (auth.currentUser) {
           SAMPLE_ANNOUNCEMENTS.forEach(ann => {
@@ -1141,36 +839,117 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Fallback silently
       }
 
-      // 7. Media Library, Contact Messages, Submissions (Staff Only)
-      if (auth.currentUser) {
-        try {
-          const mediaSnap = await getDocs(collection(db, 'media'));
-          if (!mediaSnap.empty && isMounted) {
-            const items = deduplicateList(mediaSnap.docs.map(d => ({ id: d.id, ...d.data() } as MediaFile)));
-            setMediaFiles(items);
-          }
-        } catch (e) {
-          // Silent fallback
+      // 7. Media Library
+      try {
+        const mediaSnap = await getDocs(collection(db, 'media'));
+        if (!mediaSnap.empty && isMounted) {
+          const items = mediaSnap.docs.map(d => ({ id: d.id, ...d.data() } as MediaFile));
+          setMediaFiles(items);
         }
-
-        try {
-          const msgSnap = await getDocs(collection(db, 'contact_messages'));
-          if (!msgSnap.empty && isMounted) {
-            setContactMessages(deduplicateList(msgSnap.docs.map(d => ({ id: d.id, ...d.data() } as ContactMessage))));
-          }
-        } catch (e) {
-          // Silent fallback
-        }
-
-        try {
-          const subSnap = await getDocs(collection(db, 'submissions'));
-          if (!subSnap.empty && isMounted) {
-            setSubmissions(deduplicateList(subSnap.docs.map(d => ({ id: d.id, ...d.data() } as import('../types').Submission))));
-          }
-        } catch (e) {
-          // Silent fallback
-        }
+      } catch (e) {
+        // Silent fallback
       }
+
+      // 8. Contact Messages
+      try {
+        const msgSnap = await getDocs(collection(db, 'contact_messages'));
+        if (!msgSnap.empty && isMounted) {
+          setContactMessages(msgSnap.docs.map(d => ({ id: d.id, ...d.data() } as ContactMessage)));
+        }
+      } catch (e) {
+        // Silent fallback
+      }
+
+      // 9. Submissions
+      try {
+        const subSnap = await getDocs(collection(db, 'submissions'));
+        if (!subSnap.empty && isMounted) {
+          setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() } as import('../types').Submission)));
+        }
+      } catch (e) {
+        // Silent fallback
+      }
+
+      // 10. Lokgeet
+      try {
+        const snap = await getDocs(collection(db, 'lokgeet'));
+        let loaded: PawariLokgeetItem[] = [];
+        if (!snap.empty) {
+          loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as PawariLokgeetItem));
+        }
+        const cached = localStorage.getItem('pawari_lokgeet_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.forEach((c: PawariLokgeetItem) => {
+                if (!loaded.some(l => l.id === c.id)) loaded.push(c);
+              });
+            }
+          } catch (e) {}
+        }
+        SAMPLE_LOKGEET.forEach(s => {
+          if (!loaded.some(l => l.id === s.id)) loaded.push(s);
+        });
+        if (isMounted && loaded.length > 0) {
+          setLokgeetList(loaded);
+          try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(loaded)); } catch (e) {}
+        }
+      } catch (e) {}
+
+      // 11. Shabdkosh
+      try {
+        const snap = await getDocs(collection(db, 'shabdkosh'));
+        let loaded: PawariShabdkoshItem[] = [];
+        if (!snap.empty) {
+          loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as PawariShabdkoshItem));
+        }
+        const cached = localStorage.getItem('pawari_shabdkosh_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.forEach((c: PawariShabdkoshItem) => {
+                if (!loaded.some(l => l.id === c.id)) loaded.push(c);
+              });
+            }
+          } catch (e) {}
+        }
+        SAMPLE_SHABDKOSH.forEach(s => {
+          if (!loaded.some(l => l.id === s.id)) loaded.push(s);
+        });
+        if (isMounted && loaded.length > 0) {
+          setShabdkoshList(loaded);
+          try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(loaded)); } catch (e) {}
+        }
+      } catch (e) {}
+
+      // 12. Paheli
+      try {
+        const snap = await getDocs(collection(db, 'paheli'));
+        let loaded: PawariPaheliItem[] = [];
+        if (!snap.empty) {
+          loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as PawariPaheliItem));
+        }
+        const cached = localStorage.getItem('pawari_paheli_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.forEach((c: PawariPaheliItem) => {
+                if (!loaded.some(l => l.id === c.id)) loaded.push(c);
+              });
+            }
+          } catch (e) {}
+        }
+        SAMPLE_PAHELI.forEach(s => {
+          if (!loaded.some(l => l.id === s.id)) loaded.push(s);
+        });
+        if (isMounted && loaded.length > 0) {
+          setPaheliList(loaded);
+          try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(loaded)); } catch (e) {}
+        }
+      } catch (e) {}
 
       if (isMounted) {
         setLoadingData(false);
@@ -1179,79 +958,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     fetchData();
 
-    // Setup real-time listener for editorial members, articles, and issues so changes appear immediately on public site
-    let unsubscribeEditorial: (() => void) | null = null;
-    let unsubscribeArticles: (() => void) | null = null;
-    let unsubscribeIssues: (() => void) | null = null;
-
-    try {
-      unsubscribeEditorial = onSnapshot(collection(db, 'editorial_members'), (snapshot) => {
-        if (!snapshot.empty && isMounted) {
-          const liveMembers = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as EditorialMember));
-          liveMembers.sort((a, b) => (a.order || 0) - (b.order || 0));
-          const dedupedMembers = deduplicateList(liveMembers);
-          setEditorialMembers(dedupedMembers);
-          try {
-            localStorage.setItem('local_editorial_members_cache', JSON.stringify(dedupedMembers));
-          } catch (e) {}
-        }
-      }, (err) => {
-        console.warn('Realtime editorial listener notice:', err);
-      });
-    } catch (e) {
-      console.warn('Could not attach realtime editorial listener:', e);
-    }
-
-    try {
-      unsubscribeArticles = onSnapshot(collection(db, 'articles'), (snapshot) => {
-        if (!snapshot.empty && isMounted) {
-          const liveArticles = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Article));
-          // Ensure valid fallback pdf_url if empty
-          liveArticles.forEach(art => {
-            if (!art.pdf_url || art.pdf_url.includes('w3.org') || art.pdf_url.includes('dummy.pdf')) {
-              art.pdf_url = SAMPLE_PDF_BLOB;
-            }
-          });
-          // Include sample articles if not present in DB
-          SAMPLE_ARTICLES.forEach(sampleArt => {
-            if (!liveArticles.some(a => a.id === sampleArt.id)) {
-              liveArticles.push(sampleArt);
-            }
-          });
-          const dedupedArticles = deduplicateList(liveArticles);
-          setArticles(dedupedArticles);
-          try {
-            localStorage.setItem('local_articles_cache', JSON.stringify(dedupedArticles));
-          } catch (e) {}
-        }
-      }, (err) => {
-        console.warn('Realtime articles listener notice:', err);
-      });
-    } catch (e) {
-      console.warn('Could not attach realtime articles listener:', e);
-    }
-
-    try {
-      unsubscribeIssues = onSnapshot(collection(db, 'issues'), (snapshot) => {
-        if (!snapshot.empty && isMounted) {
-          const liveIssues = deduplicateList(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Issue)));
-          setIssues(liveIssues);
-          try {
-            localStorage.setItem('local_issues_cache', JSON.stringify(liveIssues));
-          } catch (e) {}
-        }
-      }, (err) => {
-        console.warn('Realtime issues listener notice:', err);
-      });
-    } catch (e) {
-      console.warn('Could not attach realtime issues listener:', e);
-    }
-
     return () => {
       isMounted = false;
-      if (unsubscribeEditorial) unsubscribeEditorial();
-      if (unsubscribeArticles) unsubscribeArticles();
-      if (unsubscribeIssues) unsubscribeIssues();
     };
   }, []);
 
@@ -1271,7 +979,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const targetId = articleParam || hashArticle;
         if (targetId && targetId.trim() !== '') {
-          setActiveView('article_detail', targetId.trim());
+          setSelectedArticleId(targetId.trim());
+          setActiveView('article_detail');
         }
       } catch (err) {
         console.warn('URL deep linking error:', err);
@@ -1287,21 +996,20 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  // Clean up legacy URL search params when viewing an article detail
+  // Sync URL search params when viewing an article detail
   useEffect(() => {
     if (activeView === 'article_detail' && selectedArticleId) {
       try {
         const currentUrl = new URL(window.location.href);
-        if (currentUrl.searchParams.has('article') || currentUrl.searchParams.has('paper')) {
-          currentUrl.searchParams.delete('article');
-          currentUrl.searchParams.delete('paper');
+        if (currentUrl.searchParams.get('article') !== selectedArticleId) {
+          currentUrl.searchParams.set('article', selectedArticleId);
           window.history.replaceState({}, '', currentUrl.toString());
         }
       } catch (e) {}
     } else if (activeView !== 'article_detail') {
       try {
         const currentUrl = new URL(window.location.href);
-        if (currentUrl.searchParams.has('article') || currentUrl.searchParams.has('paper')) {
+        if (currentUrl.searchParams.has('article')) {
           currentUrl.searchParams.delete('article');
           currentUrl.searchParams.delete('paper');
           window.history.replaceState({}, '', currentUrl.toString());
@@ -1354,14 +1062,75 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const saveArticle = async (article: Article) => {
-    // Sanitize article object to strip out undefined values which cause Firestore setDoc failures
-    let articleToSave: Article = JSON.parse(JSON.stringify(article));
+  const fetchArticleByIdOrSlug = async (idOrSlug: string): Promise<Article | null> => {
+    if (!idOrSlug) return null;
+    try {
+      const existing = articles.find(a => a.id === idOrSlug || a.slug === idOrSlug);
+      if (existing) return existing;
 
-    // Ensure article has a unique slug if missing
-    if (!articleToSave.slug || articleToSave.slug.trim() === '') {
-      articleToSave.slug = ensureUniqueSlug(articleToSave.title_english || articleToSave.title_hindi || 'article', articleToSave.id, articles);
+      // 1. Query Firestore by doc ID
+      const docRef = doc(db, 'articles', idOrSlug);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const art = { id: snap.id, ...snap.data() } as Article;
+        setArticles(prev => {
+          if (prev.some(a => a.id === art.id)) return prev;
+          const newArr = [art, ...prev];
+          try { localStorage.setItem('local_articles_cache', JSON.stringify(newArr)); } catch (e) {}
+          return newArr;
+        });
+        return art;
+      }
+
+      // 2. Query Firestore by slug field
+      const q = query(collection(db, 'articles'), where('slug', '==', idOrSlug));
+      const qSnap = await getDocs(q);
+      if (!qSnap.empty) {
+        const d = qSnap.docs[0];
+        const art = { id: d.id, ...d.data() } as Article;
+        setArticles(prev => {
+          if (prev.some(a => a.id === art.id)) return prev;
+          const newArr = [art, ...prev];
+          try { localStorage.setItem('local_articles_cache', JSON.stringify(newArr)); } catch (e) {}
+          return newArr;
+        });
+        return art;
+      }
+    } catch (e) {
+      console.warn('[fetchArticleByIdOrSlug] Error fetching targeted article:', e);
     }
+    return null;
+  };
+
+  const syncAllArticlesToCloud = async (): Promise<{ synced: number; errors: number }> => {
+    let synced = 0;
+    let errors = 0;
+    const cached = localStorage.getItem('local_articles_cache');
+    let localArts: Article[] = articles;
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          localArts = parsed;
+        }
+      } catch (e) {}
+    }
+
+    for (const art of localArts) {
+      try {
+        const sanitized = sanitizeForFirestore(art);
+        await setDoc(doc(db, 'articles', art.id), sanitized);
+        synced++;
+      } catch (e) {
+        console.error(`Failed to sync article ${art.id}:`, e);
+        errors++;
+      }
+    }
+    return { synced, errors };
+  };
+
+  const saveArticle = async (article: Article) => {
+    let articleToSave = { ...article };
 
     // If pdf_url is a base64 Data URL, isolate it to user_files collection to prevent exceeding Firestore's 1MB document limit
     if (articleToSave.pdf_url && (articleToSave.pdf_url.startsWith('data:') || articleToSave.pdf_url.length > 300)) {
@@ -1370,33 +1139,35 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const storagePath = `user_files/${fileId}`;
       const base64Content = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
 
-      const userFileRecord = {
-        id: fileId,
-        name: `${articleToSave.title_english || 'article'}.pdf`,
-        type: 'application/pdf',
-        size: dataUrl.length,
-        content: base64Content,
-        base64: base64Content,
-        url: dataUrl,
-        uploaded_at: new Date().toISOString(),
-        storage_path: storagePath
-      };
+      try {
+        localStorage.setItem(`pdf_cache_${fileId}`, dataUrl);
+      } catch (e) {}
 
       const blob = base64ToBlob(dataUrl);
       if (blob) {
         fileBlobManager.registerBlob(fileId, blob);
       }
 
-      try {
-        localStorage.setItem(`pdf_cache_${fileId}`, dataUrl);
-      } catch (e) {}
+      // Store lightweight metadata record in user_files (keep content empty if base64 > 800KB to avoid 1MB limit)
+      const isTooLargeForDoc = base64Content.length > 800000;
+      const userFileRecord = sanitizeForFirestore({
+        id: fileId,
+        name: `${articleToSave.title_english || 'article'}.pdf`,
+        type: 'application/pdf',
+        size: dataUrl.length,
+        content: isTooLargeForDoc ? '' : base64Content,
+        base64: isTooLargeForDoc ? '' : base64Content,
+        url: isTooLargeForDoc ? '' : dataUrl,
+        uploaded_at: new Date().toISOString(),
+        storage_path: storagePath
+      });
 
       try {
-        await setDoc(doc(db, 'user_files', fileId), JSON.parse(JSON.stringify(userFileRecord)));
+        await setDoc(doc(db, 'user_files', fileId), userFileRecord);
         articleToSave.pdf_url = fileId;
         articleToSave.pdf_storage_path = storagePath;
       } catch (err) {
-        console.error('Failed to isolate heavy PDF to user_files collection:', err);
+        console.warn('Failed to save user_files metadata:', err);
       }
     }
 
@@ -1408,12 +1179,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('local_articles_cache', JSON.stringify(updated));
     } catch (e) {}
 
+    const sanitizedArticle = sanitizeForFirestore(articleToSave);
+
     try {
-      const cleanData = JSON.parse(JSON.stringify(articleToSave));
-      await setDoc(doc(db, 'articles', articleToSave.id), cleanData);
+      await setDoc(doc(db, 'articles', articleToSave.id), sanitizedArticle);
       console.log(`[saveArticle] Successfully saved article metadata to Firestore with pdf_url: ${articleToSave.pdf_url}`);
     } catch (e) {
       console.error('Error saving article to Firestore:', e);
+      throw e;
     }
   };
 
@@ -1467,20 +1240,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const saveBook = async (book: BookItem) => {
     const isNew = !books.some(b => b.id === book.id);
-    const slug = ensureUniqueSlug(book.title_english || book.title_hindi, book.id, books, book.slug);
-    const bookToSave: BookItem = {
-      ...book,
-      slug,
-      status: book.status || 'published'
-    };
-    const updated = books.filter(b => b.id !== bookToSave.id);
-    updated.unshift(bookToSave);
+    const updated = books.filter(b => b.id !== book.id);
+    updated.unshift(book);
     setBooks(updated);
     try {
       localStorage.setItem('local_books_cache', JSON.stringify(updated));
     } catch (e) {}
     try {
-      await setDoc(doc(db, 'books', bookToSave.id), bookToSave);
+      await setDoc(doc(db, 'books', book.id), book);
     } catch (e) {
       console.error('Error saving book:', e);
     }
@@ -1488,8 +1255,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logActivity({
       category: 'books',
       action: isNew ? 'create' : 'update',
-      title: isNew ? `Published New Book "${bookToSave.title_hindi || bookToSave.title_english}"` : `Updated Book Metadata "${bookToSave.title_hindi || bookToSave.title_english}"`,
-      details: `Authors: ${bookToSave.authors || 'N/A'}, Category: ${bookToSave.category || 'N/A'}, Price: ${bookToSave.price || 'N/A'}`
+      title: isNew ? `Published New Book "${book.title_hindi || book.title_english}"` : `Updated Book Metadata "${book.title_hindi || book.title_english}"`,
+      details: `Authors: ${book.authors || 'N/A'}, Category: ${book.category || 'N/A'}, Price: ${book.price || 'N/A'}`
     }).catch(console.warn);
   };
 
@@ -1516,22 +1283,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const saveBlog = async (blog: BlogItem) => {
     const isNew = !blogs.some(b => b.id === blog.id);
-    const slug = ensureUniqueSlug(blog.title_english || blog.title_hindi, blog.id, blogs, blog.slug);
-    const blogToSave: BlogItem = {
-      ...blog,
-      slug,
-      status: blog.status || 'published',
-      updated_at: new Date().toISOString()
-    };
-    const cleanData = JSON.parse(JSON.stringify(blogToSave));
-    const updated = blogs.filter(b => b.id !== cleanData.id);
-    updated.unshift(cleanData);
+    const updated = blogs.filter(b => b.id !== blog.id);
+    updated.unshift(blog);
     setBlogs(updated);
     try {
       localStorage.setItem('local_blogs_cache', JSON.stringify(updated));
     } catch (e) {}
     try {
-      await setDoc(doc(db, 'blogs', cleanData.id), cleanData);
+      await setDoc(doc(db, 'blogs', blog.id), blog);
     } catch (e) {
       console.error('Error saving blog:', e);
     }
@@ -1539,106 +1298,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logActivity({
       category: 'blogs',
       action: isNew ? 'create' : 'update',
-      title: isNew ? `Published Blog Post "${cleanData.title_hindi || cleanData.title_english}"` : `Updated Blog Post "${cleanData.title_hindi || cleanData.title_english}"`,
-      details: `Author: ${cleanData.author || 'N/A'}, Category: ${cleanData.category || 'N/A'}, Status: ${cleanData.status}`
+      title: isNew ? `Published Blog Post "${blog.title_hindi || blog.title_english}"` : `Updated Blog Post "${blog.title_hindi || blog.title_english}"`,
+      details: `Author: ${blog.author || 'N/A'}, Category: ${blog.category || 'N/A'}`
     }).catch(console.warn);
-  };
-
-  const submitPublicBlog = async (blogData: Partial<BlogItem>): Promise<{ success: boolean; refId: string; error?: string }> => {
-    try {
-      const now = new Date();
-      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-      const refId = `BLOG-${now.getFullYear()}-${randomSuffix}`;
-      const blogId = 'blog_sub_' + Date.now();
-      const baseTitle = blogData.title_hindi || blogData.title_english || 'आलेख';
-      const cleanSlug = ensureUniqueSlug(baseTitle, blogId, blogs);
-
-      const contentText = blogData.content_hindi || blogData.content_english || '';
-      const wordCount = contentText.trim() ? contentText.trim().split(/\s+/).length : 0;
-      const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 180));
-
-      const newSubmission: BlogItem = {
-        id: blogId,
-        title_hindi: blogData.title_hindi || '',
-        title_english: blogData.title_english || blogData.title_hindi || '',
-        author: blogData.author || blogData.contributor_name || 'अज्ञात लेखक',
-        author_role: blogData.author_role || 'रचनाकार / शोधार्थी',
-        author_avatar: blogData.author_avatar || '',
-        date: now.toLocaleDateString('hi-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
-        read_time: `${readTimeMinutes} मिनट`,
-        category: blogData.category || 'साहित्य एवं विचार',
-        language: blogData.language || 'hindi',
-        cover_image: blogData.cover_image || '',
-        excerpt_hindi: blogData.excerpt_hindi || (contentText ? contentText.slice(0, 180) + '...' : ''),
-        excerpt_english: blogData.excerpt_english || '',
-        content_hindi: contentText,
-        content_english: blogData.content_english || contentText,
-        tags: blogData.tags && blogData.tags.length > 0 ? blogData.tags : ['पवारी', blogData.category || 'साहित्य'],
-        slug: cleanSlug,
-        status: 'pending', // CRITICAL: NEVER auto-publish public submissions!
-        contributor_name: blogData.contributor_name || blogData.author,
-        contributor_email: blogData.contributor_email || '',
-        contributor_phone: blogData.contributor_phone || '',
-        consent_given: blogData.consent_given ?? true,
-        submission_ref: refId,
-        submitted_at: now.toISOString(),
-        updated_at: now.toISOString(),
-        likes_count: 0,
-        views_count: 0
-      };
-
-      const cleanObj: BlogItem = JSON.parse(JSON.stringify(newSubmission));
-
-      // Update state & local storage
-      const updated = [cleanObj, ...blogs.filter(b => b.id !== blogId)];
-      setBlogs(updated);
-      try {
-        localStorage.setItem('local_blogs_cache', JSON.stringify(updated));
-      } catch (e) {}
-
-      // Write to Firestore blogs collection
-      try {
-        await setDoc(doc(db, 'blogs', blogId), cleanObj);
-      } catch (e) {
-        console.warn('Firestore blog submission write (fallback handled):', e);
-      }
-
-      logActivity({
-        category: 'blogs',
-        action: 'create',
-        title: `नया ब्लॉग प्राप्त (New Submission): "${newSubmission.title_hindi}"`,
-        details: `लेखक: ${newSubmission.contributor_name} (${newSubmission.contributor_phone || newSubmission.contributor_email || 'N/A'}), संदर्भ संख्या: ${refId}`
-      }).catch(console.warn);
-
-      return { success: true, refId };
-    } catch (err: any) {
-      console.error('Error in submitPublicBlog:', err);
-      return { success: false, refId: '', error: err?.message || 'ब्लॉग सबमिशन में त्रुटि आई।' };
-    }
-  };
-
-  const approveBlog = async (blogId: string) => {
-    const blog = blogs.find(b => b.id === blogId);
-    if (!blog) return;
-    await saveBlog({ ...blog, status: 'approved' });
-  };
-
-  const rejectBlog = async (blogId: string, comments?: string) => {
-    const blog = blogs.find(b => b.id === blogId);
-    if (!blog) return;
-    await saveBlog({ ...blog, status: 'rejected', editorial_comments: comments || blog.editorial_comments });
-  };
-
-  const publishBlog = async (blogId: string) => {
-    const blog = blogs.find(b => b.id === blogId);
-    if (!blog) return;
-    await saveBlog({ ...blog, status: 'published', published_at: new Date().toISOString() });
-  };
-
-  const unpublishBlog = async (blogId: string) => {
-    const blog = blogs.find(b => b.id === blogId);
-    if (!blog) return;
-    await saveBlog({ ...blog, status: 'draft' });
   };
 
   const deleteBlog = async (id: string) => {
@@ -1662,55 +1324,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }).catch(console.warn);
   };
 
-  const saveWriter = async (writer: PawariWriterItem) => {
-    // Generate clean slug if not set
-    const cleanSlug = writer.slug || (writer.name_english ? writer.name_english.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : writer.id);
-    const writerWithSlug: PawariWriterItem = {
-      ...writer,
-      slug: cleanSlug
-    };
-    const isNew = !writers.some(w => w.id === writerWithSlug.id);
-    const updated = writers.filter(w => w.id !== writerWithSlug.id);
-    updated.unshift(writerWithSlug);
-    setWriters(updated);
-    try {
-      localStorage.setItem('pawari_writers_cache', JSON.stringify(updated));
-    } catch (e) {}
-    try {
-      await setDoc(doc(db, 'writers', writerWithSlug.id), writerWithSlug);
-    } catch (e) {
-      console.error('Error saving writer:', e);
-    }
-
-    logActivity({
-      category: 'writers' as any,
-      action: isNew ? 'create' : 'update',
-      title: isNew ? `Added New Writer Profile "${writer.name_hindi || writer.name_english}"` : `Updated Writer Profile "${writer.name_hindi || writer.name_english}"`,
-      details: `Designation: ${writer.designation_hindi || 'N/A'}, Region: ${writer.location_hindi || 'N/A'}`
-    }).catch(console.warn);
-  };
-
-  const deleteWriter = async (id: string) => {
-    const writerToDelete = writers.find(w => w.id === id);
-    const updated = writers.filter(w => w.id !== id);
-    setWriters(updated);
-    try {
-      localStorage.setItem('pawari_writers_cache', JSON.stringify(updated));
-    } catch (e) {}
-    try {
-      await deleteDoc(doc(db, 'writers', id));
-    } catch (e) {
-      console.error('Error deleting writer:', e);
-    }
-
-    logActivity({
-      category: 'writers' as any,
-      action: 'delete',
-      title: `Deleted Writer Profile "${writerToDelete?.name_hindi || writerToDelete?.name_english || id}"`,
-      details: `Removed writer from repository`
-    }).catch(console.warn);
-  };
-
   const savePage = async (page: PageContent) => {
     setPages(prev => ({ ...prev, [page.id]: page }));
     try {
@@ -1721,39 +1334,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveEditorialMember = async (member: EditorialMember) => {
-    let persistentMember = { ...member };
-
-    // Convert blob: URLs to persistent Base64 Data URLs so images never disappear after reload
-    if (persistentMember.photo_url && persistentMember.photo_url.startsWith('blob:')) {
-      try {
-        const response = await fetch(persistentMember.photo_url);
-        const blob = await response.blob();
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onloadend = () => resolve((reader.result as string) || '');
-          reader.readAsDataURL(blob);
-        });
-        if (base64) {
-          persistentMember.photo_url = base64;
-        } else {
-          persistentMember.photo_url = DEFAULT_PAWARI_MEMBER_AVATAR;
-        }
-      } catch (e) {
-        console.warn('Failed to convert blob photo URL to base64:', e);
-        persistentMember.photo_url = DEFAULT_PAWARI_MEMBER_AVATAR;
-      }
-    }
-
-    if (!persistentMember.photo_url) {
-      persistentMember.photo_url = DEFAULT_PAWARI_MEMBER_AVATAR;
-    }
-
-    // Clean undefined fields so Firestore setDoc never throws an exception
-    const cleanMember: EditorialMember = JSON.parse(JSON.stringify(persistentMember));
-
-    const updated = editorialMembers.filter(m => m.id !== cleanMember.id);
-    updated.push(cleanMember);
-    updated.sort((a, b) => (a.order || 0) - (b.order || 0));
+    const updated = editorialMembers.filter(m => m.id !== member.id);
+    updated.push(member);
+    updated.sort((a, b) => a.order - b.order);
     setEditorialMembers(updated);
     try {
       localStorage.setItem('local_editorial_members_cache', JSON.stringify(updated));
@@ -1761,8 +1344,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('LocalStorage save error:', e);
     }
     try {
-      await setDoc(doc(db, 'editorial_members', cleanMember.id), cleanMember);
-      await setDoc(doc(db, 'editorial_board', cleanMember.id), cleanMember).catch(console.warn);
+      await setDoc(doc(db, 'editorial_members', member.id), member);
+      await setDoc(doc(db, 'editorial_board', member.id), member).catch(console.warn);
     } catch (e) {
       console.error('Error saving editorial member:', e);
     }
@@ -1900,14 +1483,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Size validation: Images max 5MB, Documents max 15MB
     const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-    const MAX_DOC_SIZE = 15 * 1024 * 1024;
+    const MAX_DOC_SIZE = 35 * 1024 * 1024;
 
     if (isImage && rawFile.size > MAX_IMAGE_SIZE) {
       throw new Error(`Image size (${(rawFile.size / 1024 / 1024).toFixed(1)} MB) exceeds maximum allowed 5 MB limit.`);
     }
 
     if (isSupportedDoc && rawFile.size > MAX_DOC_SIZE) {
-      throw new Error(`Document size (${(rawFile.size / 1024 / 1024).toFixed(1)} MB) exceeds maximum allowed 15 MB limit.`);
+      throw new Error(`Document size (${(rawFile.size / 1024 / 1024).toFixed(1)} MB) exceeds maximum allowed 35 MB limit.`);
     }
 
     if (onProgress) {
@@ -2138,8 +1721,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setSubmissions(prev => [newSub, ...prev]);
     try {
-      const cleanData = JSON.parse(JSON.stringify(newSub));
-      await setDoc(doc(db, 'submissions', newSub.id), cleanData);
+      await setDoc(doc(db, 'submissions', newSub.id), newSub);
     } catch (e) {
       console.error('Error adding submission:', e);
     }
@@ -2154,8 +1736,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return [submission, ...prev];
     });
     try {
-      const cleanData = JSON.parse(JSON.stringify(submission));
-      await setDoc(doc(db, 'submissions', submission.id), cleanData);
+      await setDoc(doc(db, 'submissions', submission.id), submission);
     } catch (e) {
       console.error('Error saving submission:', e);
     }
@@ -2202,23 +1783,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Shabdkosh CRUD
   const saveShabdkosh = async (item: PawariShabdkoshItem) => {
     const isNew = !shabdkoshList.some(s => s.id === item.id);
-    const slug = ensureUniqueSlug(item.word_pawari, item.id, shabdkoshList, item.slug);
-    const itemToSave: PawariShabdkoshItem = {
-      ...item,
-      slug,
-      status: item.status || 'published'
-    };
-    const updated = shabdkoshList.filter(s => s.id !== itemToSave.id);
-    updated.unshift(itemToSave);
+    const updated = shabdkoshList.filter(s => s.id !== item.id);
+    updated.unshift(item);
     setShabdkoshList(updated);
     try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(updated)); } catch (e) {}
-    try { await setDoc(doc(db, 'shabdkosh', itemToSave.id), itemToSave); } catch (e) { console.error(e); }
+    try { await setDoc(doc(db, 'shabdkosh', item.id), item); } catch (e) { console.error(e); }
 
     logActivity({
       category: 'shabdkosh',
       action: isNew ? 'create' : 'update',
-      title: isNew ? `Added Shabdkosh Word "${itemToSave.word_pawari}"` : `Updated Shabdkosh Word "${itemToSave.word_pawari}"`,
-      details: `Meaning: ${itemToSave.meaning_hindi}, Category: ${itemToSave.category}`
+      title: isNew ? `Added Shabdkosh Word "${item.word_pawari}"` : `Updated Shabdkosh Word "${item.word_pawari}"`,
+      details: `Meaning: ${item.meaning_hindi}, Category: ${item.category}`
     }).catch(console.warn);
   };
 
@@ -2240,23 +1815,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Paheli CRUD
   const savePaheli = async (item: PawariPaheliItem) => {
     const isNew = !paheliList.some(p => p.id === item.id);
-    const slug = ensureUniqueSlug(item.answer_hindi || item.riddle_pawari, item.id, paheliList, item.slug);
-    const itemToSave: PawariPaheliItem = {
-      ...item,
-      slug,
-      status: item.status || 'published'
-    };
-    const updated = paheliList.filter(p => p.id !== itemToSave.id);
-    updated.unshift(itemToSave);
+    const updated = paheliList.filter(p => p.id !== item.id);
+    updated.unshift(item);
     setPaheliList(updated);
     try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(updated)); } catch (e) {}
-    try { await setDoc(doc(db, 'paheli', itemToSave.id), itemToSave); } catch (e) { console.error(e); }
+    try { await setDoc(doc(db, 'paheli', item.id), item); } catch (e) { console.error(e); }
 
     logActivity({
       category: 'paheli',
       action: isNew ? 'create' : 'update',
       title: isNew ? `Added Paheli Riddle` : `Updated Paheli Riddle`,
-      details: `Riddle: "${itemToSave.riddle_pawari.slice(0, 40)}...", Answer: ${itemToSave.answer_hindi}`
+      details: `Riddle: "${item.riddle_pawari.slice(0, 40)}...", Answer: ${item.answer_hindi}`
     }).catch(console.warn);
   };
 
@@ -2278,23 +1847,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Lokgeet CRUD
   const saveLokgeet = async (item: PawariLokgeetItem) => {
     const isNew = !lokgeetList.some(l => l.id === item.id);
-    const slug = ensureUniqueSlug(item.title_hindi || item.title_pawari, item.id, lokgeetList, item.slug);
-    const itemToSave: PawariLokgeetItem = {
-      ...item,
-      slug,
-      status: item.status || 'published'
-    };
-    const updated = lokgeetList.filter(l => l.id !== itemToSave.id);
-    updated.unshift(itemToSave);
+    const updated = lokgeetList.filter(l => l.id !== item.id);
+    updated.unshift(item);
     setLokgeetList(updated);
     try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
-    try { await setDoc(doc(db, 'lokgeet', itemToSave.id), itemToSave); } catch (e) { console.error(e); }
+    try { await setDoc(doc(db, 'lokgeet', item.id), item); } catch (e) { console.error(e); }
 
     logActivity({
       category: 'lokgeet',
       action: isNew ? 'create' : 'update',
-      title: isNew ? `Added Lokgeet "${itemToSave.title_pawari}"` : `Updated Lokgeet "${itemToSave.title_pawari}"`,
-      details: `Category: ${itemToSave.category}, Collector: ${itemToSave.singer_or_collector || 'N/A'}`
+      title: isNew ? `Added Lokgeet "${item.title_pawari}"` : `Updated Lokgeet "${item.title_pawari}"`,
+      details: `Category: ${item.category}, Collector: ${item.singer_or_collector || 'N/A'}`
     }).catch(console.warn);
   };
 
@@ -2345,33 +1908,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }).catch(console.warn);
   };
 
-  const saveQuizCertificate = async (cert: QuizCertificate) => {
-    const newEntry: QuizLeaderboardEntry = {
-      ...cert,
-      created_at: new Date().toISOString()
-    };
-    const updated = [newEntry, ...quizLeaderboard.filter(e => e.id !== cert.id)]
-      .sort((a, b) => b.percentage - a.percentage || b.quiz_score - a.quiz_score);
-    setQuizLeaderboard(updated);
-    try { localStorage.setItem('pawari_quiz_leaderboard', JSON.stringify(updated)); } catch (e) {}
-    try { await setDoc(doc(db, 'quiz_leaderboard', cert.id), newEntry); } catch (e) { console.error(e); }
-  };
-
   // Public User Contributions
-  const submitPublicContribution = async (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'writers' | 'cultural_quizzes' | 'reviews', itemData: any) => {
+  const submitPublicContribution = async (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books', itemData: any) => {
     const id = 'contrib_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-    const titleForSlug = itemData.title_hindi || itemData.name_hindi || itemData.title_pawari || itemData.title_english || itemData.word_pawari || itemData.riddle_pawari || 'submission';
-    const slug = ensureUniqueSlug(titleForSlug, id, []);
     const newItem = {
       ...itemData,
       id: itemData.id || id,
-      slug: itemData.slug || slug,
-      status: itemData.status || 'pending',
-      submitted_at: itemData.submitted_at || new Date().toISOString(),
+      status: 'pending' as const,
       created_at: itemData.created_at || new Date().toISOString()
     };
-
-    const targetCollection = (type === 'reviews') ? 'blogs' : (type === 'cultural_quizzes') ? 'quiz_questions' : type;
 
     if (type === 'shabdkosh') {
       const updated = [newItem as PawariShabdkoshItem, ...shabdkoshList];
@@ -2385,83 +1930,54 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const updated = [newItem as PawariLokgeetItem, ...lokgeetList];
       setLokgeetList(updated);
       try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
-    } else if (type === 'blogs' || type === 'reviews') {
-      const blogItem = { ...newItem, category: type === 'reviews' ? 'समीक्षा' : (newItem.category || 'आलेख') };
-      const updated = [blogItem as BlogItem, ...blogs];
+    } else if (type === 'blogs') {
+      const updated = [newItem as BlogItem, ...blogs];
       setBlogs(updated);
       try { localStorage.setItem('local_blogs_cache', JSON.stringify(updated)); } catch (e) {}
     } else if (type === 'books') {
       const updated = [newItem as BookItem, ...books];
       setBooks(updated);
       try { localStorage.setItem('local_books_cache', JSON.stringify(updated)); } catch (e) {}
-    } else if (type === 'writers') {
-      const updated = [newItem as PawariWriterItem, ...writers];
-      setWriters(updated);
-      try { localStorage.setItem('pawari_writers_cache', JSON.stringify(updated)); } catch (e) {}
-    } else if (type === 'cultural_quizzes') {
-      const updated = [newItem as QuizQuestion, ...quizQuestions];
-      setQuizQuestions(updated);
-      try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(updated)); } catch (e) {}
     }
 
-    try { await setDoc(doc(db, targetCollection, newItem.id), newItem); } catch (e) { console.error(e); }
+    try { await setDoc(doc(db, type, newItem.id), newItem); } catch (e) { console.error(e); }
 
     logActivity({
-      category: type === 'shabdkosh' ? 'shabdkosh' : type === 'paheli' ? 'paheli' : type === 'lokgeet' ? 'lokgeet' : type === 'blogs' || type === 'reviews' ? 'blogs' : type === 'books' ? 'books' : 'general',
+      category: type === 'shabdkosh' ? 'shabdkosh' : type === 'paheli' ? 'paheli' : type === 'lokgeet' ? 'lokgeet' : type === 'blogs' ? 'blogs' : 'books',
       action: 'create',
       title: `New Public User Submission (${type.toUpperCase()})`,
-      details: `Submitted by: ${itemData.contributor_name || itemData.name_hindi || itemData.author || itemData.authors || 'Public Reader'}`
+      details: `Submitted by: ${itemData.contributor_name || itemData.author || itemData.authors || 'Public Reader'}`
     }).catch(console.warn);
   };
 
-  const updateContributionStatus = async (
-    type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'writers' | 'cultural_quizzes' | 'submissions', 
-    id: string, 
-    status: string,
-    editorial_comments?: string
-  ) => {
-    const updatePayload: any = { status };
-    if (editorial_comments !== undefined) {
-      updatePayload.editorial_comments = editorial_comments;
-    }
-
+  const updateContributionStatus = async (type: 'shabdkosh' | 'paheli' | 'lokgeet' | 'blogs' | 'books' | 'submissions', id: string, status: 'approved' | 'pending' | 'rejected') => {
     if (type === 'shabdkosh') {
-      const updated = shabdkoshList.map(item => item.id === id ? { ...item, ...updatePayload } : item);
+      const updated = shabdkoshList.map(item => item.id === id ? { ...item, status } : item);
       setShabdkoshList(updated);
       try { localStorage.setItem('pawari_shabdkosh_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'shabdkosh', id), updatePayload); } catch (e) { console.error(e); }
+      try { await updateDoc(doc(db, 'shabdkosh', id), { status }); } catch (e) { console.error(e); }
     } else if (type === 'paheli') {
-      const updated = paheliList.map(item => item.id === id ? { ...item, ...updatePayload } : item);
+      const updated = paheliList.map(item => item.id === id ? { ...item, status } : item);
       setPaheliList(updated);
       try { localStorage.setItem('pawari_paheli_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'paheli', id), updatePayload); } catch (e) { console.error(e); }
+      try { await updateDoc(doc(db, 'paheli', id), { status }); } catch (e) { console.error(e); }
     } else if (type === 'lokgeet') {
-      const updated = lokgeetList.map(item => item.id === id ? { ...item, ...updatePayload } : item);
+      const updated = lokgeetList.map(item => item.id === id ? { ...item, status } : item);
       setLokgeetList(updated);
       try { localStorage.setItem('pawari_lokgeet_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'lokgeet', id), updatePayload); } catch (e) { console.error(e); }
+      try { await updateDoc(doc(db, 'lokgeet', id), { status }); } catch (e) { console.error(e); }
     } else if (type === 'blogs') {
-      const updated = blogs.map(item => item.id === id ? { ...item, ...updatePayload } : item);
+      const updated = blogs.map(item => item.id === id ? { ...item, status } : item);
       setBlogs(updated);
       try { localStorage.setItem('local_blogs_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'blogs', id), updatePayload); } catch (e) { console.error(e); }
+      try { await updateDoc(doc(db, 'blogs', id), { status }); } catch (e) { console.error(e); }
     } else if (type === 'books') {
-      const updated = books.map(item => item.id === id ? { ...item, ...updatePayload } : item);
+      const updated = books.map(item => item.id === id ? { ...item, status } : item);
       setBooks(updated);
       try { localStorage.setItem('local_books_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'books', id), updatePayload); } catch (e) { console.error(e); }
-    } else if (type === 'writers') {
-      const updated = writers.map(item => item.id === id ? { ...item, ...updatePayload } : item);
-      setWriters(updated);
-      try { localStorage.setItem('pawari_writers_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'writers', id), updatePayload); } catch (e) { console.error(e); }
-    } else if (type === 'cultural_quizzes') {
-      const updated = quizQuestions.map(item => item.id === id ? { ...item, ...updatePayload } : item);
-      setQuizQuestions(updated);
-      try { localStorage.setItem('pawari_quiz_cache', JSON.stringify(updated)); } catch (e) {}
-      try { await updateDoc(doc(db, 'quiz_questions', id), updatePayload); } catch (e) { console.error(e); }
+      try { await updateDoc(doc(db, 'books', id), { status }); } catch (e) { console.error(e); }
     } else if (type === 'submissions') {
-      const mappedStatus = status === 'approved' || status === 'published' ? 'accepted' : status === 'rejected' ? 'rejected' : 'pending';
+      const mappedStatus = status === 'approved' ? 'accepted' : status === 'rejected' ? 'rejected' : 'pending';
       const updated = submissions.map(item => item.id === id ? { ...item, status: mappedStatus as any } : item);
       setSubmissions(updated);
       try { await updateDoc(doc(db, 'submissions', id), { status: mappedStatus }); } catch (e) { console.error(e); }
@@ -2484,22 +2000,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveView,
         selectedArticleId,
         setSelectedArticleId,
-        selectedIssueId,
-        setSelectedIssueId,
-        selectedBookId,
-        setSelectedBookId,
-        selectedBlogId,
-        setSelectedBlogId,
-        selectedWriterId,
-        setSelectedWriterId,
-        selectedLokgeetId,
-        setSelectedLokgeetId,
-        selectedPaheliId,
-        setSelectedPaheliId,
-        selectedShabdkoshId,
-        setSelectedShabdkoshId,
-        searchQuery,
-        setSearchQuery,
         isNotFound,
         setIsNotFound,
         activeAdminTab,
@@ -2509,15 +2009,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         issues,
         books,
         blogs,
-        writers,
         shabdkoshList,
         paheliList,
         lokgeetList,
-        lokgeetCategories,
-        saveLokgeetCategory,
-        deleteLokgeetCategory,
         quizQuestions,
-        quizLeaderboard,
         pages,
         editorialMembers,
         announcements,
@@ -2541,13 +2036,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteBook,
         saveBlog,
         deleteBlog,
-        submitPublicBlog,
-        approveBlog,
-        rejectBlog,
-        publishBlog,
-        unpublishBlog,
-        saveWriter,
-        deleteWriter,
         saveShabdkosh,
         deleteShabdkosh,
         savePaheli,
@@ -2556,7 +2044,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteLokgeet,
         saveQuizQuestion,
         deleteQuizQuestion,
-        saveQuizCertificate,
         submitPublicContribution,
         updateContributionStatus,
         savePage,
@@ -2573,7 +2060,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         saveSubmission,
         updateSubmissionStatus,
         deleteSubmission,
-        seedDatabaseIfEmpty
+        seedDatabaseIfEmpty,
+        fetchArticleByIdOrSlug,
+        syncAllArticlesToCloud
       }}
     >
       {children}
